@@ -43,8 +43,8 @@ package_android() {
         cp -r out/Release/build-android-arm64-v8a/install/include/* $ANDROIDPKGNAME/include/
 
         # echo "move $ANDROIDPKGNAME to sdk"
-        rm -rf android/lib-audio-utils/src/main/jni/$ANDROIDPKGNAME
-        mv $ANDROIDPKGNAME android/lib-audio-utils/src/main/jni/
+        rm -rf android/lib-audio-utils/$ANDROIDPKGNAME
+        mv $ANDROIDPKGNAME android/lib-audio-utils/
     else
         echo "Need Run ./cross_build.sh Release Frist !"
     fi

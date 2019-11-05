@@ -1,4 +1,5 @@
-#out
+*.iml
+*.tar.gz
 out/
 lib-audio-utils/build/
 
@@ -11,7 +12,7 @@ android/app/build
 android/app/app.iml
 android/lib-audio-utils/build
 android/lib-audio-utils/libs
-android/lib-audio-utils/src/main/libs
+android/lib-audio-utils/audio-utils-android-lib
 android/lib-audio-utils/src/main/obj
 android/lib-audio-utils/src/main/jni/effect-android-lib
 

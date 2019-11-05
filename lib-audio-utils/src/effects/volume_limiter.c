@@ -101,13 +101,13 @@ static int limiter_set(EffectContext *ctx, const char *key,
 
         sdl_mutex_lock(priv->sdl_mutex);
         if (0 == strcasecmp(entry->key, "limiter_threshold_in_dB")) {
-            priv->limiter_threshold_in_dB = atof(entry->value);
+            priv->limiter_threshold_in_dB = strtod(entry->value, NULL);
         } else if (0 == strcasecmp(entry->key, "output_gain_in_dB")) {
-            priv->output_gain_in_dB = atof(entry->value);
+            priv->output_gain_in_dB = strtod(entry->value, NULL);
         } else if (0 == strcasecmp(entry->key, "attack_time_in_ms")) {
-            priv->attack_time_in_ms = atof(entry->value);
+            priv->attack_time_in_ms = strtod(entry->value, NULL);
         } else if (0 == strcasecmp(entry->key, "decay_time_in_ms")) {
-            priv->decay_time_in_ms = atof(entry->value);
+            priv->decay_time_in_ms = strtod(entry->value, NULL);
         } else if (0 == strcasecmp(entry->key, "Switch")) {
             if (0 == strcasecmp(entry->value, "Off")) {
                 priv->effect_on = false;

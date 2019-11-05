@@ -141,17 +141,17 @@ static int noise_suppression_set(EffectContext *ctx, const char *key,
             priv->bandwidth_mid2high =
                 atoi(entry->value) * ACTUAL_LEN / SAMPLE_RATE_IN_HZ;
         } else if (0 == strcasecmp(entry->key, "all_band_gain_threshold")) {
-            priv->gain_threshold_all = atof(entry->value);
+            priv->gain_threshold_all = strtod(entry->value, NULL);
         } else if (0 == strcasecmp(entry->key, "low_gain")) {
-            priv->gain_threshold_low = atof(entry->value);
+            priv->gain_threshold_low = strtod(entry->value, NULL);
         } else if (0 == strcasecmp(entry->key, "mid_gain")) {
-            priv->gain_threshold_mid = atof(entry->value);
+            priv->gain_threshold_mid = strtod(entry->value, NULL);
         } else if (0 == strcasecmp(entry->key, "high_gain")) {
-            priv->gain_threshold_high = atof(entry->value);
+            priv->gain_threshold_high = strtod(entry->value, NULL);
         } else if (0 == strcasecmp(entry->key, "mid_freq_gain")) {
-            priv->mid_freq_gain = atof(entry->value);
+            priv->mid_freq_gain = strtod(entry->value, NULL);
         } else if (0 == strcasecmp(entry->key, "is_enhance_mid_freq")) {
-            priv->is_enhance_mid_freq = atoi(entry->value);
+            priv->is_enhance_mid_freq = strtod(entry->value, NULL);
         } else if (0 == strcasecmp(entry->key, "Switch")) {
             if (0 == strcasecmp(entry->value, "Off")) {
                 priv->is_noise_suppression_on = false;

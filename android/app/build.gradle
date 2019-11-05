@@ -41,5 +41,15 @@ dependencies {
 
     testCompile 'junit:junit:4.12'
 
-    compile project(path: ':lib-audio-utils')
+    compile project(':audio_utils-java')
+
+    all32Compile project(':audio_utils-armv5')
+    all32Compile project(':audio_utils-armv7a')
+    all32Compile project(':audio_utils-x86')
+
+    all64Compile project(':audio_utils-armv5')
+    all64Compile project(':audio_utils-armv7a')
+    all64Compile project(':audio_utils-arm64')
+    all64Compile project(':audio_utils-x86')
+    all64Compile project(':audio_utils-x86_64')
 }

@@ -8,7 +8,16 @@ Android:
     Android Need [NDK r14b](https://dl.google.com/android/repository/android-ndk-r14b-linux-x86_64.zip)
     ./cross_build.sh
     ./package.sh
-    cd android/lib-audio-utils/src/main/jni/
+    cd android/audio_utils-armv7a/src/main/jni/
+    ndk-build
+    cd -
+    cd android/audio_utils-armv5/src/main/jni/
+    ndk-build
+    cd android/audio_utils-arm64/src/main/jni/
+    ndk-build
+    cd android/audio_utils-x86/src/main/jni/
+    ndk-build
+    cd android/audio_utils-x86_64/src/main/jni/
     ndk-build
     install the apk to android,now you can use the score on android
 
