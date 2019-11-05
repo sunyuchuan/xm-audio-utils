@@ -25,7 +25,7 @@ import java.util.Iterator;
 
 import com.xmly.audio.effect.audio.AudioCapturer;
 import com.xmly.audio.effect.audio.AudioPlayer;
-import com.xmly.audio.utils.XMAudioUtils;
+import com.xmly.audio.utils.XmAudioUtils;
 
 public class MainActivity extends AppCompatActivity implements AudioCapturer.OnAudioFrameCapturedListener, View.OnClickListener, RadioGroup.OnCheckedChangeListener {
     private final static String TAG = MainActivity.class.getName();
@@ -49,7 +49,7 @@ public class MainActivity extends AppCompatActivity implements AudioCapturer.OnA
     private Button mBtnLimitSwitch;
     private Thread mPlayOrgThread;
     private Thread mPlayEffectThread;
-    private XMAudioUtils mAudioUtils;
+    private XmAudioUtils mAudioUtils;
     private HashMap<String, String> mEffectsInfoMap = new HashMap<String, String>();
     private volatile boolean abort = false;
     private Handler mHandler = null;
@@ -63,7 +63,7 @@ public class MainActivity extends AppCompatActivity implements AudioCapturer.OnA
         setContentView(R.layout.activity_main);
 
         getSystemPermission();
-        mAudioUtils = new XMAudioUtils();
+        mAudioUtils = new XmAudioUtils();
 
         mBtnNsSwitch = findViewById(R.id.btn_ns);
         mBtnNsSwitch.setOnClickListener(this);
@@ -289,7 +289,7 @@ public class MainActivity extends AppCompatActivity implements AudioCapturer.OnA
                 Log.i(TAG, "addAudioEffects cost time "+(float)(endTime - startTime)/(float)1000);
                 JsonUtils.createOutputFile(mix);
                 startTime = System.currentTimeMillis();
-                if (mAudioUtils.mix(effect, SAMPLE_RATE_44100, MONO_CHANNELS, jsonPath, mix, XMAudioUtils.ENCODER_MEDIA_CODEC) < 0) {
+                if (mAudioUtils.mix(effect, SAMPLE_RATE_44100, MONO_CHANNELS, jsonPath, mix, XmAudioUtils.ENCODER_MEDIA_CODEC) < 0) {
                     Log.e(TAG, "mix error");
                 }
                 endTime = System.currentTimeMillis();

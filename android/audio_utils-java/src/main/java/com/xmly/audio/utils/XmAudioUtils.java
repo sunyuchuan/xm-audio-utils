@@ -7,8 +7,8 @@ import android.util.Log;
  * Created by sunyc on 19-10-10.
  */
 
-public class XMAudioUtils {
-    private static final String TAG = "XMAudioUtils";
+public class XmAudioUtils {
+    private static final String TAG = "XmAudioUtils";
     private static final int DefaultSampleRate = 44100;
     private static final int DefaultChannelNumber = 1;
     public static final int ENCODER_FFMPEG = 0;
@@ -31,7 +31,7 @@ public class XMAudioUtils {
     //是否加载过so
     private static boolean mIsLibLoaded = false;
     //本地XmAudioUtils对象实例
-    private long mNativeXMAudioUtils = 0;
+    private long mNativeXmAudioUtils = 0;
 
     private static final LibLoader sLocalLibLoader = new LibLoader() {
         @Override
@@ -43,7 +43,7 @@ public class XMAudioUtils {
     };
 
     private static void loadLibrariesOnce(LibLoader libLoader) {
-        synchronized (XMAudioUtils.class) {
+        synchronized (XmAudioUtils.class) {
             if (!mIsLibLoaded) {
                 if (libLoader == null)
                     libLoader = sLocalLibLoader;
@@ -60,13 +60,13 @@ public class XMAudioUtils {
         native_setup();
     }
 
-    public XMAudioUtils()
+    public XmAudioUtils()
     {
         loadLibrariesOnce(sLocalLibLoader);
         init();
     }
 
-    public XMAudioUtils(LibLoader libLoader)
+    public XmAudioUtils(LibLoader libLoader)
     {
         loadLibrariesOnce(libLoader);
         init();

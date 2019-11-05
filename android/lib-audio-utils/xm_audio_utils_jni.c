@@ -8,7 +8,7 @@
 #include <assert.h>
 #include <pthread.h>
 
-#define JNI_CLASS_AUDIO_UTILS "com/xmly/audio/utils/XMAudioUtils"
+#define JNI_CLASS_AUDIO_UTILS "com/xmly/audio/utils/XmAudioUtils"
 
 extern void SetFFmpegLogLevel(int log_level);
 extern void RegisterFFmpeg();
@@ -17,7 +17,7 @@ extern bool J4A_ExceptionCheck__catchAll(JNIEnv *env);
 typedef struct xm_audio_utils_fields_t {
     pthread_mutex_t mutex;
     jclass clazz;
-    jfieldID field_mNativeXMAudioUtils;
+    jfieldID field_mNativeXmAudioUtils;
 } xm_audio_utils_fields_t;
 
 static xm_audio_utils_fields_t g_clazz;
@@ -25,12 +25,12 @@ static JavaVM* g_jvm;
 
 jlong jni_mNativeXMAudioUtils_get(JNIEnv *env, jobject thiz)
 {
-    return (*env)->GetLongField(env, thiz, g_clazz.field_mNativeXMAudioUtils);
+    return (*env)->GetLongField(env, thiz, g_clazz.field_mNativeXmAudioUtils);
 }
 
 static void jni_mNativeXMAudioUtils_set(JNIEnv *env, jobject thiz, jlong value)
 {
-    (*env)->SetLongField(env, thiz, g_clazz.field_mNativeXMAudioUtils, value);
+    (*env)->SetLongField(env, thiz, g_clazz.field_mNativeXmAudioUtils, value);
 }
 
 static XmAudioUtils *jni_get_xm_audio_utils(JNIEnv *env, jobject thiz)
@@ -287,7 +287,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved)
     IJK_FIND_JAVA_CLASS(env, g_clazz.clazz, JNI_CLASS_AUDIO_UTILS);
     (*env)->RegisterNatives(env, g_clazz.clazz, g_methods, NELEM(g_methods));
 
-    g_clazz.field_mNativeXMAudioUtils = (*env)->GetFieldID(env, g_clazz.clazz, "mNativeXMAudioUtils", "J");
+    g_clazz.field_mNativeXmAudioUtils = (*env)->GetFieldID(env, g_clazz.clazz, "mNativeXmAudioUtils", "J");
 
     RegisterFFmpeg();
 
