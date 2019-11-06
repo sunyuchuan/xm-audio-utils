@@ -166,56 +166,45 @@ end:
     return ret;
 }
 
-int xm_audio_utils_decode(XmAudioUtils *self, const char *in_audio_path,
-    const char *out_pcm_file, int out_sample_rate, int out_channels) {
+int xm_audio_utils_get_decoded_frame(XmAudioUtils *self,
+    short *buffer, int buffer_size_in_short, bool loop) {
     LogInfo("%s\n", __func__);
     int ret = -1;
-    if(NULL == self || NULL == in_audio_path
-        || NULL == out_pcm_file) {
+    if(NULL == self || NULL == buffer
+        || buffer_size_in_short <= 0) {
         return ret;
     }
+
+    ret = xm_audio_decoder_get_decoded_frame(self->decoder, buffer, buffer_size_in_short, loop);
+    if (ret == AVERROR_EOF) ret = 0;
+    return ret;
+}
+
+void xm_audio_utils_decoder_seekTo(XmAudioUtils *self, int seek_time_ms) {
+    LogInfo("%s\n", __func__);
+    if(NULL == self) {
+        return;
+    }
+
+    xm_audio_decoder_seekTo(self->decoder, seek_time_ms);
+}
+
+int xm_audio_utils_decoder_create(XmAudioUtils *self, const char *in_audio_path,
+    int out_sample_rate, int out_channels) {
+    LogInfo("%s\n", __func__);
+    if(NULL == self || NULL == in_audio_path) {
+        return -1;
+    }
     xm_audio_decoder_freep(&self->decoder);
-
-    int buffer_size_in_short = 1024;
-    short *buffer = NULL;
-
-    FILE *pcm_writer = NULL;
-    if ((ret = ae_open_file(&pcm_writer, out_pcm_file, true)) < 0) {
-        LogError("%s open output file %s failed\n", __func__, out_pcm_file);
-        goto end;
-    }
-
-    buffer = (short *)calloc(sizeof(short), buffer_size_in_short);
-    if (!buffer) {
-        LogError("%s calloc buffer failed\n", __func__);
-        ret = AEERROR_NOMEM;
-        goto end;
-    }
 
     self->decoder = xm_audio_decoder_create(in_audio_path,
         out_sample_rate, out_channels);
     if (self->decoder == NULL) {
         LogError("xm_audio_decoder_create failed\n");
-        ret = -1;
-        goto end;
+        return -1;
     }
 
-    while (true) {
-        ret = xm_audio_decoder_get_decoded_frame(self->decoder, buffer, buffer_size_in_short, false);
-        if (ret <= 0) break;
-        fwrite(buffer, sizeof(short), ret, pcm_writer);
-    }
-    if (ret == AVERROR_EOF) ret = 0;
-
-end:
-    if (buffer) {
-        free(buffer);
-        buffer = NULL;
-    }
-    if (pcm_writer) {
-        fclose(pcm_writer);
-        pcm_writer = NULL;
-    }
+    return 0;
 }
 
 XmAudioUtils *xm_audio_utils_create() {

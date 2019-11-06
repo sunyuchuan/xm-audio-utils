@@ -10,13 +10,13 @@ LOCAL_MODULE := ijkffmpeg-$(TARGET_ARCH_ABI)
 LOCAL_SRC_FILES := $(MY_LIB_PATH)/libijkffmpeg-$(TARGET_ARCH_ABI).so
 include $(PREBUILT_SHARED_LIBRARY)
 
-# libaudio_effect
+# libaudio_utils
 include $(CLEAR_VARS)
 LOCAL_MODULE := audio_utils
 LOCAL_SRC_FILES := $(MY_LIB_PATH)/lib/libaudio_utils.a
 include $(PREBUILT_STATIC_LIBRARY)
 
-# audio-effect-jni
+# libxmaudio_utils
 include $(CLEAR_VARS)
 
 ifeq ($(TARGET_ARCH_ABI),armeabi-v7a)

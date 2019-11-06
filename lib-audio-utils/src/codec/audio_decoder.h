@@ -6,6 +6,10 @@
 #include "ffmpeg_utils.h"
 
 typedef struct AudioDecoder {
+    // seek parameters
+    int seek_pos_ms;
+    bool seek_req;
+
     // Output parameters
     int dst_sample_rate_in_Hz;
     int dst_nb_channels;
@@ -33,6 +37,7 @@ void xm_audio_decoder_free(AudioDecoder *decoder);
 void xm_audio_decoder_freep(AudioDecoder **decoder);
 int xm_audio_decoder_get_decoded_frame(AudioDecoder *decoder,
     short *buffer, int buffer_size_in_short, bool loop);
+void xm_audio_decoder_seekTo(AudioDecoder *decoder, int seek_pos_ms);
 AudioDecoder *xm_audio_decoder_create(const char *file_addr,
     int sample_rate, int channels);
 #endif // AUDIO_DECODER_H

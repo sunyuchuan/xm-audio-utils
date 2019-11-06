@@ -87,6 +87,8 @@ extern int AudioFifoPut(AVAudioFifo* fifo, const int nb_samples, void** buffer);
 
 extern int AudioFifoGet(AVAudioFifo* fifo, const int nb_samples, void** buffer);
 
+extern void AudioFifoReset(AVAudioFifo* fifo);
+
 // extern void LogPacket(const AVFormatContext* fmt_ctx, const AVPacket* pkt);
 
 extern float UpdateFactorS16(const float factor, const int sum);

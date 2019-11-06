@@ -605,6 +605,10 @@ int AudioFifoGet(AVAudioFifo* fifo, const int nb_samples, void** buffer) {
     return ret;
 }
 
+void AudioFifoReset(AVAudioFifo* fifo) {
+    if (fifo != NULL) av_audio_fifo_reset(fifo);
+}
+
 // void LogPacket(const AVFormatContext* fmt_ctx, const AVPacket* pkt) {
 //     AVRational* time_base = &fmt_ctx->streams[pkt->stream_index]->time_base;
 

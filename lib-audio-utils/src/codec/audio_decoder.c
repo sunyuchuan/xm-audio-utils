@@ -3,6 +3,8 @@
 #include "log.h"
 #include "error_def.h"
 
+#define milliseconds_to_fftime(ms) (av_rescale(ms, AV_TIME_BASE, 1000))
+
 static inline void free_input_media_context(AVFormatContext **fmt_ctx,
                                          AVCodecContext **dec_ctx) {
     LogInfo("%s.\n", __func__);
@@ -77,6 +79,23 @@ static int read_audio_packet(AudioDecoder *decoder, AVPacket *pkt) {
         return ret;
 
     InitPacket(pkt);
+
+    if (decoder->seek_req) {
+        AVStream *audio_stream = decoder->fmt_ctx->streams[decoder->audio_stream_index];
+        int64_t stream_start_pos = (audio_stream->start_time != AV_NOPTS_VALUE ? audio_stream->start_time : 0);
+        int64_t seek_pos = milliseconds_to_fftime(decoder->seek_pos_ms);
+        ret = avformat_seek_file(decoder->fmt_ctx, -1, INT64_MIN,
+            seek_pos + stream_start_pos, INT64_MAX, AVSEEK_FLAG_BACKWARD);
+        if (ret < 0) {
+            LogError("%s: error while seeking.\n", __func__);
+            return ret;
+        } else {
+            LogInfo("%s: avformat_seek_file success.\n", __func__);
+            AudioFifoReset(decoder->audio_fifo);
+        }
+        decoder->seek_pos_ms = 0;
+        decoder->seek_req = false;
+    }
 
     while (1) {
         ret = av_read_frame(decoder->fmt_ctx, pkt);
@@ -195,6 +214,8 @@ static int init_decoder(AudioDecoder *decoder, const int sample_rate_in_Hz,
     decoder->max_dst_nb_samples = MAX_NB_SAMPLES;
     decoder->dst_nb_samples = MAX_NB_SAMPLES;
     decoder->audio_stream_index = -1;
+    decoder->seek_pos_ms = 0;
+    decoder->seek_req = false;
 
     // Allocate sample buffer for resampler
     ret = AllocateSampleBuffer(&(decoder->dst_data), nb_channels,
@@ -326,6 +347,16 @@ int xm_audio_decoder_get_decoded_frame(AudioDecoder *decoder, short *buffer,
 
 end:
     return ret;
+}
+
+void xm_audio_decoder_seekTo(AudioDecoder *decoder, int seek_pos_ms) {
+    LogInfo("%s\n", __func__);
+    if (NULL == decoder)
+        return;
+
+    decoder->seek_req = true;
+    decoder->seek_pos_ms = seek_pos_ms;
+    AudioFifoReset(decoder->audio_fifo);
 }
 
 AudioDecoder *xm_audio_decoder_create(const char *file_addr,
