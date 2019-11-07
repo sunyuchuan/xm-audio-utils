@@ -350,12 +350,12 @@ end:
 }
 
 void xm_audio_decoder_seekTo(AudioDecoder *decoder, int seek_pos_ms) {
-    LogInfo("%s\n", __func__);
+    LogInfo("%s seek_pos_ms %d\n", __func__, seek_pos_ms);
     if (NULL == decoder)
         return;
 
     decoder->seek_req = true;
-    decoder->seek_pos_ms = seek_pos_ms;
+    decoder->seek_pos_ms = seek_pos_ms < 0 ? 0 : seek_pos_ms;
     AudioFifoReset(decoder->audio_fifo);
 }
 

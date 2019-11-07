@@ -12,7 +12,8 @@
 
 struct XmAudioUtils {
     volatile int ref_count;
-    AudioDecoder *decoder;
+    AudioDecoder *bgm_decoder;
+    AudioDecoder *music_decoder;
     XmEffectContext *effects_ctx;
     XmMixerContext *mixer_ctx;
     pthread_mutex_t mutex;
@@ -50,8 +51,11 @@ void xm_audio_utils_free(XmAudioUtils *self) {
     if (NULL == self)
         return;
 
-    if (self->decoder) {
-        xm_audio_decoder_freep(&self->decoder);
+    if (self->bgm_decoder) {
+        xm_audio_decoder_freep(&self->bgm_decoder);
+    }
+    if (self->music_decoder) {
+        xm_audio_decoder_freep(&self->music_decoder);
     }
     if (self->effects_ctx) {
         xm_audio_effect_stop(self->effects_ctx);
@@ -166,40 +170,77 @@ end:
     return ret;
 }
 
+static AudioDecoder** get_decoder(XmAudioUtils *self, int decoder_type) {
+    if(NULL == self) {
+        return NULL;
+    }
+
+    AudioDecoder **decoder = NULL;
+    switch(decoder_type) {
+        case DECODER_BGM:
+            decoder = &(self->bgm_decoder);
+            break;
+        case DECODER_MUSIC:
+            decoder = &(self->music_decoder);
+            break;
+        default:
+            decoder = NULL;
+            LogError("%s invalid decoder_type.\n", __func__);
+            break;
+    }
+    return decoder;
+}
+
 int xm_audio_utils_get_decoded_frame(XmAudioUtils *self,
-    short *buffer, int buffer_size_in_short, bool loop) {
-    LogInfo("%s\n", __func__);
+    short *buffer, int buffer_size_in_short, bool loop, int decoder_type) {
     int ret = -1;
     if(NULL == self || NULL == buffer
         || buffer_size_in_short <= 0) {
         return ret;
     }
 
-    ret = xm_audio_decoder_get_decoded_frame(self->decoder, buffer, buffer_size_in_short, loop);
+    AudioDecoder **decoder = get_decoder(self, decoder_type);
+    if (!decoder || !*decoder) {
+        return ret;
+    }
+
+    ret = xm_audio_decoder_get_decoded_frame(*decoder, buffer, buffer_size_in_short, loop);
     if (ret == AVERROR_EOF) ret = 0;
     return ret;
 }
 
-void xm_audio_utils_decoder_seekTo(XmAudioUtils *self, int seek_time_ms) {
-    LogInfo("%s\n", __func__);
+void xm_audio_utils_decoder_seekTo(XmAudioUtils *self,
+        int seek_time_ms, int decoder_type) {
+    LogInfo("%s seek_time_ms %d\n", __func__, seek_time_ms);
     if(NULL == self) {
         return;
     }
 
-    xm_audio_decoder_seekTo(self->decoder, seek_time_ms);
+    AudioDecoder **decoder = get_decoder(self, decoder_type);
+    if (!decoder || !*decoder) {
+        return;
+    }
+
+    xm_audio_decoder_seekTo(*decoder, seek_time_ms);
 }
 
-int xm_audio_utils_decoder_create(XmAudioUtils *self, const char *in_audio_path,
-    int out_sample_rate, int out_channels) {
+int xm_audio_utils_decoder_create(XmAudioUtils *self,
+    const char *in_audio_path, int out_sample_rate,
+    int out_channels, int decoder_type) {
     LogInfo("%s\n", __func__);
-    if(NULL == self || NULL == in_audio_path) {
+    if (NULL == self || NULL == in_audio_path) {
         return -1;
     }
-    xm_audio_decoder_freep(&self->decoder);
 
-    self->decoder = xm_audio_decoder_create(in_audio_path,
+    AudioDecoder **decoder = get_decoder(self, decoder_type);
+    if (!decoder) {
+        return -1;
+    }
+    xm_audio_decoder_freep(decoder);
+
+    *decoder = xm_audio_decoder_create(in_audio_path,
         out_sample_rate, out_channels);
-    if (self->decoder == NULL) {
+    if (*decoder == NULL) {
         LogError("xm_audio_decoder_create failed\n");
         return -1;
     }

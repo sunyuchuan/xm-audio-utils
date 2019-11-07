@@ -232,35 +232,63 @@ LABEL_RETURN:
 }
 
 static int
-XMAudioUtils_decode(JNIEnv *env, jobject thiz, jstring inAudioPath,
-    jstring outPcmPath, jint outSampleRate, jint outChannels)
+XMAudioUtils_get_decoded_frame(JNIEnv *env, jobject thiz,
+    jshortArray buffer, jint buffer_size_in_short, jboolean loop, jint decoderType)
+{
+    int ret = -1;
+    XmAudioUtils *ctx = jni_get_xm_audio_utils(env, thiz);
+    JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: get_decoded_frame: null ctx", LABEL_RETURN);
+
+    jshort *buffer_ = (*env)->GetShortArrayElements(env, buffer, NULL);
+    ret = xm_audio_utils_get_decoded_frame(ctx, buffer_,
+        buffer_size_in_short, loop, decoderType);
+    (*env)->ReleaseShortArrayElements(env, buffer, buffer_, 0);
+
+LABEL_RETURN:
+    xmau_dec_ref_p(&ctx);
+    return ret;
+}
+
+static void
+XMAudioUtils_decoder_seekTo(JNIEnv *env, jobject thiz,
+    jint seekTimeMs, jint decoderType)
+{
+    LOGI("%s\n", __func__);
+    XmAudioUtils *ctx = jni_get_xm_audio_utils(env, thiz);
+    JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: decoder_seekTo: null ctx", LABEL_RETURN);
+
+    xm_audio_utils_decoder_seekTo(ctx, seekTimeMs, decoderType);
+LABEL_RETURN:
+    xmau_dec_ref_p(&ctx);
+}
+
+static int
+XMAudioUtils_decoder_create(JNIEnv *env, jobject thiz,
+    jstring inAudioPath, jint outSampleRate, jint outChannels, jint decoderType)
 {
     LOGI("%s\n", __func__);
     int ret = -1;
     XmAudioUtils *ctx = jni_get_xm_audio_utils(env, thiz);
-    JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: decode: null ctx", LABEL_RETURN);
+    JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: decoder_create: null ctx", LABEL_RETURN);
 
     const char *in_audio_path = NULL;
-    const char *out_pcm_path = NULL;
     if (inAudioPath)
         in_audio_path = (*env)->GetStringUTFChars(env, inAudioPath, 0);
-    if (outPcmPath)
-        out_pcm_path = (*env)->GetStringUTFChars(env, outPcmPath, 0);
 
-    ret = xm_audio_utils_decode(ctx, in_audio_path, out_pcm_path,
-        outSampleRate, outChannels);
+    ret = xm_audio_utils_decoder_create(ctx, in_audio_path,
+        outSampleRate, outChannels, decoderType);
 
     if (in_audio_path)
         (*env)->ReleaseStringUTFChars(env, inAudioPath, in_audio_path);
-    if (out_pcm_path)
-        (*env)->ReleaseStringUTFChars(env, outPcmPath, out_pcm_path);
 LABEL_RETURN:
     xmau_dec_ref_p(&ctx);
     return ret;
 }
 
 static JNINativeMethod g_methods[] = {
-    { "native_decode", "(Ljava/lang/String;Ljava/lang/String;II)I", (void *) XMAudioUtils_decode },
+    { "native_decoder_create", "(Ljava/lang/String;III)I", (void *) XMAudioUtils_decoder_create },
+    { "native_decoder_seekTo", "(II)V", (void *) XMAudioUtils_decoder_seekTo },
+    { "native_get_decoded_frame", "([SIZI)I", (void *) XMAudioUtils_get_decoded_frame },
     { "native_setup", "()V", (void *) XMAudioUtils_setup },
     { "native_set_log", "(IILjava/lang/String;)V", (void *) XMAudioUtils_set_log },
     { "native_add_effects", "(Ljava/lang/String;IILjava/lang/String;Ljava/lang/String;)I", (void *) XMAudioUtils_add_effects },

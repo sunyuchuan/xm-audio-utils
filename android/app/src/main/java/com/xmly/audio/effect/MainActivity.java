@@ -280,6 +280,7 @@ public class MainActivity extends AppCompatActivity implements AudioCapturer.OnA
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
+                // add voice effects
                 JsonUtils.createOutputFile(effect);
                 long startTime = System.currentTimeMillis();
                 if (mAudioUtils.addVoiceEffects(raw, SAMPLE_RATE_44100, MONO_CHANNELS, jsonPath, effect) < 0) {
@@ -287,6 +288,7 @@ public class MainActivity extends AppCompatActivity implements AudioCapturer.OnA
                 }
                 long endTime = System.currentTimeMillis();
                 Log.i(TAG, "addAudioEffects cost time "+(float)(endTime - startTime)/(float)1000);
+                // mix bgm music
                 JsonUtils.createOutputFile(mix);
                 startTime = System.currentTimeMillis();
                 if (mAudioUtils.mix(effect, SAMPLE_RATE_44100, MONO_CHANNELS, jsonPath, mix, XmAudioUtils.ENCODER_MEDIA_CODEC) < 0) {
@@ -294,9 +296,40 @@ public class MainActivity extends AppCompatActivity implements AudioCapturer.OnA
                 }
                 endTime = System.currentTimeMillis();
                 Log.i(TAG, "mix cost time "+(float)(endTime - startTime)/(float)1000);
-                mHandler.sendMessage(mHandler.obtainMessage(MSG_COMPLETED));
+                // decode final.m4a to final.pcm
+                startTime = System.currentTimeMillis();
+                mAudioUtils.decoder_create(mix, SAMPLE_RATE_44100, STEREO_CHANNELS, XmAudioUtils.DECODER_BGM);
+                mAudioUtils.decoder_seekTo(10000, XmAudioUtils.DECODER_BGM);
                 JsonUtils.createOutputFile(decode);
-                mAudioUtils.decode(mix, decode, SAMPLE_RATE_44100, STEREO_CHANNELS);
+                int bufferSize = 1024;
+                short[] buffer = new short[bufferSize];
+                File outDecode = new File(decode);
+                if (outDecode.exists()) outDecode.delete();
+                FileOutputStream osDecode = null;
+                try {
+                    osDecode = new FileOutputStream(outDecode);
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+                while (true) {
+                    int ret = mAudioUtils.get_decoded_frame(buffer, bufferSize, false, XmAudioUtils.DECODER_BGM);
+                    if (ret <= 0) break;
+                    try {
+                        byte[] data = Utils.getByteArrayInLittleOrder(buffer);
+                        osDecode.write(data, 0, 2*ret);
+                        osDecode.flush();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                try {
+                    osDecode.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                endTime = System.currentTimeMillis();
+                Log.i(TAG, "decode cost time "+(float)(endTime - startTime)/(float)1000);
+                mHandler.sendMessage(mHandler.obtainMessage(MSG_COMPLETED));
             }
         };
         new Thread(runnable).start();

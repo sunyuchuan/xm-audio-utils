@@ -13,6 +13,8 @@ public class XmAudioUtils {
     private static final int DefaultChannelNumber = 1;
     public static final int ENCODER_FFMPEG = 0;
     public static final int ENCODER_MEDIA_CODEC = 1;
+    public static final int DECODER_BGM = 0;
+    public static final int DECODER_MUSIC = 1;
     //输出日志模式
     public static final int LOG_MODE_NONE = 0;
     public static final int LOG_MODE_FILE = 1;
@@ -91,11 +93,22 @@ public class XmAudioUtils {
                 inConfigFilePath, outPcmPath);
     }
 
-    public int decode(String inAudioPath, String outPcmPath, int outSampleRate, int outChannels) {
-        if (inAudioPath == null || outPcmPath == null) {
+    public int decoder_create(String inAudioPath, int outSampleRate, int outChannels, int decoderType) {
+        if (inAudioPath == null) {
             return -1;
         }
-        return native_decode(inAudioPath, outPcmPath, outSampleRate, outChannels);
+        return native_decoder_create(inAudioPath, outSampleRate, outChannels, decoderType);
+    }
+
+    public void decoder_seekTo(int seekTimeMs, int decoderType) {
+        native_decoder_seekTo(seekTimeMs, decoderType);
+    }
+
+    public int get_decoded_frame(short[] buffer, int buffeSize, boolean loop, int decoderType) {
+        if (buffer == null) {
+            return -1;
+        }
+        return native_get_decoded_frame(buffer, buffeSize, loop, decoderType);
     }
 
     public int getProgressVoiceEffects() {
@@ -140,7 +153,10 @@ public class XmAudioUtils {
 
     private native void native_set_log(int logMode, int logLevel, String outLogPath);
     private native void native_setup();
-    private native int native_decode(String inAudioPath, String outPcmPath, int outSampleRate, int outChannels);
+
+    private native int native_decoder_create(String inAudioPath, int outSampleRate, int outChannels, int decoderType);
+    private native void native_decoder_seekTo(int seekTimeMs, int decoderType);
+    private native int native_get_decoded_frame(short[] buffer, int buffeSize, boolean loop, int decoderType);
 
     private native void native_release();
     @Override
