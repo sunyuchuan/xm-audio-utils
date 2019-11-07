@@ -107,6 +107,36 @@ int add_voice_effects(XmAudioUtils *self, const char *in_pcm_path,
     int sample_rate, int channels, const char *in_config_path, const char *out_pcm_path);
 
 /**
+ * @brief start fade bgm pcm data
+ *
+ * @param self XmAudioUtils
+ * @param buffer input pcm data
+ * @param buffer_size size of buffer
+ * @param buffer_start_time the time at which the buffer starts at bgm
+ * @return Less than 0 means error
+ */
+int xm_audio_utils_fade(XmAudioUtils *self, short *buffer,
+    int buffer_size, int buffer_start_time);
+
+/**
+ * @brief init fade in out params
+ *
+ * @param self XmAudioUtils
+ * @param pcm_sample_rate input pcm sample rate
+ * @param pcm_nb_channels input pcm nb_channels
+ * @param bgm_start_time_ms when the bgm starts playing
+ * @param bgm_end_time_ms when the bgm ends playing
+ * @param volume bgm volume value
+ * @param fade_in_time_ms bgm fade in time
+ * @param fade_out_time_ms bgm fade out time
+ * @return Less than 0 means error
+ */
+int xm_audio_utils_fade_init(XmAudioUtils *self,
+    int pcm_sample_rate, int pcm_nb_channels,
+    int bgm_start_time_ms, int bgm_end_time_ms, int volume,
+    int fade_in_time_ms, int fade_out_time_ms);
+
+/**
  * @brief get pcm data from decoder
  *
  * @param self XmAudioUtils

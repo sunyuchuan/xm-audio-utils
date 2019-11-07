@@ -9,6 +9,16 @@
 #include "error_def.h"
 #include "tools/util.h"
 #include "codec/audio_decoder.h"
+#include "mixer_effects/fade_in_out.h"
+
+typedef struct Fade {
+    int bgm_start_time_ms;
+    int bgm_end_time_ms;
+    int pcm_sample_rate;
+    int pcm_nb_channels;
+    float volume;
+    FadeInOut fade_io;
+} Fade;
 
 struct XmAudioUtils {
     volatile int ref_count;
@@ -17,7 +27,29 @@ struct XmAudioUtils {
     XmEffectContext *effects_ctx;
     XmMixerContext *mixer_ctx;
     pthread_mutex_t mutex;
+    Fade *fade;
 };
+
+static AudioDecoder** get_decoder(XmAudioUtils *self, int decoder_type) {
+    if(NULL == self) {
+        return NULL;
+    }
+
+    AudioDecoder **decoder = NULL;
+    switch(decoder_type) {
+        case DECODER_BGM:
+            decoder = &(self->bgm_decoder);
+            break;
+        case DECODER_MUSIC:
+            decoder = &(self->music_decoder);
+            break;
+        default:
+            decoder = NULL;
+            LogError("%s invalid decoder_type.\n", __func__);
+            break;
+    }
+    return decoder;
+}
 
 void xmau_inc_ref(XmAudioUtils *self)
 {
@@ -51,6 +83,10 @@ void xm_audio_utils_free(XmAudioUtils *self) {
     if (NULL == self)
         return;
 
+    if (self->fade) {
+        free(self->fade);
+        self->fade = NULL;
+    }
     if (self->bgm_decoder) {
         xm_audio_decoder_freep(&self->bgm_decoder);
     }
@@ -170,25 +206,53 @@ end:
     return ret;
 }
 
-static AudioDecoder** get_decoder(XmAudioUtils *self, int decoder_type) {
-    if(NULL == self) {
-        return NULL;
+int xm_audio_utils_fade(XmAudioUtils *self, short *buffer,
+        int buffer_size, int buffer_start_time) {
+    if (!self || !buffer || !self->fade || buffer_size <= 0)
+        return -1;
+    Fade *fade = self->fade;
+    int buffer_duration_ms = 1000 * ((float)buffer_size /
+        fade->pcm_nb_channels / fade->pcm_sample_rate);
+
+    check_fade_in_out(&fade->fade_io, buffer_start_time, buffer_duration_ms,
+        fade->pcm_sample_rate, fade->bgm_start_time_ms, fade->bgm_end_time_ms);
+    set_gain_s16(&fade->fade_io, buffer,
+        buffer_size / fade->pcm_nb_channels, fade->pcm_nb_channels, fade->volume);
+    return 0;
+}
+
+int xm_audio_utils_fade_init(XmAudioUtils *self,
+        int pcm_sample_rate, int pcm_nb_channels,
+        int bgm_start_time_ms, int bgm_end_time_ms, int volume,
+        int fade_in_time_ms, int fade_out_time_ms) {
+    if (!self)
+        return -1;
+    LogInfo("%s\n", __func__);
+
+    if (self->fade) {
+        free(self->fade);
+        self->fade = NULL;
+    }
+    self->fade = (Fade *)calloc(1, sizeof(Fade));
+    if (NULL == self->fade) {
+        LogError("%s calloc Fade failed.\n", __func__);
+        return -1;
     }
 
-    AudioDecoder **decoder = NULL;
-    switch(decoder_type) {
-        case DECODER_BGM:
-            decoder = &(self->bgm_decoder);
-            break;
-        case DECODER_MUSIC:
-            decoder = &(self->music_decoder);
-            break;
-        default:
-            decoder = NULL;
-            LogError("%s invalid decoder_type.\n", __func__);
-            break;
-    }
-    return decoder;
+    Fade *fade = self->fade;
+    fade->bgm_start_time_ms = bgm_start_time_ms;
+    fade->bgm_end_time_ms = bgm_end_time_ms;
+    fade->volume = volume / (float)100;
+    fade->pcm_sample_rate = pcm_sample_rate;
+    fade->pcm_nb_channels = pcm_nb_channels;
+    fade->fade_io.fade_in_time_ms = fade_in_time_ms;
+    fade->fade_io.fade_out_time_ms = fade_out_time_ms;
+    fade->fade_io.fade_in_nb_samples = fade_in_time_ms * pcm_sample_rate / 1000;
+    fade->fade_io.fade_out_nb_samples = fade_out_time_ms * pcm_sample_rate / 1000;
+    fade->fade_io.fade_in_samples_count = 0;
+    fade->fade_io.fade_out_samples_count = 0;
+    fade->fade_io.fade_out_start_index = 0;
+    return 0;
 }
 
 int xm_audio_utils_get_decoded_frame(XmAudioUtils *self,

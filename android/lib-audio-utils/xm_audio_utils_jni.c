@@ -285,7 +285,43 @@ LABEL_RETURN:
     return ret;
 }
 
+static int
+XMAudioUtils_fade(JNIEnv *env, jobject thiz,
+    jshortArray buffer, jint buffer_size_in_short, jint buffer_start_time_ms)
+{
+    int ret = -1;
+    XmAudioUtils *ctx = jni_get_xm_audio_utils(env, thiz);
+    JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: fade: null ctx", LABEL_RETURN);
+
+    jshort *buffer_ = (*env)->GetShortArrayElements(env, buffer, NULL);
+    ret = xm_audio_utils_fade(ctx, buffer_, buffer_size_in_short, buffer_start_time_ms);
+    (*env)->ReleaseShortArrayElements(env, buffer, buffer_, 0);
+LABEL_RETURN:
+    xmau_dec_ref_p(&ctx);
+    return ret;
+}
+
+static int
+XMAudioUtils_fade_init(JNIEnv *env, jobject thiz,
+    jint pcmSampleRate, jint pcmNbChannels, jint audioStartTimeMs,
+    jint audioEndTimeMs, jint volume, jint fadeInTimeMs, jint fadeOutTimeMs)
+{
+    LOGI("%s\n", __func__);
+    int ret = -1;
+    XmAudioUtils *ctx = jni_get_xm_audio_utils(env, thiz);
+    JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: fade init: null ctx", LABEL_RETURN);
+
+    ret = xm_audio_utils_fade_init(ctx, pcmSampleRate, pcmNbChannels,
+        audioStartTimeMs, audioEndTimeMs, volume, fadeInTimeMs, fadeOutTimeMs);
+
+LABEL_RETURN:
+    xmau_dec_ref_p(&ctx);
+    return ret;
+}
+
 static JNINativeMethod g_methods[] = {
+    { "native_fade_init", "(IIIIIII)I", (void *) XMAudioUtils_fade_init },
+    { "native_fade", "([SII)I", (void *) XMAudioUtils_fade },
     { "native_decoder_create", "(Ljava/lang/String;III)I", (void *) XMAudioUtils_decoder_create },
     { "native_decoder_seekTo", "(II)V", (void *) XMAudioUtils_decoder_seekTo },
     { "native_get_decoded_frame", "([SIZI)I", (void *) XMAudioUtils_get_decoded_frame },

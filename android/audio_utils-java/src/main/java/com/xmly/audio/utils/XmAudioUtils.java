@@ -93,6 +93,19 @@ public class XmAudioUtils {
                 inConfigFilePath, outPcmPath);
     }
 
+    public int fadeInit(int pcmSampleRate, int pcmNbChannels, int audioStartTimeMs,
+                    int audioEndTimeMs, int volume, int fadeInTimeMs, int fadeOutTimeMs) {
+        return native_fade_init(pcmSampleRate, pcmNbChannels, audioStartTimeMs,
+                audioEndTimeMs, volume,fadeInTimeMs, fadeOutTimeMs);
+    }
+
+    public int fade(short[] buffer, int bufferSize, int bufferStartTimeMs) {
+        if (buffer == null) {
+            return -1;
+        }
+        return native_fade(buffer, bufferSize, bufferStartTimeMs);
+    }
+
     public int decoder_create(String inAudioPath, int outSampleRate, int outChannels, int decoderType) {
         if (inAudioPath == null) {
             return -1;
@@ -104,11 +117,11 @@ public class XmAudioUtils {
         native_decoder_seekTo(seekTimeMs, decoderType);
     }
 
-    public int get_decoded_frame(short[] buffer, int buffeSize, boolean loop, int decoderType) {
+    public int get_decoded_frame(short[] buffer, int bufferSize, boolean loop, int decoderType) {
         if (buffer == null) {
             return -1;
         }
-        return native_get_decoded_frame(buffer, buffeSize, loop, decoderType);
+        return native_get_decoded_frame(buffer, bufferSize, loop, decoderType);
     }
 
     public int getProgressVoiceEffects() {
@@ -156,7 +169,11 @@ public class XmAudioUtils {
 
     private native int native_decoder_create(String inAudioPath, int outSampleRate, int outChannels, int decoderType);
     private native void native_decoder_seekTo(int seekTimeMs, int decoderType);
-    private native int native_get_decoded_frame(short[] buffer, int buffeSize, boolean loop, int decoderType);
+    private native int native_get_decoded_frame(short[] buffer, int bufferSize, boolean loop, int decoderType);
+
+    private native int native_fade_init(int pcmSampleRate, int pcmNbChannels, int audioStartTimeMs,
+                           int audioEndTimeMs, int volume, int fadeInTimeMs, int fadeOutTimeMs);
+    private native int native_fade(short[] buffer, int bufferSize, int bufferStartTimeMs);
 
     private native void native_release();
     @Override

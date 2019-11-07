@@ -17,7 +17,7 @@ void check_fade_in_out(FadeInOut *fade_io,
         self->fade_in = false;
     }
 
-    if (self->fade_out_time_ms > 0 && buffer_start_time <= bgm_end_time_ms
+    if (self->fade_out_time_ms > 0
             && (buffer_end_time >= bgm_end_time_ms - self->fade_out_time_ms)) {
         self->fade_out = true;
         if (buffer_start_time < bgm_end_time_ms - self->fade_out_time_ms) {

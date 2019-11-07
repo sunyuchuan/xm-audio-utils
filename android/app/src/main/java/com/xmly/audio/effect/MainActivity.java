@@ -33,6 +33,7 @@ public class MainActivity extends AppCompatActivity implements AudioCapturer.OnA
     private static final String raw = "/sdcard/audio_effect_test/pcm_mono_44kHz_0035.pcm";
     private static final String effect = "/sdcard/audio_effect_test/effect.pcm";
     private static final String mix = "/sdcard/audio_effect_test/final.m4a";
+    private static final String rawAudio = "/sdcard/audio_effect_test/side_chain_music_test.wav";
     private static final String decode = "/sdcard/audio_effect_test/final.pcm";
     private static final String jsonPath = "/sdcard/audio_effect_test/json.txt";
     private static final int SAMPLE_RATE_44100 = 44100;
@@ -298,7 +299,7 @@ public class MainActivity extends AppCompatActivity implements AudioCapturer.OnA
                 Log.i(TAG, "mix cost time "+(float)(endTime - startTime)/(float)1000);
                 // decode final.m4a to final.pcm
                 startTime = System.currentTimeMillis();
-                mAudioUtils.decoder_create(mix, SAMPLE_RATE_44100, STEREO_CHANNELS, XmAudioUtils.DECODER_BGM);
+                mAudioUtils.decoder_create(rawAudio, SAMPLE_RATE_44100, STEREO_CHANNELS, XmAudioUtils.DECODER_BGM);
                 mAudioUtils.decoder_seekTo(10000, XmAudioUtils.DECODER_BGM);
                 JsonUtils.createOutputFile(decode);
                 int bufferSize = 1024;
@@ -311,9 +312,15 @@ public class MainActivity extends AppCompatActivity implements AudioCapturer.OnA
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }
+                mAudioUtils.fadeInit(SAMPLE_RATE_44100, STEREO_CHANNELS, 0, 60000, 80, 5000, 5000);
+                long curSize = 0;
                 while (true) {
                     int ret = mAudioUtils.get_decoded_frame(buffer, bufferSize, false, XmAudioUtils.DECODER_BGM);
                     if (ret <= 0) break;
+
+                    int bufferStartTime = (int) ((double)(1000 * curSize) / STEREO_CHANNELS / SAMPLE_RATE_44100);
+                    curSize += ret;
+                    mAudioUtils.fade(buffer, ret, bufferStartTime);
                     try {
                         byte[] data = Utils.getByteArrayInLittleOrder(buffer);
                         osDecode.write(data, 0, 2*ret);
