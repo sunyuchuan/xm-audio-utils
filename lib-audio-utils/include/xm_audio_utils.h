@@ -49,21 +49,21 @@ void xm_audio_utils_free(XmAudioUtils *self);
 void xm_audio_utils_freep(XmAudioUtils **self);
 
 /**
- * @brief stop mixer_mix
+ * @brief stop effectsAndMix
  *
  * @param self XmAudioUtils
  */
-void stop_mixer_mix(XmAudioUtils *self);
+void xm_audio_utils_stop(XmAudioUtils *self);
 
 /**
- * @brief get progress of mixer_mix
+ * @brief get progress of effectsAndMix
  *
  * @param self XmAudioUtils
  */
-int get_progress_mix(XmAudioUtils *self);
+int xm_audio_utils_get_progress(XmAudioUtils *self);
 
 /**
- * @brief mix voice\bgm\music
+ * @brief add voice effects and mix voice\bgm\music
  *
  * @param self XmAudioUtils
  * @param in_pcm_path Input pcm file path of voice
@@ -74,37 +74,9 @@ int get_progress_mix(XmAudioUtils *self);
  * @param encode_type 0:ffmpeg encoder,1:mediacodec encoder
  * @return Less than 0 means failure
  */
-int mixer_mix(XmAudioUtils *self, const char *in_pcm_path,
-        int pcm_sample_rate, int pcm_channels, const char *in_config_path,
-        const char *out_file_path, int encode_type);
-
-/**
- * @brief stop add voice effects
- *
- * @param self XmAudioUtils
- */
-void stop_add_effects(XmAudioUtils *self);
-
-/**
- * @brief get progress of add_voice_effects
- *
- * @param self XmAudioUtils
- */
-int get_progress_effects(XmAudioUtils *self);
-
-/**
- * @brief Add voice effects
- *
- * @param self XmAudioUtils
- * @param in_pcm_path Input pcm file path of voice
- * @param sample_rate sample_rate of in_pcm_file
- * @param channels channels of in_pcm_file
- * @param in_config_path Config file about audio effect parameter
- * @param out_pcm_path Output pcm file path
- * @return Less than 0 means failure
- */
-int add_voice_effects(XmAudioUtils *self, const char *in_pcm_path,
-    int sample_rate, int channels, const char *in_config_path, const char *out_pcm_path);
+ int xm_audio_utils_effectsAndMix(XmAudioUtils *self,
+        const char *in_pcm_path, int pcm_sample_rate, int pcm_channels,
+        const char *in_config_path, const char *out_file_path, int encode_type);
 
 /**
  * @brief start fade bgm pcm data

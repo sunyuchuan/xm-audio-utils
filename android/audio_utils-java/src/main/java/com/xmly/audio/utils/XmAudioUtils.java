@@ -83,16 +83,6 @@ public class XmAudioUtils {
         native_set_log(logMode, logLevel, outLogPath);
     }
 
-    public int addVoiceEffects(String inPcmPath, int pcmSampleRate, int pcmChannels,
-                               String inConfigFilePath, String outPcmPath) {
-        if (inPcmPath == null || inConfigFilePath == null || outPcmPath == null) {
-            return -1;
-        }
-
-        return native_add_effects(inPcmPath, pcmSampleRate, pcmChannels,
-                inConfigFilePath, outPcmPath);
-    }
-
     public int fadeInit(int pcmSampleRate, int pcmNbChannels, int audioStartTimeMs,
                     int audioEndTimeMs, int volume, int fadeInTimeMs, int fadeOutTimeMs) {
         return native_fade_init(pcmSampleRate, pcmNbChannels, audioStartTimeMs,
@@ -124,45 +114,32 @@ public class XmAudioUtils {
         return native_get_decoded_frame(buffer, bufferSize, loop, decoderType);
     }
 
-    public int getProgressVoiceEffects() {
-        return native_get_progress_effects();
-    }
-
-    public void stopVoiceEffects() {
-        native_stop_effects();
-    }
-
-    public int mix(String inPcmPath, int pcmSampleRate, int pcmChannels,
+    public int addEffectsAndMix(String inPcmPath, int pcmSampleRate, int pcmChannels,
                    String inConfigFilePath, String outM4aPath, int encoderType) {
         if (inPcmPath == null || inConfigFilePath == null || outM4aPath == null) {
             return -1;
         }
 
-        return native_mixer_mix(inPcmPath, pcmSampleRate, pcmChannels,
+        return native_add_effects_and_mix(inPcmPath, pcmSampleRate, pcmChannels,
                 inConfigFilePath, outM4aPath, encoderType);
     }
 
-    public int getProgressMix() {
-        return native_get_progress_mix();
+    public int getProgressAddEffectsAndMix() {
+        return native_get_progress();
     }
 
-    public void stopMix() {
-        native_stop_mix();
+    public void stopAddEffectsAndMix() {
+        native_stop();
     }
 
     public void release() {
         native_release();
     }
 
-    private native int native_add_effects(String inPcmPath, int sampleRate, int channels,
-                                                String inConfigFilePath, String outPcmPath);
-    private native int native_get_progress_effects();
-    private native void native_stop_effects();
-
-    private native int native_mixer_mix(String inPcmPath, int sampleRate, int channels,
+    private native int native_add_effects_and_mix(String inPcmPath, int sampleRate, int channels,
                                           String inConfigFilePath, String outM4aPath, int encoderType);
-    private native int native_get_progress_mix();
-    private native void native_stop_mix();
+    private native int native_get_progress();
+    private native void native_stop();
 
     private native void native_set_log(int logMode, int logLevel, String outLogPath);
     private native void native_setup();

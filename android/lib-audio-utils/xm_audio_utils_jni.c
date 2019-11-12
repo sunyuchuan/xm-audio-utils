@@ -82,39 +82,39 @@ LABEL_RETURN:
 }
 
 static void
-XMAudioUtils_stop_mix(JNIEnv *env, jobject thiz)
+XMAudioUtils_stop(JNIEnv *env, jobject thiz)
 {
     LOGI("%s\n", __func__);
     XmAudioUtils *ctx = jni_get_xm_audio_utils(env, thiz);
-    JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: stop mix: null ctx", LABEL_RETURN);
+    JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: stop: null ctx", LABEL_RETURN);
 
-    stop_mixer_mix(ctx);
+    xm_audio_utils_stop(ctx);
 LABEL_RETURN:
     xmau_dec_ref_p(&ctx);
 }
 
 static int
-XMAudioUtils_get_progress_mix(JNIEnv *env, jobject thiz)
+XMAudioUtils_get_progress(JNIEnv *env, jobject thiz)
 {
     int progress = 0;
     XmAudioUtils *ctx = jni_get_xm_audio_utils(env, thiz);
-    JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: get_progress_mix: null ctx", LABEL_RETURN);
+    JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: get_progress: null ctx", LABEL_RETURN);
 
-    progress = get_progress_mix(ctx);
+    progress = xm_audio_utils_get_progress(ctx);
 LABEL_RETURN:
     xmau_dec_ref_p(&ctx);
     return progress;
 }
 
 static int
-XMAudioUtils_mixer_mix(JNIEnv *env, jobject thiz,
+XMAudioUtils_effectsAndMix(JNIEnv *env, jobject thiz,
         jstring inPcmPath, jint sample_rate, jint channels,
         jstring inConfigFilePath, jstring outM4aPath, jint encode_type)
 {
     LOGI("%s\n", __func__);
     int ret = 0;
     XmAudioUtils *ctx = jni_get_xm_audio_utils(env, thiz);
-    JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: mixer_mix: null ctx", LABEL_RETURN);
+    JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: effectsAndMix: null ctx", LABEL_RETURN);
 
     const char *in_pcm_path = NULL;
     const char *in_config_path = NULL;
@@ -126,7 +126,7 @@ XMAudioUtils_mixer_mix(JNIEnv *env, jobject thiz,
     if (outM4aPath)
         out_m4a_path = (*env)->GetStringUTFChars(env, outM4aPath, 0);
 
-    ret = mixer_mix(ctx, in_pcm_path, sample_rate, channels,
+    ret = xm_audio_utils_effectsAndMix(ctx, in_pcm_path, sample_rate, channels,
         in_config_path, out_m4a_path, encode_type);
     if (in_pcm_path)
         (*env)->ReleaseStringUTFChars(env, inPcmPath, in_pcm_path);
@@ -134,64 +134,6 @@ XMAudioUtils_mixer_mix(JNIEnv *env, jobject thiz,
         (*env)->ReleaseStringUTFChars(env, inConfigFilePath, in_config_path);
     if (out_m4a_path)
         (*env)->ReleaseStringUTFChars(env, outM4aPath, out_m4a_path);
-LABEL_RETURN:
-    xmau_dec_ref_p(&ctx);
-    return ret;
-}
-
-static void
-XMAudioUtils_stop_effects(JNIEnv *env, jobject thiz)
-{
-    LOGI("%s\n", __func__);
-    XmAudioUtils *ctx = jni_get_xm_audio_utils(env, thiz);
-    JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: stop effects: null ctx", LABEL_RETURN);
-
-    stop_add_effects(ctx);
-LABEL_RETURN:
-    xmau_dec_ref_p(&ctx);
-}
-
-static int
-XMAudioUtils_get_progress_effects(JNIEnv *env, jobject thiz)
-{
-    int progress = 0;
-    XmAudioUtils *ctx = jni_get_xm_audio_utils(env, thiz);
-    JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: get_progress_effects: null ctx", LABEL_RETURN);
-
-    progress = get_progress_effects(ctx);
-LABEL_RETURN:
-    xmau_dec_ref_p(&ctx);
-    return progress;
-}
-
-static int
-XMAudioUtils_add_effects(JNIEnv *env, jobject thiz,
-        jstring inPcmPath, jint sample_rate, jint channels,
-        jstring inConfigFilePath, jstring outPcmPath)
-{
-    LOGI("%s\n", __func__);
-    int ret = 0;
-    XmAudioUtils *ctx = jni_get_xm_audio_utils(env, thiz);
-    JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: add_voice_effects: null ctx", LABEL_RETURN);
-
-    const char *in_pcm_path = NULL;
-    const char *in_config_path = NULL;
-    const char *out_pcm_path = NULL;
-    if (inPcmPath)
-        in_pcm_path = (*env)->GetStringUTFChars(env, inPcmPath, 0);
-    if (inConfigFilePath)
-        in_config_path = (*env)->GetStringUTFChars(env, inConfigFilePath, 0);
-    if (outPcmPath)
-        out_pcm_path = (*env)->GetStringUTFChars(env, outPcmPath, 0);
-
-    ret = add_voice_effects(ctx, in_pcm_path, sample_rate, channels,
-        in_config_path, out_pcm_path);
-    if (in_pcm_path)
-        (*env)->ReleaseStringUTFChars(env, inPcmPath, in_pcm_path);
-    if (in_config_path)
-        (*env)->ReleaseStringUTFChars(env, inConfigFilePath, in_config_path);
-    if (out_pcm_path)
-        (*env)->ReleaseStringUTFChars(env, outPcmPath, out_pcm_path);
 LABEL_RETURN:
     xmau_dec_ref_p(&ctx);
     return ret;
@@ -320,19 +262,16 @@ LABEL_RETURN:
 }
 
 static JNINativeMethod g_methods[] = {
-    { "native_fade_init", "(IIIIIII)I", (void *) XMAudioUtils_fade_init },
-    { "native_fade", "([SII)I", (void *) XMAudioUtils_fade },
+    { "native_setup", "()V", (void *) XMAudioUtils_setup },
+    { "native_set_log", "(IILjava/lang/String;)V", (void *) XMAudioUtils_set_log },
     { "native_decoder_create", "(Ljava/lang/String;III)I", (void *) XMAudioUtils_decoder_create },
     { "native_decoder_seekTo", "(II)V", (void *) XMAudioUtils_decoder_seekTo },
     { "native_get_decoded_frame", "([SIZI)I", (void *) XMAudioUtils_get_decoded_frame },
-    { "native_setup", "()V", (void *) XMAudioUtils_setup },
-    { "native_set_log", "(IILjava/lang/String;)V", (void *) XMAudioUtils_set_log },
-    { "native_add_effects", "(Ljava/lang/String;IILjava/lang/String;Ljava/lang/String;)I", (void *) XMAudioUtils_add_effects },
-    { "native_get_progress_effects", "()I", (void *) XMAudioUtils_get_progress_effects },
-    { "native_stop_effects", "()V", (void *) XMAudioUtils_stop_effects },
-    { "native_mixer_mix", "(Ljava/lang/String;IILjava/lang/String;Ljava/lang/String;I)I", (void *) XMAudioUtils_mixer_mix },
-    { "native_get_progress_mix", "()I", (void *) XMAudioUtils_get_progress_mix },
-    { "native_stop_mix", "()V", (void *) XMAudioUtils_stop_mix },
+    { "native_fade_init", "(IIIIIII)I", (void *) XMAudioUtils_fade_init },
+    { "native_fade", "([SII)I", (void *) XMAudioUtils_fade },
+    { "native_add_effects_and_mix", "(Ljava/lang/String;IILjava/lang/String;Ljava/lang/String;I)I", (void *) XMAudioUtils_effectsAndMix },
+    { "native_get_progress", "()I", (void *) XMAudioUtils_get_progress },
+    { "native_stop", "()V", (void *) XMAudioUtils_stop },
     { "native_release", "()V", (void *) XMAudioUtils_release },
 };
 

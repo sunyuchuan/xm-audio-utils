@@ -30,11 +30,11 @@ import com.xmly.audio.utils.XmAudioUtils;
 public class MainActivity extends AppCompatActivity implements AudioCapturer.OnAudioFrameCapturedListener, View.OnClickListener, RadioGroup.OnCheckedChangeListener {
     private final static String TAG = MainActivity.class.getName();
     private static final String speech = "/sdcard/audio_effect_test/speech.pcm";
-    private static final String raw = "/sdcard/audio_effect_test/pcm_mono_44kHz_0035.pcm";
     private static final String effect = "/sdcard/audio_effect_test/effect.pcm";
-    private static final String mix = "/sdcard/audio_effect_test/final.m4a";
-    private static final String rawAudio = "/sdcard/audio_effect_test/side_chain_music_test.wav";
-    private static final String decode = "/sdcard/audio_effect_test/final.pcm";
+    private static final String rawPcm = "/sdcard/audio_effect_test/pcm_mono_44kHz_0035.pcm";
+    private static final String finalAudio = "/sdcard/audio_effect_test/final.m4a";
+    private static final String decodeRawAudio = "/sdcard/audio_effect_test/side_chain_music_test.wav";
+    private static final String decodePcm = "/sdcard/audio_effect_test/decode.pcm";
     private static final String jsonPath = "/sdcard/audio_effect_test/json.txt";
     private static final int SAMPLE_RATE_44100 = 44100;
     private static final int MONO_CHANNELS = 1;
@@ -116,8 +116,7 @@ public class MainActivity extends AppCompatActivity implements AudioCapturer.OnA
 
     @Override
     protected void onStop() {
-        mAudioUtils.stopVoiceEffects();
-        mAudioUtils.stopMix();
+        mAudioUtils.stopAddEffectsAndMix();
         audioUtilsAbort = true;
         stopPlayOrg();
         stopPlayMix();
@@ -181,7 +180,7 @@ public class MainActivity extends AppCompatActivity implements AudioCapturer.OnA
         public void run() {
             try {
                 // 打开播放文件
-                File orgFile = new File(raw);
+                File orgFile = new File(rawPcm);
                 InputStream isOrg = new FileInputStream(orgFile);
 
                 // 启动播放
@@ -281,30 +280,22 @@ public class MainActivity extends AppCompatActivity implements AudioCapturer.OnA
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
-                // add voice effects
-                JsonUtils.createOutputFile(effect);
+                // add voice effects and mix music
+                JsonUtils.createOutputFile(finalAudio);
                 long startTime = System.currentTimeMillis();
-                if (mAudioUtils.addVoiceEffects(raw, SAMPLE_RATE_44100, MONO_CHANNELS, jsonPath, effect) < 0) {
-                    Log.e(TAG, "addVoiceEffects error");
+                if (mAudioUtils.addEffectsAndMix(rawPcm, SAMPLE_RATE_44100, MONO_CHANNELS, jsonPath, finalAudio, XmAudioUtils.ENCODER_MEDIA_CODEC) < 0) {
+                    Log.e(TAG, "addEffectsAndMix error");
                 }
                 long endTime = System.currentTimeMillis();
-                Log.i(TAG, "addAudioEffects cost time "+(float)(endTime - startTime)/(float)1000);
-                // mix bgm music
-                JsonUtils.createOutputFile(mix);
-                startTime = System.currentTimeMillis();
-                if (mAudioUtils.mix(effect, SAMPLE_RATE_44100, MONO_CHANNELS, jsonPath, mix, XmAudioUtils.ENCODER_MEDIA_CODEC) < 0) {
-                    Log.e(TAG, "mix error");
-                }
-                endTime = System.currentTimeMillis();
-                Log.i(TAG, "mix cost time "+(float)(endTime - startTime)/(float)1000);
+                Log.i(TAG, "addEffectsAndMix cost time "+(float)(endTime - startTime)/(float)1000);
                 // decode final.m4a to final.pcm
                 startTime = System.currentTimeMillis();
-                mAudioUtils.decoder_create(rawAudio, SAMPLE_RATE_44100, STEREO_CHANNELS, XmAudioUtils.DECODER_BGM);
+                mAudioUtils.decoder_create(decodeRawAudio, SAMPLE_RATE_44100, STEREO_CHANNELS, XmAudioUtils.DECODER_BGM);
                 mAudioUtils.decoder_seekTo(10000, XmAudioUtils.DECODER_BGM);
-                JsonUtils.createOutputFile(decode);
+                JsonUtils.createOutputFile(decodePcm);
                 int bufferSize = 1024;
                 short[] buffer = new short[bufferSize];
-                File outDecode = new File(decode);
+                File outDecode = new File(decodePcm);
                 if (outDecode.exists()) outDecode.delete();
                 FileOutputStream osDecode = null;
                 try {
@@ -348,18 +339,8 @@ public class MainActivity extends AppCompatActivity implements AudioCapturer.OnA
                 while (progress < 100 && !audioUtilsAbort) {
                     try {
                         Thread.sleep(100L);
-                        progress = mAudioUtils.getProgressVoiceEffects();
-                        Log.i(TAG, "add voice effects progress : " + progress);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-                progress = 0;
-                while (progress < 100 && !audioUtilsAbort) {
-                    try {
-                        Thread.sleep(100L);
-                        progress = mAudioUtils.getProgressMix();
-                        Log.i(TAG, "mix progress : " + progress);
+                        progress = mAudioUtils.getProgressAddEffectsAndMix();
+                        Log.i(TAG, "addEffectsAndMix progress : " + progress);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -371,8 +352,7 @@ public class MainActivity extends AppCompatActivity implements AudioCapturer.OnA
 
     private void stopMix() {
         mBtnMix.setText("给录音加特效");
-        mAudioUtils.stopVoiceEffects();
-        mAudioUtils.stopMix();
+        mAudioUtils.stopAddEffectsAndMix();
         audioUtilsAbort = true;
     }
 
