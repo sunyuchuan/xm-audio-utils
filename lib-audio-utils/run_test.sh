@@ -38,3 +38,9 @@ echo -e "\033[1;43;30m\ntest_xm_audio_effects...\033[0m"
 
 echo -e "\033[1;43;30m\ntest_xm_audio_mixer...\033[0m"
 ./tests/test_xm_audio_mixer side_chain_test.pcm 44100 1 ../data/effect_config.txt test_xm_audio_mixer.mp4
+
+echo -e "\033[1;43;30m\ntest_xm_audio_utils...\033[0m"
+./tests/test_xm_audio_utils ../data/side_chain_music_test.wav side_chain_music_test.pcm 44100 2
+
+echo -e "\033[1;43;30m\ntest_xm_audio_generator...\033[0m"
+./tests/test_xm_audio_generator ../data/pcm_mono_44kHz_0035.pcm 44100 1 ../data/effect_config.txt generator_pcm_mono_44kHz_0035.m4a

@@ -28,3 +28,9 @@ target_link_libraries(test_xm_audio_effects ${PROJECT_NAME} m pthread)
 
 add_executable(test_xm_audio_mixer test_xm_audio_mixer.c)
 target_link_libraries(test_xm_audio_mixer ${PROJECT_NAME} m pthread)
+
+add_executable(test_xm_audio_utils test_xm_audio_utils.c)
+target_link_libraries(test_xm_audio_utils ${PROJECT_NAME} m pthread)
+
+add_executable(test_xm_audio_generator test_xm_audio_generator.c)
+target_link_libraries(test_xm_audio_generator ${PROJECT_NAME} m pthread)

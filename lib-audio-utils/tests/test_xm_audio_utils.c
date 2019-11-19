@@ -1,0 +1,65 @@
+#include "xm_audio_utils.h"
+#include "../src/codec/ffmpeg_utils.h"
+#include <sys/time.h>
+#include <stdlib.h>
+#include "error_def.h"
+#include "file_helper.h"
+#include "log.h"
+
+int main(int argc, char **argv) {
+    AeSetLogLevel(LOG_LEVEL_TRACE);
+    AeSetLogMode(LOG_MODE_SCREEN);
+
+    int ret = 0;
+    int buffer_size_in_short = 1024;
+    short *buffer = NULL;
+    struct timeval start;
+    struct timeval end;
+    unsigned long timer;
+    gettimeofday(&start, NULL);
+
+    FILE *pcm_writer = NULL;
+    OpenFile(&pcm_writer, argv[2], true);
+
+    buffer = (short *)calloc(sizeof(short), buffer_size_in_short);
+    if (!buffer) goto end;
+
+    // Set Log
+    RegisterFFmpeg();
+    XmAudioUtils *utils = xm_audio_utils_create();
+    if (utils == NULL) {
+        LogError("xm_audio_utils_create failed\n");
+        goto end;
+    }
+
+    xm_audio_utils_decoder_create(utils, argv[1], atoi(argv[3]), atoi(argv[4]), BGM);
+    xm_audio_utils_decoder_seekTo(utils, 1000, BGM);
+    xm_audio_utils_fade_init(utils, atoi(argv[3]), atoi(argv[4]), 0, 60000, 80, 5000, 5000);
+
+    long cur_size = 0;
+    while (1) {
+        ret = xm_audio_utils_get_decoded_frame(utils, buffer, buffer_size_in_short, false, BGM);
+        if (ret <= 0) break;
+        int buffer_start_time = (float)(1000 * cur_size) / atoi(argv[4]) / atoi(argv[3]);
+        cur_size += ret;
+        xm_audio_utils_fade(utils, buffer, ret, buffer_start_time);
+        fwrite(buffer, sizeof(short), ret, pcm_writer);
+    }
+
+end:
+    if (buffer) {
+        free(buffer);
+        buffer = NULL;
+    }
+    if (pcm_writer) {
+        fclose(pcm_writer);
+        pcm_writer = NULL;
+    }
+    xm_audio_utils_freep(&utils);
+
+    gettimeofday(&end, NULL);
+    timer = 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
+    printf("time consuming %ld us\n", timer);
+    return 0;
+}
+
