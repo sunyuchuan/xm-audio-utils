@@ -133,6 +133,7 @@ src/effects/voice_effect.c
 src/xm_audio_effects.c
 src/xm_audio_mixer.c
 src/xm_audio_utils.c
+src/xm_audio_generator.c
 )
 
 else()
@@ -182,6 +183,7 @@ src/effects/voice_effect.c
 src/xm_audio_effects.c
 src/xm_audio_mixer.c
 src/xm_audio_utils.c
+src/xm_audio_generator.c
 )
 endif()
 

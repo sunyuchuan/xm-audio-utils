@@ -114,32 +114,9 @@ public class XmAudioUtils {
         return native_get_decoded_frame(buffer, bufferSize, loop, decoderType);
     }
 
-    public int addEffectsAndMix(String inPcmPath, int pcmSampleRate, int pcmChannels,
-                   String inConfigFilePath, String outM4aPath, int encoderType) {
-        if (inPcmPath == null || inConfigFilePath == null || outM4aPath == null) {
-            return -1;
-        }
-
-        return native_add_effects_and_mix(inPcmPath, pcmSampleRate, pcmChannels,
-                inConfigFilePath, outM4aPath, encoderType);
-    }
-
-    public int getProgressAddEffectsAndMix() {
-        return native_get_progress();
-    }
-
-    public void stopAddEffectsAndMix() {
-        native_stop();
-    }
-
     public void release() {
         native_release();
     }
-
-    private native int native_add_effects_and_mix(String inPcmPath, int sampleRate, int channels,
-                                          String inConfigFilePath, String outM4aPath, int encoderType);
-    private native int native_get_progress();
-    private native void native_stop();
 
     private native void native_set_log(int logMode, int logLevel, String outLogPath);
     private native void native_setup();

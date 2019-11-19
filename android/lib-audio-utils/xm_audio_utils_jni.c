@@ -7,6 +7,7 @@
 #include "utils.h"
 #include <assert.h>
 #include <pthread.h>
+#include "xm_audio_generator_jni.h"
 
 #define JNI_CLASS_AUDIO_UTILS "com/xmly/audio/utils/XmAudioUtils"
 
@@ -81,96 +82,38 @@ LABEL_RETURN:
     xmau_dec_ref_p(&ctx);
 }
 
-static void
-XMAudioUtils_stop(JNIEnv *env, jobject thiz)
-{
-    LOGI("%s\n", __func__);
-    XmAudioUtils *ctx = jni_get_xm_audio_utils(env, thiz);
-    JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: stop: null ctx", LABEL_RETURN);
-
-    xm_audio_utils_stop(ctx);
-LABEL_RETURN:
-    xmau_dec_ref_p(&ctx);
-}
-
 static int
-XMAudioUtils_get_progress(JNIEnv *env, jobject thiz)
+XMAudioUtils_fade(JNIEnv *env, jobject thiz,
+    jshortArray buffer, jint buffer_size_in_short, jint buffer_start_time_ms)
 {
-    int progress = 0;
+    int ret = -1;
     XmAudioUtils *ctx = jni_get_xm_audio_utils(env, thiz);
-    JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: get_progress: null ctx", LABEL_RETURN);
+    JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: fade: null ctx", LABEL_RETURN);
 
-    progress = xm_audio_utils_get_progress(ctx);
-LABEL_RETURN:
-    xmau_dec_ref_p(&ctx);
-    return progress;
-}
-
-static int
-XMAudioUtils_effectsAndMix(JNIEnv *env, jobject thiz,
-        jstring inPcmPath, jint sample_rate, jint channels,
-        jstring inConfigFilePath, jstring outM4aPath, jint encode_type)
-{
-    LOGI("%s\n", __func__);
-    int ret = 0;
-    XmAudioUtils *ctx = jni_get_xm_audio_utils(env, thiz);
-    JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: effectsAndMix: null ctx", LABEL_RETURN);
-
-    const char *in_pcm_path = NULL;
-    const char *in_config_path = NULL;
-    const char *out_m4a_path = NULL;
-    if (inPcmPath)
-        in_pcm_path = (*env)->GetStringUTFChars(env, inPcmPath, 0);
-    if (inConfigFilePath)
-        in_config_path = (*env)->GetStringUTFChars(env, inConfigFilePath, 0);
-    if (outM4aPath)
-        out_m4a_path = (*env)->GetStringUTFChars(env, outM4aPath, 0);
-
-    ret = xm_audio_utils_effectsAndMix(ctx, in_pcm_path, sample_rate, channels,
-        in_config_path, out_m4a_path, encode_type);
-    if (in_pcm_path)
-        (*env)->ReleaseStringUTFChars(env, inPcmPath, in_pcm_path);
-    if (in_config_path)
-        (*env)->ReleaseStringUTFChars(env, inConfigFilePath, in_config_path);
-    if (out_m4a_path)
-        (*env)->ReleaseStringUTFChars(env, outM4aPath, out_m4a_path);
+    jshort *buffer_ = (*env)->GetShortArrayElements(env, buffer, NULL);
+    ret = xm_audio_utils_fade(ctx, buffer_, buffer_size_in_short, buffer_start_time_ms);
+    (*env)->ReleaseShortArrayElements(env, buffer, buffer_, 0);
 LABEL_RETURN:
     xmau_dec_ref_p(&ctx);
     return ret;
 }
 
-static void
-XMAudioUtils_set_log(JNIEnv *env, jobject thiz,
-        jint logMode, jint logLevel,  jstring outLogPath)
+static int
+XMAudioUtils_fade_init(JNIEnv *env, jobject thiz,
+    jint pcmSampleRate, jint pcmNbChannels, jint audioStartTimeMs,
+    jint audioEndTimeMs, jint volume, jint fadeInTimeMs, jint fadeOutTimeMs)
 {
     LOGI("%s\n", __func__);
-    AeSetLogMode(logMode);
-    AeSetLogLevel(logLevel);
-    SetFFmpegLogLevel(logLevel);
+    int ret = -1;
+    XmAudioUtils *ctx = jni_get_xm_audio_utils(env, thiz);
+    JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: fade init: null ctx", LABEL_RETURN);
 
-    if(logMode == LOG_MODE_FILE) {
-        if(outLogPath == NULL) {
-            LOGE("logMode is LOG_MODE_FILE, and outLogPath is NULL, return\n");
-            return;
-        } else {
-            const char *out_log_path_ = (*env)->GetStringUTFChars(env, outLogPath, 0);
-            AeSetLogPath(out_log_path_);
-            if (out_log_path_)
-                (*env)->ReleaseStringUTFChars(env, outLogPath, out_log_path_);
-        }
-    }
-}
+    ret = xm_audio_utils_fade_init(ctx, pcmSampleRate, pcmNbChannels,
+        audioStartTimeMs, audioEndTimeMs, volume, fadeInTimeMs, fadeOutTimeMs);
 
-static void
-XMAudioUtils_setup(JNIEnv *env, jobject thiz)
-{
-    LOGI("%s\n", __func__);
-    XmAudioUtils *ctx = xm_audio_utils_create();
-    JNI_CHECK_GOTO(ctx, env, "java/lang/OutOfMemoryError", "AUjni: native_setup: create failed", LABEL_RETURN);
-
-    jni_set_xm_audio_utils(env, thiz, ctx);
 LABEL_RETURN:
     xmau_dec_ref_p(&ctx);
+    return ret;
 }
 
 static int
@@ -227,38 +170,38 @@ LABEL_RETURN:
     return ret;
 }
 
-static int
-XMAudioUtils_fade(JNIEnv *env, jobject thiz,
-    jshortArray buffer, jint buffer_size_in_short, jint buffer_start_time_ms)
-{
-    int ret = -1;
-    XmAudioUtils *ctx = jni_get_xm_audio_utils(env, thiz);
-    JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: fade: null ctx", LABEL_RETURN);
-
-    jshort *buffer_ = (*env)->GetShortArrayElements(env, buffer, NULL);
-    ret = xm_audio_utils_fade(ctx, buffer_, buffer_size_in_short, buffer_start_time_ms);
-    (*env)->ReleaseShortArrayElements(env, buffer, buffer_, 0);
-LABEL_RETURN:
-    xmau_dec_ref_p(&ctx);
-    return ret;
-}
-
-static int
-XMAudioUtils_fade_init(JNIEnv *env, jobject thiz,
-    jint pcmSampleRate, jint pcmNbChannels, jint audioStartTimeMs,
-    jint audioEndTimeMs, jint volume, jint fadeInTimeMs, jint fadeOutTimeMs)
+static void
+XMAudioUtils_set_log(JNIEnv *env, jobject thiz,
+        jint logMode, jint logLevel,  jstring outLogPath)
 {
     LOGI("%s\n", __func__);
-    int ret = -1;
-    XmAudioUtils *ctx = jni_get_xm_audio_utils(env, thiz);
-    JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: fade init: null ctx", LABEL_RETURN);
+    AeSetLogMode(logMode);
+    AeSetLogLevel(logLevel);
+    SetFFmpegLogLevel(logLevel);
 
-    ret = xm_audio_utils_fade_init(ctx, pcmSampleRate, pcmNbChannels,
-        audioStartTimeMs, audioEndTimeMs, volume, fadeInTimeMs, fadeOutTimeMs);
+    if(logMode == LOG_MODE_FILE) {
+        if(outLogPath == NULL) {
+            LOGE("logMode is LOG_MODE_FILE, and outLogPath is NULL, return\n");
+            return;
+        } else {
+            const char *out_log_path_ = (*env)->GetStringUTFChars(env, outLogPath, 0);
+            AeSetLogPath(out_log_path_);
+            if (out_log_path_)
+                (*env)->ReleaseStringUTFChars(env, outLogPath, out_log_path_);
+        }
+    }
+}
 
+static void
+XMAudioUtils_setup(JNIEnv *env, jobject thiz)
+{
+    LOGI("%s\n", __func__);
+    XmAudioUtils *ctx = xm_audio_utils_create();
+    JNI_CHECK_GOTO(ctx, env, "java/lang/OutOfMemoryError", "AUjni: native_setup: create failed", LABEL_RETURN);
+
+    jni_set_xm_audio_utils(env, thiz, ctx);
 LABEL_RETURN:
     xmau_dec_ref_p(&ctx);
-    return ret;
 }
 
 static JNINativeMethod g_methods[] = {
@@ -269,9 +212,6 @@ static JNINativeMethod g_methods[] = {
     { "native_get_decoded_frame", "([SIZI)I", (void *) XMAudioUtils_get_decoded_frame },
     { "native_fade_init", "(IIIIIII)I", (void *) XMAudioUtils_fade_init },
     { "native_fade", "([SII)I", (void *) XMAudioUtils_fade },
-    { "native_add_effects_and_mix", "(Ljava/lang/String;IILjava/lang/String;Ljava/lang/String;I)I", (void *) XMAudioUtils_effectsAndMix },
-    { "native_get_progress", "()I", (void *) XMAudioUtils_get_progress },
-    { "native_stop", "()V", (void *) XMAudioUtils_stop },
     { "native_release", "()V", (void *) XMAudioUtils_release },
 };
 
@@ -294,12 +234,14 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved)
 
     RegisterFFmpeg();
 
+    xm_audio_generator_global_init(env);
     ijksdl_android_global_init(g_jvm, env);
     return JNI_VERSION_1_4;
 }
 
 JNIEXPORT void JNI_OnUnload(JavaVM *jvm, void *reserved)
 {
+    xm_audio_generator_global_uninit();
     ijksdl_android_global_uninit();
     pthread_mutex_destroy(&g_clazz.mutex);
 }

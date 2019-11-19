@@ -29,7 +29,8 @@ LOCAL_LDLIBS += -llog -landroid
 LOCAL_C_INCLUDES := $(LOCAL_PATH)
 LOCAL_C_INCLUDES += $(MY_INC_PATH)
 
-LOCAL_SRC_FILES := lib-audio-utils/xm_audio_utils_jni.c
+LOCAL_SRC_FILES := lib-audio-utils/xm_audio_utils_jni.c \
+                   lib-audio-utils/xm_audio_generator_jni.c
 
 LOCAL_SHARED_LIBRARIES := ijkffmpeg-$(TARGET_ARCH_ABI)
 LOCAL_STATIC_LIBRARIES := audio_utils

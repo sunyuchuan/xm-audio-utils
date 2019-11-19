@@ -25,6 +25,7 @@ import java.util.Iterator;
 
 import com.xmly.audio.effect.audio.AudioCapturer;
 import com.xmly.audio.effect.audio.AudioPlayer;
+import com.xmly.audio.utils.XmAudioGenerator;
 import com.xmly.audio.utils.XmAudioUtils;
 
 public class MainActivity extends AppCompatActivity implements AudioCapturer.OnAudioFrameCapturedListener, View.OnClickListener, RadioGroup.OnCheckedChangeListener {
@@ -51,12 +52,14 @@ public class MainActivity extends AppCompatActivity implements AudioCapturer.OnA
     private Thread mPlayOrgThread;
     private Thread mPlayEffectThread;
     private XmAudioUtils mAudioUtils;
+    private XmAudioGenerator mAudioGenerator;
     private HashMap<String, String> mEffectsInfoMap = new HashMap<String, String>();
-    private volatile boolean abort = false;
     private Handler mHandler = null;
     private static final int MSG_PROGRESS = 1;
     private static final int MSG_COMPLETED = 2;
-    private volatile boolean audioUtilsAbort = false;
+    private volatile boolean abort = false;
+    private volatile boolean abortMix = false;
+    private volatile boolean abortProgress = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,6 +68,7 @@ public class MainActivity extends AppCompatActivity implements AudioCapturer.OnA
 
         getSystemPermission();
         mAudioUtils = new XmAudioUtils();
+        mAudioGenerator = new XmAudioGenerator();
 
         mBtnNsSwitch = findViewById(R.id.btn_ns);
         mBtnNsSwitch.setOnClickListener(this);
@@ -104,7 +108,8 @@ public class MainActivity extends AppCompatActivity implements AudioCapturer.OnA
                             break;
                         case MSG_COMPLETED:
                             mBtnMix.setText("给录音加特效");
-                            audioUtilsAbort = true;
+                            abortProgress = true;
+                            abortMix = true;
                             break;
                         default:
                             break;
@@ -116,13 +121,21 @@ public class MainActivity extends AppCompatActivity implements AudioCapturer.OnA
 
     @Override
     protected void onStop() {
-        mAudioUtils.stopAddEffectsAndMix();
-        audioUtilsAbort = true;
+        mAudioGenerator.stop();
+        abortProgress = true;
+        abortMix = true;
         stopPlayOrg();
         stopPlayMix();
         stopRecord();
         stopMix();
         super.onStop();
+    }
+
+    @Override
+    protected void onDestroy() {
+        mAudioUtils.release();
+        mAudioGenerator.release();
+        super.onDestroy();
     }
 
     private void getReadExternalStoragePermission() {
@@ -271,6 +284,58 @@ public class MainActivity extends AppCompatActivity implements AudioCapturer.OnA
         }
     }
 
+    private void decodeAndFade() {
+        long startTime = System.currentTimeMillis();
+        mAudioUtils.decoder_create(decodeRawAudio, SAMPLE_RATE_44100, STEREO_CHANNELS, XmAudioUtils.DECODER_BGM);
+        mAudioUtils.decoder_seekTo(10000, XmAudioUtils.DECODER_BGM);
+        JsonUtils.createOutputFile(decodePcm);
+        int bufferSize = 1024;
+        short[] buffer = new short[bufferSize];
+        File outDecode = new File(decodePcm);
+        if (outDecode.exists()) outDecode.delete();
+        FileOutputStream osDecode = null;
+        try {
+            osDecode = new FileOutputStream(outDecode);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        mAudioUtils.fadeInit(SAMPLE_RATE_44100, STEREO_CHANNELS, 0, 60000, 80, 5000, 5000);
+        long curSize = 0;
+        while (true) {
+            int ret = mAudioUtils.get_decoded_frame(buffer, bufferSize, false, XmAudioUtils.DECODER_BGM);
+            if (ret <= 0) break;
+
+            int bufferStartTime = (int) ((double)(1000 * curSize) / STEREO_CHANNELS / SAMPLE_RATE_44100);
+            curSize += ret;
+            mAudioUtils.fade(buffer, ret, bufferStartTime);
+            try {
+                byte[] data = Utils.getByteArrayInLittleOrder(buffer);
+                osDecode.write(data, 0, 2*ret);
+                osDecode.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        try {
+            osDecode.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        long endTime = System.currentTimeMillis();
+        Log.i(TAG, "decode cost time "+(float)(endTime - startTime)/(float)1000);
+    }
+
+    private void addEffectsAndMix() {
+        JsonUtils.createOutputFile(finalAudio);
+        long startTime = System.currentTimeMillis();
+        if (mAudioGenerator.start(rawPcm, SAMPLE_RATE_44100, MONO_CHANNELS,
+                jsonPath, finalAudio, XmAudioUtils.ENCODER_MEDIA_CODEC) < 0) {
+            Log.e(TAG, "addEffectsAndMix error");
+        }
+        long endTime = System.currentTimeMillis();
+        Log.i(TAG, "addEffectsAndMix cost time "+(float)(endTime - startTime)/(float)1000);
+    }
+
     private void startMix() {
         printEffectsMap();
         JsonUtils.generateJsonFile(jsonPath, mEffectsInfoMap);
@@ -281,65 +346,22 @@ public class MainActivity extends AppCompatActivity implements AudioCapturer.OnA
             @Override
             public void run() {
                 // add voice effects and mix music
-                JsonUtils.createOutputFile(finalAudio);
-                long startTime = System.currentTimeMillis();
-                if (mAudioUtils.addEffectsAndMix(rawPcm, SAMPLE_RATE_44100, MONO_CHANNELS, jsonPath, finalAudio, XmAudioUtils.ENCODER_MEDIA_CODEC) < 0) {
-                    Log.e(TAG, "addEffectsAndMix error");
-                }
-                long endTime = System.currentTimeMillis();
-                Log.i(TAG, "addEffectsAndMix cost time "+(float)(endTime - startTime)/(float)1000);
+                addEffectsAndMix();
                 // decode final.m4a to final.pcm
-                startTime = System.currentTimeMillis();
-                mAudioUtils.decoder_create(decodeRawAudio, SAMPLE_RATE_44100, STEREO_CHANNELS, XmAudioUtils.DECODER_BGM);
-                mAudioUtils.decoder_seekTo(10000, XmAudioUtils.DECODER_BGM);
-                JsonUtils.createOutputFile(decodePcm);
-                int bufferSize = 1024;
-                short[] buffer = new short[bufferSize];
-                File outDecode = new File(decodePcm);
-                if (outDecode.exists()) outDecode.delete();
-                FileOutputStream osDecode = null;
-                try {
-                    osDecode = new FileOutputStream(outDecode);
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                }
-                mAudioUtils.fadeInit(SAMPLE_RATE_44100, STEREO_CHANNELS, 0, 60000, 80, 5000, 5000);
-                long curSize = 0;
-                while (true) {
-                    int ret = mAudioUtils.get_decoded_frame(buffer, bufferSize, false, XmAudioUtils.DECODER_BGM);
-                    if (ret <= 0) break;
-
-                    int bufferStartTime = (int) ((double)(1000 * curSize) / STEREO_CHANNELS / SAMPLE_RATE_44100);
-                    curSize += ret;
-                    mAudioUtils.fade(buffer, ret, bufferStartTime);
-                    try {
-                        byte[] data = Utils.getByteArrayInLittleOrder(buffer);
-                        osDecode.write(data, 0, 2*ret);
-                        osDecode.flush();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-                try {
-                    osDecode.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                endTime = System.currentTimeMillis();
-                Log.i(TAG, "decode cost time "+(float)(endTime - startTime)/(float)1000);
+                decodeAndFade();
                 mHandler.sendMessage(mHandler.obtainMessage(MSG_COMPLETED));
             }
         };
         new Thread(runnable).start();
-        audioUtilsAbort = false;
+        abortProgress = false;
         Runnable progressRunnable = new Runnable() {
             @Override
             public void run() {
                 int progress = 0;
-                while (progress < 100 && !audioUtilsAbort) {
+                while (progress < 100 && !abortProgress) {
                     try {
                         Thread.sleep(100L);
-                        progress = mAudioUtils.getProgressAddEffectsAndMix();
+                        progress = mAudioGenerator.getProgress();
                         Log.i(TAG, "addEffectsAndMix progress : " + progress);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
@@ -352,8 +374,9 @@ public class MainActivity extends AppCompatActivity implements AudioCapturer.OnA
 
     private void stopMix() {
         mBtnMix.setText("给录音加特效");
-        mAudioUtils.stopAddEffectsAndMix();
-        audioUtilsAbort = true;
+        mAudioGenerator.stop();
+        abortProgress = true;
+        abortMix = true;
     }
 
     private void startPlayOrg() {
