@@ -8,6 +8,7 @@
 #include "tools/util.h"
 #include "codec/audio_decoder.h"
 #include "mixer_effects/fade_in_out.h"
+#include "xm_audio_mixer.h"
 
 typedef struct Fade {
     int bgm_start_time_ms;
@@ -22,8 +23,9 @@ struct XmAudioUtils {
     volatile int ref_count;
     AudioDecoder *bgm_decoder;
     AudioDecoder *music_decoder;
-    pthread_mutex_t mutex;
+    XmMixerContext *mixer;
     Fade *fade;
+    pthread_mutex_t mutex;
 };
 
 static AudioDecoder** get_decoder(XmAudioUtils *self, int decoder_type) {
@@ -89,6 +91,10 @@ void xm_audio_utils_free(XmAudioUtils *self) {
     if (self->music_decoder) {
         xm_audio_decoder_freep(&self->music_decoder);
     }
+    if (self->mixer) {
+        xm_audio_mixer_stop(self->mixer);
+        xm_audio_mixer_freep(&(self->mixer));
+    }
 }
 
 void xm_audio_utils_freep(XmAudioUtils **au) {
@@ -101,6 +107,46 @@ void xm_audio_utils_freep(XmAudioUtils **au) {
     pthread_mutex_destroy(&self->mutex);
     free(*au);
     *au = NULL;
+}
+
+int xm_audio_utils_mixer_get_frame(XmAudioUtils *self,
+    short *buffer, int buffer_size_in_short) {
+    if (!self || !buffer || buffer_size_in_short <= 0) {
+        return -1;
+    }
+
+    return xm_audio_mixer_get_frame(self->mixer,
+        buffer, buffer_size_in_short);
+}
+
+int xm_audio_utils_mixer_init(XmAudioUtils *self,
+        const char *in_pcm_path, int pcm_sample_rate, int pcm_channels,
+        const char *in_config_path) {
+    LogInfo("%s\n", __func__);
+    int ret = -1;
+    if (!self || !in_pcm_path || !in_config_path) {
+        return -1;
+    }
+
+    xm_audio_mixer_stop(self->mixer);
+    xm_audio_mixer_freep(&(self->mixer));
+
+    self->mixer = xm_audio_mixer_create();
+    if (!self->mixer) {
+        LogError("%s xm_audio_mixer_create failed\n", __func__);
+        ret = -1;
+        goto end;
+    }
+
+    ret = xm_audio_mixer_init(self->mixer, in_pcm_path,
+        pcm_sample_rate, pcm_channels, in_config_path);
+    if (ret < 0) {
+        LogError("%s xm_audio_mixer_init failed\n", __func__);
+        goto end;
+    }
+
+end:
+    return ret;
 }
 
 int xm_audio_utils_fade(XmAudioUtils *self, short *buffer,

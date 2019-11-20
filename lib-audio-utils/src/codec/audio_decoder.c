@@ -38,7 +38,6 @@ static int get_frame_from_fifo(AudioDecoder *decoder, short *buffer,
 
     ret = ret * decoder->dst_nb_channels;
     memcpy(buffer, decoder->copy_buffer[0], sizeof(short) * ret);
-    return buffer_size_in_short;
 
 end:
     return ret;

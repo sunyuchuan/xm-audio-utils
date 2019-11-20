@@ -6,7 +6,6 @@
 #include <stdbool.h>
 #include <unistd.h>
 #include "error_def.h"
-#include "file_helper.h"
 #include "log.h"
 
 #define ENCODER_FFMPEG 0

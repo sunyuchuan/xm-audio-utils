@@ -10,6 +10,10 @@ int main(int argc, char **argv) {
     AeSetLogLevel(LOG_LEVEL_TRACE);
     AeSetLogMode(LOG_MODE_SCREEN);
 
+    for (int i = 0; i < argc; i++) {
+        LogInfo("argv[%d] %s\n", i, argv[i]);
+    }
+
     int ret = 0;
     int buffer_size_in_short = 1024;
     short *buffer = NULL;
@@ -19,7 +23,7 @@ int main(int argc, char **argv) {
     gettimeofday(&start, NULL);
 
     FILE *pcm_writer = NULL;
-    OpenFile(&pcm_writer, argv[2], true);
+    OpenFile(&pcm_writer, argv[5], true);
 
     buffer = (short *)calloc(sizeof(short), buffer_size_in_short);
     if (!buffer) goto end;
@@ -32,18 +36,16 @@ int main(int argc, char **argv) {
         goto end;
     }
 
-    xm_audio_utils_decoder_create(utils, argv[1], atoi(argv[3]), atoi(argv[4]), BGM);
-    xm_audio_utils_decoder_seekTo(utils, 1000, BGM);
-    xm_audio_utils_fade_init(utils, atoi(argv[3]), atoi(argv[4]), 0, 60000, 80, 5000, 5000);
+    ret = xm_audio_utils_mixer_init(utils, argv[1], atoi(argv[2]), atoi(argv[3]), argv[4]);
+    if (ret < 0) {
+        LogError("xm_audio_utils_mixer_init failed\n");
+        goto end;
+    }
 
-    long cur_size = 0;
     while (1) {
-        ret = xm_audio_utils_get_decoded_frame(utils, buffer, buffer_size_in_short, false, BGM);
-        if (ret <= 0) break;
-        int buffer_start_time = (float)(1000 * cur_size) / atoi(argv[4]) / atoi(argv[3]);
-        cur_size += ret;
-        xm_audio_utils_fade(utils, buffer, ret, buffer_start_time);
-        fwrite(buffer, sizeof(short), ret, pcm_writer);
+	ret = xm_audio_utils_mixer_get_frame(utils, buffer, buffer_size_in_short);
+	if (ret <= 0) break;
+	fwrite(buffer, sizeof(short), ret, pcm_writer);
     }
 
 end:

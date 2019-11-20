@@ -37,9 +37,14 @@ static int mixer_mix(XmAudioGenerator *self, const char *in_pcm_path,
         goto end;
     }
 
-    ret = xm_audio_mixer_mix(self->mixer_ctx, in_pcm_path,
-	pcm_sample_rate, pcm_channels,
-	encode_type, in_config_path, out_file_path);
+    ret = xm_audio_mixer_init(self->mixer_ctx, in_pcm_path,
+        pcm_sample_rate, pcm_channels, in_config_path);
+    if (ret < 0) {
+        LogError("%s xm_audio_mixer_init failed\n", __func__);
+        goto end;
+    }
+
+    ret = xm_audio_mixer_mix(self->mixer_ctx, out_file_path, encode_type);
     if (ret < 0) {
 	LogError("%s xm_audio_mixer_mix failed\n", __func__);
 	goto end;

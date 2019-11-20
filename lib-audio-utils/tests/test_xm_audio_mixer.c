@@ -55,9 +55,14 @@ int main(int argc, char **argv) {
         goto end;
     }
 
-    int ret = xm_audio_mixer_mix(mixer, argv[1],
-	atoi(argv[2]), atoi(argv[3]),
-	ENCODER_FFMPEG, argv[4], argv[5]);
+    int ret = xm_audio_mixer_init(mixer, argv[1], atoi(argv[2]),
+        atoi(argv[3]), argv[4]);
+    if (ret < 0) {
+        LogError("%s xm_audio_mixer_init failed\n", __func__);
+        goto end;
+    }
+
+    ret = xm_audio_mixer_mix(mixer, argv[5], ENCODER_FFMPEG);
     if (ret < 0) {
 	LogError("%s xm_audio_mixer_mix failed\n", __func__);
 	goto end;

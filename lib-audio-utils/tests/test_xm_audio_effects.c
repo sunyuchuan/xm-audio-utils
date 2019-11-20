@@ -6,7 +6,6 @@
 #include <termios.h>
 #include <unistd.h>
 #include <stdio.h>
-#include "file_helper.h"
 #include "log.h"
 #include "xm_audio_effects.h"
 #include <stdlib.h>
