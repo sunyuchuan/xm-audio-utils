@@ -83,6 +83,26 @@ public class XmAudioUtils {
         native_set_log(logMode, logLevel, outLogPath);
     }
 
+    public int mixer_init(String inPcmPath, int pcmSampleRate, int pcmChannels, String inConfigFilePath) {
+        if (inPcmPath == null || inConfigFilePath == null) {
+            return -1;
+        }
+
+        return native_mixer_init(inPcmPath, pcmSampleRate, pcmChannels, inConfigFilePath);
+    }
+
+    public int mixer_seekTo(int seekTimeMs) {
+        return native_mixer_seekTo(seekTimeMs);
+    }
+
+    public int get_mixed_frame(short[] buffer, int bufferSizeInShort) {
+        if (buffer == null) {
+            return -1;
+        }
+
+        return native_get_mixed_frame(buffer, bufferSizeInShort);
+    }
+
     public int fadeInit(int pcmSampleRate, int pcmNbChannels, int audioStartTimeMs,
                     int audioEndTimeMs, int volume, int fadeInTimeMs, int fadeOutTimeMs) {
         return native_fade_init(pcmSampleRate, pcmNbChannels, audioStartTimeMs,
@@ -128,6 +148,10 @@ public class XmAudioUtils {
     private native int native_fade_init(int pcmSampleRate, int pcmNbChannels, int audioStartTimeMs,
                            int audioEndTimeMs, int volume, int fadeInTimeMs, int fadeOutTimeMs);
     private native int native_fade(short[] buffer, int bufferSize, int bufferStartTimeMs);
+
+    private native int native_mixer_init(String inPcmPath, int pcmSampleRate, int pcmChannels, String inConfigFilePath);
+    private native int native_mixer_seekTo(int seekTimeMs);
+    private native int native_get_mixed_frame(short[] buffer, int bufferSizeInShort);
 
     private native void native_release();
     @Override

@@ -83,6 +83,66 @@ LABEL_RETURN:
 }
 
 static int
+XMAudioUtils_mixer_get_frame(JNIEnv *env, jobject thiz,
+    jshortArray buffer, jint buffer_size_in_short)
+{
+    int ret = 0;
+    XmAudioUtils *ctx = jni_get_xm_audio_utils(env, thiz);
+    JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: mixer get frame: null ctx", LABEL_RETURN);
+
+    jshort *buffer_ = (*env)->GetShortArrayElements(env, buffer, NULL);
+    ret = xm_audio_utils_mixer_get_frame(ctx, buffer_,
+        buffer_size_in_short);
+    (*env)->ReleaseShortArrayElements(env, buffer, buffer_, 0);
+LABEL_RETURN:
+    xmau_dec_ref_p(&ctx);
+    return ret;
+}
+
+static int
+XMAudioUtils_mixer_seekTo(JNIEnv *env, jobject thiz,
+    jint seekTimeMs)
+{
+    LOGI("%s\n", __func__);
+    int ret = 0;
+    XmAudioUtils *ctx = jni_get_xm_audio_utils(env, thiz);
+    JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: mixer seekTo: null ctx", LABEL_RETURN);
+
+    ret = xm_audio_utils_mixer_seekTo(ctx, seekTimeMs);
+LABEL_RETURN:
+    xmau_dec_ref_p(&ctx);
+    return ret;
+}
+
+static int
+XMAudioUtils_mixer_init(JNIEnv *env, jobject thiz,
+    jstring inPcmPath, jint pcm_sample_rate, jint pcm_channels,
+    jstring inConfigFilePath)
+{
+    LOGI("%s\n", __func__);
+    int ret = 0;
+    XmAudioUtils *ctx = jni_get_xm_audio_utils(env, thiz);
+    JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: mixer init: null ctx", LABEL_RETURN);
+
+    const char *in_pcm_path = NULL;
+    const char *in_config_path = NULL;
+    if (inPcmPath)
+        in_pcm_path = (*env)->GetStringUTFChars(env, inPcmPath, 0);
+    if (inConfigFilePath)
+        in_config_path = (*env)->GetStringUTFChars(env, inConfigFilePath, 0);
+
+    ret = xm_audio_utils_mixer_init(ctx, in_pcm_path, pcm_sample_rate,
+        pcm_channels, in_config_path);
+    if (in_pcm_path)
+        (*env)->ReleaseStringUTFChars(env, inPcmPath, in_pcm_path);
+    if (in_config_path)
+        (*env)->ReleaseStringUTFChars(env, inConfigFilePath, in_config_path);
+LABEL_RETURN:
+    xmau_dec_ref_p(&ctx);
+    return ret;
+}
+
+static int
 XMAudioUtils_fade(JNIEnv *env, jobject thiz,
     jshortArray buffer, jint buffer_size_in_short, jint buffer_start_time_ms)
 {
@@ -212,6 +272,9 @@ static JNINativeMethod g_methods[] = {
     { "native_get_decoded_frame", "([SIZI)I", (void *) XMAudioUtils_get_decoded_frame },
     { "native_fade_init", "(IIIIIII)I", (void *) XMAudioUtils_fade_init },
     { "native_fade", "([SII)I", (void *) XMAudioUtils_fade },
+    { "native_mixer_init", "(Ljava/lang/String;IILjava/lang/String;)I", (void *) XMAudioUtils_mixer_init },
+    { "native_mixer_seekTo", "(I)I", (void *) XMAudioUtils_mixer_seekTo },
+    { "native_get_mixed_frame", "([SI)I", (void *) XMAudioUtils_mixer_get_frame },
     { "native_release", "()V", (void *) XMAudioUtils_release },
 };
 

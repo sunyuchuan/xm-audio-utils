@@ -37,6 +37,9 @@ public class MainActivity extends AppCompatActivity implements AudioCapturer.OnA
     private static final String decodeRawAudio = "/sdcard/audio_effect_test/side_chain_music_test.wav";
     private static final String decodePcm = "/sdcard/audio_effect_test/decode.pcm";
     private static final String jsonPath = "/sdcard/audio_effect_test/json.txt";
+    private static final String mixVoicePcm = "/sdcard/audio_effect_test/side_chain_test.pcm";
+    private static final String mixedPcm = "/sdcard/audio_effect_test/mixed.pcm";
+    private static final String mixedJson = "/sdcard/audio_effect_test/effect_config.txt";
     private static final int SAMPLE_RATE_44100 = 44100;
     private static final int MONO_CHANNELS = 1;
     private static final int STEREO_CHANNELS = 2;
@@ -284,6 +287,70 @@ public class MainActivity extends AppCompatActivity implements AudioCapturer.OnA
         }
     }
 
+    private void realtimeMix() {
+        long startTime = System.currentTimeMillis();
+        JsonUtils.createOutputFile(mixedPcm);
+        int bufferSize = 1024;
+        short[] buffer = new short[bufferSize];
+        File outMixedPcm = new File(mixedPcm);
+        if (outMixedPcm.exists()) outMixedPcm.delete();
+        FileOutputStream osMixedPcm = null;
+        try {
+            osMixedPcm = new FileOutputStream(outMixedPcm);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        int ret = mAudioUtils.mixer_init(mixVoicePcm, 44100, 1, mixedJson);
+        if (ret < 0) {
+            Log.e(TAG, "mixer_init failed");
+            return;
+        }
+
+        ret = mAudioUtils.mixer_seekTo(10000);
+        if (ret < 0) {
+            Log.e(TAG, "mixer_seekTo failed");
+            return;
+        }
+
+        long cur_size = 0;
+        while (true) {
+            ret = mAudioUtils.get_mixed_frame(buffer, bufferSize);
+            if (ret <= 0) break;
+            try {
+                byte[] data = Utils.getByteArrayInLittleOrder(buffer);
+                osMixedPcm.write(data, 0, 2*ret);
+                osMixedPcm.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            cur_size += ret;
+            if (1000 * (cur_size / (float)44100 / 2) > 33000) {
+                break;
+            }
+        }
+
+        ret = mAudioUtils.mixer_seekTo(127226);
+        if (ret < 0) {
+            Log.e(TAG, "mixer_seekTo failed");
+            return;
+        }
+
+        while (true) {
+            ret = mAudioUtils.get_mixed_frame(buffer, bufferSize);
+            if (ret <= 0) break;
+            try {
+                byte[] data = Utils.getByteArrayInLittleOrder(buffer);
+                osMixedPcm.write(data, 0, 2*ret);
+                osMixedPcm.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        long endTime = System.currentTimeMillis();
+        Log.i(TAG, "real-time mix cost time "+(float)(endTime - startTime)/(float)1000);
+    }
+
     private void decodeAndFade() {
         long startTime = System.currentTimeMillis();
         mAudioUtils.decoder_create(decodeRawAudio, SAMPLE_RATE_44100, STEREO_CHANNELS, XmAudioUtils.DECODER_BGM);
@@ -349,6 +416,8 @@ public class MainActivity extends AppCompatActivity implements AudioCapturer.OnA
                 addEffectsAndMix();
                 // decode final.m4a to final.pcm
                 decodeAndFade();
+                // real-time mix voice/bgm/music
+                realtimeMix();
                 mHandler.sendMessage(mHandler.obtainMessage(MSG_COMPLETED));
             }
         };
@@ -358,7 +427,7 @@ public class MainActivity extends AppCompatActivity implements AudioCapturer.OnA
             @Override
             public void run() {
                 int progress = 0;
-                while (progress < 100 && !abortProgress) {
+                while (progress < 99 && !abortProgress) {
                     try {
                         Thread.sleep(100L);
                         progress = mAudioGenerator.getProgress();
