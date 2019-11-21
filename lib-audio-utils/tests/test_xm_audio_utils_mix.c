@@ -42,10 +42,32 @@ int main(int argc, char **argv) {
         goto end;
     }
 
+    ret = xm_audio_utils_mixer_seekTo(utils, 10000);
+    if (ret < 0) {
+        LogError("xm_audio_utils_mixer_seekTo failed\n");
+        goto end;
+    }
+
+    int64_t cur_size = 0;
     while (1) {
 	ret = xm_audio_utils_mixer_get_frame(utils, buffer, buffer_size_in_short);
 	if (ret <= 0) break;
 	fwrite(buffer, sizeof(short), ret, pcm_writer);
+	cur_size += ret;
+	if (1000 * (cur_size / (float) atoi(argv[2]) / 2) > 33000)
+	    break;
+    }
+
+    ret = xm_audio_utils_mixer_seekTo(utils, 127226);
+    if (ret < 0) {
+	LogError("xm_audio_utils_mixer_seekTo failed\n");
+	goto end;
+    }
+
+    while (1) {
+        ret = xm_audio_utils_mixer_get_frame(utils, buffer, buffer_size_in_short);
+        if (ret <= 0) break;
+        fwrite(buffer, sizeof(short), ret, pcm_writer);
     }
 
 end:

@@ -61,6 +61,16 @@ int xm_audio_utils_mixer_get_frame(XmAudioUtils *self,
     short *buffer, int buffer_size_in_short);
 
 /**
+ * @brief mixer seekTo
+ *
+ * @param self XmAudioUtils
+ * @param seek_time_ms seek target time in ms
+ * @return Less than 0 means failure
+ */
+int xm_audio_utils_mixer_seekTo(XmAudioUtils *self,
+    int seek_time_ms);
+
+/**
  * @brief init mixer
  *
  * @param self XmAudioUtils

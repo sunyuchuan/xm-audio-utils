@@ -43,6 +43,16 @@ int xm_audio_mixer_get_frame(XmMixerContext *ctx,
     short *buffer, int buffer_size_in_short);
 
 /**
+ * @brief mixer seekTo
+ *
+ * @param ctx XmMixerContext
+ * @param seek_time_ms seek target time in ms
+ * @return Less than 0 means failure
+ */
+int xm_audio_mixer_seekTo(XmMixerContext *ctx,
+    int seek_time_ms);
+
+/**
  * @brief mix bgm\music and output m4a
  *
  * @param ctx XmMixerContext

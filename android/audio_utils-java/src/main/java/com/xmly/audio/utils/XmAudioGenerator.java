@@ -67,7 +67,7 @@ public class XmAudioGenerator {
     }
 
     public int start(String inPcmPath, int pcmSampleRate, int pcmChannels,
-                                String inConfigFilePath, String outM4aPath, int encoderType) {
+                     String inConfigFilePath, String outM4aPath, int encoderType) {
         if (inPcmPath == null || inConfigFilePath == null || outM4aPath == null) {
             return -1;
         }

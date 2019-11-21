@@ -37,10 +37,10 @@ static void voice_effects_free(VoiceEffcets *voice) {
 }
 
 static int add_voice_effects(XmEffectContext *ctx, FILE *reader, FILE *writer) {
-    int cur_size = 0, ret = -1;
+    int64_t cur_size = 0, ret = -1;
     VoiceEffcets *voice_effects = &(ctx->voice_effects);
     fseek(reader, 0, SEEK_END);
-    int file_size = ftell(reader);
+    int64_t file_size = ftell(reader);
     fseek(reader, 0, SEEK_SET);
     while (!feof(reader) && !ferror(reader) && !ctx->abort) {
         int read_len = fread(ctx->read_buffer, 2, MAX_NB_SAMPLES, reader);

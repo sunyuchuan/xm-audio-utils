@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
     xm_audio_utils_decoder_seekTo(utils, 1000, BGM);
     xm_audio_utils_fade_init(utils, atoi(argv[3]), atoi(argv[4]), 0, 60000, 80, 5000, 5000);
 
-    long cur_size = 0;
+    int64_t cur_size = 0;
     while (1) {
         ret = xm_audio_utils_get_decoded_frame(utils, buffer, buffer_size_in_short, false, BGM);
         if (ret <= 0) break;

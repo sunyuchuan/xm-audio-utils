@@ -119,6 +119,16 @@ int xm_audio_utils_mixer_get_frame(XmAudioUtils *self,
         buffer, buffer_size_in_short);
 }
 
+int xm_audio_utils_mixer_seekTo(XmAudioUtils *self,
+    int seek_time_ms) {
+    LogInfo("%s seek_time_ms %d\n", __func__, seek_time_ms);
+    if (!self) {
+        return -1;
+    }
+
+    return xm_audio_mixer_seekTo(self->mixer, seek_time_ms);
+}
+
 int xm_audio_utils_mixer_init(XmAudioUtils *self,
         const char *in_pcm_path, int pcm_sample_rate, int pcm_channels,
         const char *in_config_path) {
