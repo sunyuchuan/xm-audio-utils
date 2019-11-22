@@ -15,6 +15,8 @@ public class XmAudioUtils {
     public static final int ENCODER_MEDIA_CODEC = 1;
     public static final int DECODER_BGM = 0;
     public static final int DECODER_MUSIC = 1;
+    public static final int ADD_EFFECTS = 0;
+    public static final int MIXER_MIX = 1;
     //输出日志模式
     public static final int LOG_MODE_NONE = 0;
     public static final int LOG_MODE_FILE = 1;
@@ -83,16 +85,36 @@ public class XmAudioUtils {
         native_set_log(logMode, logLevel, outLogPath);
     }
 
+    public int add_effects_init(String inPcmPath, int pcmSampleRate, int pcmChannels, String inConfigFilePath) {
+        if (inPcmPath == null || inConfigFilePath == null) {
+            return -1;
+        }
+
+        return native_effects_init(inPcmPath, pcmSampleRate, pcmChannels, inConfigFilePath, ADD_EFFECTS);
+    }
+
+    public int add_effects_seekTo(int seekTimeMs) {
+        return native_effects_seekTo(seekTimeMs, ADD_EFFECTS);
+    }
+
+    public int get_effects_frame(short[] buffer, int bufferSizeInShort) {
+        if (buffer == null) {
+            return -1;
+        }
+
+        return native_get_effects_frame(buffer, bufferSizeInShort, ADD_EFFECTS);
+    }
+
     public int mixer_init(String inPcmPath, int pcmSampleRate, int pcmChannels, String inConfigFilePath) {
         if (inPcmPath == null || inConfigFilePath == null) {
             return -1;
         }
 
-        return native_mixer_init(inPcmPath, pcmSampleRate, pcmChannels, inConfigFilePath);
+        return native_effects_init(inPcmPath, pcmSampleRate, pcmChannels, inConfigFilePath, MIXER_MIX);
     }
 
     public int mixer_seekTo(int seekTimeMs) {
-        return native_mixer_seekTo(seekTimeMs);
+        return native_effects_seekTo(seekTimeMs, MIXER_MIX);
     }
 
     public int get_mixed_frame(short[] buffer, int bufferSizeInShort) {
@@ -100,7 +122,7 @@ public class XmAudioUtils {
             return -1;
         }
 
-        return native_get_mixed_frame(buffer, bufferSizeInShort);
+        return native_get_effects_frame(buffer, bufferSizeInShort, MIXER_MIX);
     }
 
     public int fadeInit(int pcmSampleRate, int pcmNbChannels, int audioStartTimeMs,
@@ -149,9 +171,10 @@ public class XmAudioUtils {
                            int audioEndTimeMs, int volume, int fadeInTimeMs, int fadeOutTimeMs);
     private native int native_fade(short[] buffer, int bufferSize, int bufferStartTimeMs);
 
-    private native int native_mixer_init(String inPcmPath, int pcmSampleRate, int pcmChannels, String inConfigFilePath);
-    private native int native_mixer_seekTo(int seekTimeMs);
-    private native int native_get_mixed_frame(short[] buffer, int bufferSizeInShort);
+    private native int native_effects_init(String inPcmPath, int pcmSampleRate, int pcmChannels,
+                                           String inConfigFilePath, int actionType);
+    private native int native_effects_seekTo(int seekTimeMs, int actionType);
+    private native int native_get_effects_frame(short[] buffer, int bufferSizeInShort, int actionType);
 
     private native void native_release();
     @Override

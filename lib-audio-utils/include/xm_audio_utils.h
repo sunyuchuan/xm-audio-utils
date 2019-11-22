@@ -11,6 +11,12 @@ enum BgmType {
     MUSIC
 };
 
+enum ActionType {
+    AC_NONE = -1,
+    ADD_EFFECTS,
+    MIXER_MIX
+};
+
 typedef struct XmAudioUtils XmAudioUtils;
 
 /**
@@ -47,6 +53,42 @@ void xm_audio_utils_free(XmAudioUtils *self);
  * @param self XmAudioUtils**
  */
 void xm_audio_utils_freep(XmAudioUtils **self);
+
+/**
+ * @brief Get frame data with voice effects
+ *
+ * @param self XmAudioUtils
+ * @param buffer buffer for storing data
+ * @param buffer_size_in_short buffer size
+ * @return size of valid buffer obtained.
+                  Less than or equal to 0 means failure or end.
+ */
+int xm_audio_utils_effect_get_frame(XmAudioUtils *self,
+    short *buffer, int buffer_size_in_short);
+
+/**
+ * @brief file seekTo
+ *
+ * @param self XmAudioUtils
+ * @param seek_time_ms seek target time in ms
+ * @return Less than 0 means failure
+ */
+int xm_audio_utils_effect_seekTo(XmAudioUtils *self,
+    int seek_time_ms);
+
+/**
+ * @brief init effect
+ *
+ * @param self XmAudioUtils
+ * @param in_pcm_path Input pcm file path
+ * @param pcm_sample_rate The sample rate of input pcm file
+ * @param pcm_channels The channels of input pcm file
+ * @param in_config_path Config file about bgm and music parameter
+ * @return Less than 0 means failure
+ */
+int xm_audio_utils_effect_init(XmAudioUtils *self,
+        const char *in_pcm_path, int pcm_sample_rate, int pcm_channels,
+        const char *in_config_path);
 
 /**
  * @brief get mixed frame

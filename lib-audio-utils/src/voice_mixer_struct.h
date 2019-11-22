@@ -13,8 +13,6 @@ enum EffectType {
 
 typedef struct VoiceEffcets {
     int nb_effects;
-    int first_valid_effect_index;
-    int final_valid_effect_index;
     EffectContext *effects[MAX_NB_EFFECTS];
 } VoiceEffcets;
 

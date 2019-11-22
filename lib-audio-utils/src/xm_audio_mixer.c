@@ -605,7 +605,7 @@ static int xm_audio_mixer_mix_l(XmMixerContext *ctx,
     fseek(ctx->reader, 0, SEEK_SET);
     ctx->seek_time_ms = 0;
     ctx->cur_size = 0;
-    while (!feof(ctx->reader) && !ferror(ctx->reader) && !ctx->abort) {
+    while (!ctx->abort) {
         int progress = ((float)2*ctx->cur_size / file_size) * 100;
         pthread_mutex_lock(&ctx->mutex);
         ctx->progress = progress;
@@ -613,7 +613,8 @@ static int xm_audio_mixer_mix_l(XmMixerContext *ctx,
 
         ret = xm_audio_mixer_get_frame(ctx, buffer, MAX_NB_SAMPLES);
         if (ret <= 0) {
-            continue;
+            LogInfo("xm_audio_mixer_get_frame len <= 0.\n");
+            break;
         }
 
         ret = muxer_write_audio_frame(ctx->muxer, buffer, ret);

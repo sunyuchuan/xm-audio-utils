@@ -19,18 +19,6 @@ static void bubble_sort(int nb, BgmMusic **data) {
     }
 }
 
-static void update_valid_effect_index(VoiceEffcets *voice_effects, int index) {
-    if (voice_effects == NULL || index < 0) {
-        return;
-    }
-    if (voice_effects->final_valid_effect_index < index) {
-        voice_effects->final_valid_effect_index = index;
-    }
-    if (voice_effects->first_valid_effect_index > index) {
-        voice_effects->first_valid_effect_index = index;
-    }
-}
-
 static int parse_bgm_music(cJSON *json, int nb, BgmMusic **data) {
     int ret = -1;
     if (json == NULL) {
@@ -333,13 +321,11 @@ int effects_parse(VoiceEffcets *voice_effects, const char *json_file_addr, int s
 
         if (0 == strcasecmp(name->valuestring, "NoiseSuppression")) {
              LogInfo("%s effect NoiseSuppression\n", __func__);
-             update_valid_effect_index(voice_effects, NoiseSuppression);
              voice_effects->effects[NoiseSuppression] = create_effect(find_effect("noise_suppression"), sample_rate, channels);
              init_effect(voice_effects->effects[NoiseSuppression], 0, NULL);
              set_effect(voice_effects->effects[NoiseSuppression], "Switch", info->valuestring, 0);
         } else if (0 == strcasecmp(name->valuestring, "Beautify")) {
              LogInfo("%s effect Beautify\n", __func__);
-             update_valid_effect_index(voice_effects, Beautify);
              voice_effects->effects[Beautify] = create_effect(find_effect("beautify"), sample_rate, channels);
              init_effect(voice_effects->effects[Beautify], 0, NULL);
              set_effect(voice_effects->effects[Beautify], "mode", info->valuestring, 0);
@@ -347,7 +333,6 @@ int effects_parse(VoiceEffcets *voice_effects, const char *json_file_addr, int s
              LogInfo("%s effect Reverb\n", __func__);
         } else if (0 == strcasecmp(name->valuestring, "VolumeLimiter")) {
              LogInfo("%s effect VolumeLimiter\n", __func__);
-             update_valid_effect_index(voice_effects, VolumeLimiter);
              voice_effects->effects[VolumeLimiter] = create_effect(find_effect("limiter"), sample_rate, channels);
              init_effect(voice_effects->effects[VolumeLimiter], 0, NULL);
              set_effect(voice_effects->effects[VolumeLimiter], "Switch", info->valuestring, 0);
@@ -355,8 +340,6 @@ int effects_parse(VoiceEffcets *voice_effects, const char *json_file_addr, int s
              LogWarning("%s unsupport effect %s\n", __func__, name->valuestring);
         }
     }
-    LogInfo("%s first_valid_effect_index %d\n", __func__, voice_effects->first_valid_effect_index);
-    LogInfo("%s final_valid_effect_index %d\n", __func__, voice_effects->final_valid_effect_index);
 
     ret = 0;
 fail:

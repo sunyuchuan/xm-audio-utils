@@ -33,24 +33,56 @@ void xm_audio_effect_stop(XmEffectContext *ctx);
 int xm_audio_effect_get_progress(XmEffectContext *ctx);
 
 /**
+ * @brief Get frame data with voice effects
+ *
+ * @param ctx XmEffectContext
+ * @param buffer buffer for storing data
+ * @param buffer_size_in_short buffer size
+ * @return size of valid buffer obtained.
+                  Less than or equal to 0 means failure or end
+ */
+int xm_audio_effect_get_frame(XmEffectContext *ctx,
+    short *buffer, int buffer_size_in_short);
+
+/**
+ * @brief file seekTo
+ *
+ * @param ctx XmEffectContext
+ * @param seek_time_ms seek target time in ms
+ * @return Less than 0 means failure
+ */
+int xm_audio_effect_seekTo(XmEffectContext *ctx,
+    int seek_time_ms);
+
+/**
  * @brief Add audio effects
  *
  * @param ctx XmEffectContext
- * @param in_pcm_path Input pcm file path
- * @param in_config_path Config file about audio effect parameter
  * @param out_pcm_path Output pcm file path
  * @return Less than 0 means failure
  */
-int xm_audio_effect_add(XmEffectContext *ctx, const char *in_pcm_path, const char *in_config_path,
-                    const char *out_pcm_path);
+int xm_audio_effect_add_effects(XmEffectContext *ctx,
+    const char *out_pcm_path);
+
+/**
+ * @brief effect init
+ *
+ * @param ctx XmEffectContext
+ * @param in_pcm_path Input pcm file path
+ * @param pcm_sample_rate The sample rate of input pcm file
+ * @param pcm_channels The channels of input pcm file
+ * @param in_config_path Config file about effects parameter
+ * @return Less than 0 means failure
+ */
+int xm_audio_effect_init(XmEffectContext *ctx,
+    const char *in_pcm_path, int pcm_sample_rate, int pcm_channels,
+    const char *in_config_path);
 
 /**
  * @brief create XmEffectContext
  *
- * @param sample_rate The sample rate of input pcm data
- * @param channels The channels of input pcm data
  * @return XmEffectContext*
  */
-XmEffectContext *xm_audio_effect_create(const int sample_rate, const int channels);
+XmEffectContext *xm_audio_effect_create();
 
 #endif  // XM_AUDIO_EFFECTS_H_

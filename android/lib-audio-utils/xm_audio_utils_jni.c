@@ -83,16 +83,28 @@ LABEL_RETURN:
 }
 
 static int
-XMAudioUtils_mixer_get_frame(JNIEnv *env, jobject thiz,
-    jshortArray buffer, jint buffer_size_in_short)
+XMAudioUtils_get_effects_frame(JNIEnv *env, jobject thiz,
+    jshortArray buffer, jint buffer_size_in_short, jint action_type)
 {
     int ret = 0;
     XmAudioUtils *ctx = jni_get_xm_audio_utils(env, thiz);
     JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: mixer get frame: null ctx", LABEL_RETURN);
 
     jshort *buffer_ = (*env)->GetShortArrayElements(env, buffer, NULL);
-    ret = xm_audio_utils_mixer_get_frame(ctx, buffer_,
-        buffer_size_in_short);
+    switch(action_type) {
+        case ADD_EFFECTS:
+            ret = xm_audio_utils_effect_get_frame(ctx, buffer_,
+                buffer_size_in_short);
+            break;
+        case MIXER_MIX:
+            ret = xm_audio_utils_mixer_get_frame(ctx, buffer_,
+                buffer_size_in_short);
+            break;
+        default:
+            ret = -1;
+            LOGE("%s invalid action_type %d.\n", __func__, action_type);
+            break;
+    }
     (*env)->ReleaseShortArrayElements(env, buffer, buffer_, 0);
 LABEL_RETURN:
     xmau_dec_ref_p(&ctx);
@@ -100,24 +112,35 @@ LABEL_RETURN:
 }
 
 static int
-XMAudioUtils_mixer_seekTo(JNIEnv *env, jobject thiz,
-    jint seekTimeMs)
+XMAudioUtils_effects_seekTo(JNIEnv *env, jobject thiz,
+    jint seekTimeMs, jint action_type)
 {
     LOGI("%s\n", __func__);
     int ret = 0;
     XmAudioUtils *ctx = jni_get_xm_audio_utils(env, thiz);
     JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: mixer seekTo: null ctx", LABEL_RETURN);
 
-    ret = xm_audio_utils_mixer_seekTo(ctx, seekTimeMs);
+    switch(action_type) {
+        case ADD_EFFECTS:
+            ret = xm_audio_utils_effect_seekTo(ctx, seekTimeMs);
+            break;
+        case MIXER_MIX:
+            ret = xm_audio_utils_mixer_seekTo(ctx, seekTimeMs);
+            break;
+        default:
+            ret = -1;
+            LOGE("%s invalid action_type %d.\n", __func__, action_type);
+            break;
+    }
 LABEL_RETURN:
     xmau_dec_ref_p(&ctx);
     return ret;
 }
 
 static int
-XMAudioUtils_mixer_init(JNIEnv *env, jobject thiz,
+XMAudioUtils_effects_init(JNIEnv *env, jobject thiz,
     jstring inPcmPath, jint pcm_sample_rate, jint pcm_channels,
-    jstring inConfigFilePath)
+    jstring inConfigFilePath, jint action_type)
 {
     LOGI("%s\n", __func__);
     int ret = 0;
@@ -131,8 +154,21 @@ XMAudioUtils_mixer_init(JNIEnv *env, jobject thiz,
     if (inConfigFilePath)
         in_config_path = (*env)->GetStringUTFChars(env, inConfigFilePath, 0);
 
-    ret = xm_audio_utils_mixer_init(ctx, in_pcm_path, pcm_sample_rate,
-        pcm_channels, in_config_path);
+    switch(action_type) {
+        case ADD_EFFECTS:
+            ret = xm_audio_utils_effect_init(ctx, in_pcm_path, pcm_sample_rate,
+                pcm_channels, in_config_path);
+            break;
+        case MIXER_MIX:
+            ret = xm_audio_utils_mixer_init(ctx, in_pcm_path, pcm_sample_rate,
+                pcm_channels, in_config_path);
+            break;
+        default:
+            ret = -1;
+            LOGE("%s invalid action_type %d.\n", __func__, action_type);
+            break;
+    }
+
     if (in_pcm_path)
         (*env)->ReleaseStringUTFChars(env, inPcmPath, in_pcm_path);
     if (in_config_path)
@@ -272,9 +308,9 @@ static JNINativeMethod g_methods[] = {
     { "native_get_decoded_frame", "([SIZI)I", (void *) XMAudioUtils_get_decoded_frame },
     { "native_fade_init", "(IIIIIII)I", (void *) XMAudioUtils_fade_init },
     { "native_fade", "([SII)I", (void *) XMAudioUtils_fade },
-    { "native_mixer_init", "(Ljava/lang/String;IILjava/lang/String;)I", (void *) XMAudioUtils_mixer_init },
-    { "native_mixer_seekTo", "(I)I", (void *) XMAudioUtils_mixer_seekTo },
-    { "native_get_mixed_frame", "([SI)I", (void *) XMAudioUtils_mixer_get_frame },
+    { "native_effects_init", "(Ljava/lang/String;IILjava/lang/String;I)I", (void *) XMAudioUtils_effects_init },
+    { "native_effects_seekTo", "(II)I", (void *) XMAudioUtils_effects_seekTo },
+    { "native_get_effects_frame", "([SII)I", (void *) XMAudioUtils_get_effects_frame },
     { "native_release", "()V", (void *) XMAudioUtils_release },
 };
 

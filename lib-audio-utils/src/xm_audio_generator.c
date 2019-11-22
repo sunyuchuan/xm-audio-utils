@@ -66,16 +66,21 @@ static int add_voice_effects(XmAudioGenerator *self, const char *in_pcm_path,
     xm_audio_effect_stop(self->effects_ctx);
     xm_audio_effect_freep(&(self->effects_ctx));
 
-    self->effects_ctx = xm_audio_effect_create(pcm_sample_rate, pcm_channels);
+    self->effects_ctx = xm_audio_effect_create();
     if (!self->effects_ctx) {
-        LogError("%s xm_audio_effect_create failed\n", __func__);
+        LogError("%s xm_audio_effect_create failed.\n", __func__);
         ret = -1;
         goto end;
     }
 
-    if((ret = xm_audio_effect_add(self->effects_ctx, in_pcm_path,
-            in_config_path, out_pcm_path)) < 0) {
-        LogError("%s xm_audio_effect_add failed\n", __func__);
+    if ((ret = xm_audio_effect_init(self->effects_ctx, in_pcm_path,
+        pcm_sample_rate, pcm_channels, in_config_path)) < 0) {
+        LogError("%s xm_audio_effect_init failed.\n", __func__);
+        goto end;
+    }
+
+    if ((ret = xm_audio_effect_add_effects(self->effects_ctx, out_pcm_path)) < 0) {
+        LogError("%s xm_audio_effect_add_effects failed.\n", __func__);
         goto end;
     }
 
@@ -192,7 +197,7 @@ int xm_audio_generator_start(XmAudioGenerator *self,
         goto end;
     }
 
-    if ((ret = mixer_mix(self, in_pcm_path, pcm_sample_rate,
+    if ((ret = mixer_mix(self, out_pcm_path, pcm_sample_rate,
         pcm_channels, in_config_path, out_file_path, encode_type)) < 0) {
         LogError("%s mixer_mix failed\n", __func__);
         goto end;

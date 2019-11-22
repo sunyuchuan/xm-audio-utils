@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
     fclose(pcm_writer);
     pcm_writer = NULL;
 
-    XmEffectContext *ctx = xm_audio_effect_create(atoi(argv[2]), atoi(argv[3]));
+    XmEffectContext *ctx = xm_audio_effect_create();
     if (!ctx) {
         LogError("%s xm_audio_effect_create failed\n", __func__);
         goto end;
@@ -60,8 +60,14 @@ int main(int argc, char **argv) {
         goto end;
     }
 
-    if(xm_audio_effect_add(ctx, argv[1], argv[4], argv[5]) < 0) {
-        LogError("Error: add effects failed\n");
+    if (xm_audio_effect_init(ctx, argv[1], atoi(argv[2]), atoi(argv[3]),
+        argv[4]) < 0) {
+        LogError("Error: xm_audio_effect_init failed\n");
+        goto end;
+    }
+
+    if (xm_audio_effect_add_effects(ctx, argv[5]) < 0) {
+        LogError("Error: xm_audio_effect_add_effects failed\n");
         goto end;
     }
 

@@ -278,6 +278,42 @@ end:
     return ret;
 }
 
+static void decoder_flush(AudioDecoder *decoder)
+{
+    LogInfo("%s.\n", __func__);
+    if (NULL == decoder)
+        return;
+
+    int ret = 0;
+    ret = avcodec_send_packet(decoder->dec_ctx, NULL);
+    if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+        LogInfo("%s the decoder has been flushed, exit.\n", __func__);
+        return;
+    }
+
+    while (1) {
+        ret = avcodec_receive_frame(decoder->dec_ctx, decoder->audio_frame);
+        if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
+            break;
+        } else if (ret < 0) {
+            LogError("%s Error during avcodec_receive_frame, error code = %d.\n", __func__, ret);
+            break;
+        }
+
+        if (decoder->swr_ctx) {
+            ret = resample_audio(decoder);
+            if (ret < 0) break;
+            ret = AudioFifoPut(decoder->audio_fifo, decoder->dst_nb_samples,
+                        (void **)decoder->dst_data);
+            if (ret < 0) break;
+        } else {
+            ret = AudioFifoPut(decoder->audio_fifo, decoder->audio_frame->nb_samples,
+                        (void **)decoder->audio_frame->data);
+            if (ret < 0) break;
+        }
+    }
+}
+
 void xm_audio_decoder_free(AudioDecoder *decoder) {
     LogInfo("%s\n", __func__);
     if (NULL == decoder)
@@ -329,6 +365,9 @@ int xm_audio_decoder_get_decoded_frame(AudioDecoder *decoder, short *buffer,
            buffer_size_in_short) {
         ret = decode_audio_frame(decoder);
         if (ret < 0) {
+            if (ret == AVERROR_EOF) {
+                decoder_flush(decoder);
+            }
             if (ret == AVERROR_EOF && loop) {
                 if ((ret = reset_decoder(decoder, decoder->file_addr,
                         decoder->dst_sample_rate_in_Hz, decoder->dst_nb_channels)) < 0) {

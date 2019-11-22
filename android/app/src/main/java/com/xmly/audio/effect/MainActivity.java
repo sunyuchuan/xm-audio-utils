@@ -40,6 +40,7 @@ public class MainActivity extends AppCompatActivity implements AudioCapturer.OnA
     private static final String mixVoicePcm = "/sdcard/audio_effect_test/side_chain_test.pcm";
     private static final String mixedPcm = "/sdcard/audio_effect_test/mixed.pcm";
     private static final String mixedJson = "/sdcard/audio_effect_test/effect_config.txt";
+    private static final String realtimeEffects = "/sdcard/audio_effect_test/rt_effect.pcm";
     private static final int SAMPLE_RATE_44100 = 44100;
     private static final int MONO_CHANNELS = 1;
     private static final int STEREO_CHANNELS = 2;
@@ -287,6 +288,70 @@ public class MainActivity extends AppCompatActivity implements AudioCapturer.OnA
         }
     }
 
+    private void realtimeAddEffects() {
+        long startTime = System.currentTimeMillis();
+        JsonUtils.createOutputFile(realtimeEffects);
+        int bufferSize = 1024;
+        short[] buffer = new short[bufferSize];
+        File outEffectPcm = new File(realtimeEffects);
+        if (outEffectPcm.exists()) outEffectPcm.delete();
+        FileOutputStream osEffectPcm = null;
+        try {
+            osEffectPcm = new FileOutputStream(outEffectPcm);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+
+        int ret = mAudioUtils.add_effects_init(mixVoicePcm, 44100, 1, mixedJson);
+        if (ret < 0) {
+            Log.e(TAG, "add_effects_init failed");
+            return;
+        }
+
+        ret = mAudioUtils.add_effects_seekTo(10000);
+        if (ret < 0) {
+            Log.e(TAG, "add_effects_seekTo failed");
+            return;
+        }
+
+        long cur_size = 0;
+        while (true) {
+            ret = mAudioUtils.get_effects_frame(buffer, bufferSize);
+            if (ret <= 0) break;
+            try {
+                byte[] data = Utils.getByteArrayInLittleOrder(buffer);
+                osEffectPcm.write(data, 0, 2*ret);
+                osEffectPcm.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            cur_size += ret;
+            if (1000 * (cur_size / (float)44100 / 1) > 33000) {
+                break;
+            }
+        }
+
+        ret = mAudioUtils.add_effects_seekTo(127226);
+        if (ret < 0) {
+            Log.e(TAG, "add_effects_seekTo failed");
+            return;
+        }
+
+        while (true) {
+            ret = mAudioUtils.get_effects_frame(buffer, bufferSize);
+            if (ret <= 0) break;
+            try {
+                byte[] data = Utils.getByteArrayInLittleOrder(buffer);
+                osEffectPcm.write(data, 0, 2*ret);
+                osEffectPcm.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        long endTime = System.currentTimeMillis();
+        Log.i(TAG, "real-time add effects cost time "+(float)(endTime - startTime)/(float)1000);
+    }
+
     private void realtimeMix() {
         long startTime = System.currentTimeMillis();
         JsonUtils.createOutputFile(mixedPcm);
@@ -418,6 +483,8 @@ public class MainActivity extends AppCompatActivity implements AudioCapturer.OnA
                 decodeAndFade();
                 // real-time mix voice/bgm/music
                 realtimeMix();
+                // real-time add voice effects
+                realtimeAddEffects();
                 mHandler.sendMessage(mHandler.obtainMessage(MSG_COMPLETED));
             }
         };
