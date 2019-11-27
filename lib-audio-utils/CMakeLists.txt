@@ -43,23 +43,7 @@ include_directories(${PROJECT_SOURCE_DIR}/src)
 include_directories(${PROJECT_SOURCE_DIR}/src/effects)
 
 # ffmpeg
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Android")
-if(${ANDROID_ABI} STREQUAL "armeabi")
-    set(FFmpeg_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/../prebuilt/android/ffmpeg-armv5/include)
-elseif(${ANDROID_ABI} STREQUAL "armeabi-v7a")
-    set(FFmpeg_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/../prebuilt/android/ffmpeg-armv7a/include)
-elseif(${ANDROID_ABI} STREQUAL "arm64-v8a")
-    set(FFmpeg_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/../prebuilt/android/ffmpeg-arm64/include)
-elseif(${ANDROID_ABI} STREQUAL "x86")
-    set(FFmpeg_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/../prebuilt/android/ffmpeg-x86/include)
-elseif(${ANDROID_ABI} STREQUAL "x86_64")
-    set(FFmpeg_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/../prebuilt/android/ffmpeg-x86_64/include)
-else()
-    set(FFmpeg_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/../prebuilt/android/ffmpeg-armv7a/include)
-endif()
-    include_directories(${FFmpeg_INCLUDE_DIRS})
-    include_directories(${PROJECT_SOURCE_DIR}/src/codec/mediacodec)
-elseif(IOS)
+if(${CMAKE_SYSTEM_NAME} STREQUAL "IOS")
     set(FFmpeg_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/../prebuilt/ios/)
     include_directories(${FFmpeg_INCLUDE_DIRS})
 else()
@@ -68,33 +52,7 @@ else()
     link_directories("/usr/local/lib")
 endif()
 
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Android")
 add_library(${PROJECT_NAME}
-src/codec/mediacodec/xm_android_jni.c
-src/codec/mediacodec/ijkj4a/Build.c
-src/codec/mediacodec/ijkj4a/ByteBuffer.util.c
-src/codec/mediacodec/ijkj4a/ByteBuffer.c
-src/codec/mediacodec/ijkj4a/j4a_allclasses.c
-src/codec/mediacodec/ijkj4a/j4a_base.c
-src/codec/mediacodec/ijkj4a/MediaCodec.c
-src/codec/mediacodec/ijkj4a/MediaFormat.c
-
-src/codec/mediacodec/ijksdl/ijksdl_codec_android_mediacodec.c
-src/codec/mediacodec/ijksdl/ijksdl_codec_android_mediacodec_internal.c
-src/codec/mediacodec/ijksdl/ijksdl_codec_android_mediacodec_java.c
-src/codec/mediacodec/ijksdl/ijksdl_codec_android_mediadef.c
-src/codec/mediacodec/ijksdl/ijksdl_codec_android_mediaformat.c
-src/codec/mediacodec/ijksdl/ijksdl_codec_android_mediaformat_java.c
-src/codec/mediacodec/ijksdl/ijksdl_mutex.c
-src/codec/mediacodec/ijksdl/ijksdl_timer.c
-src/codec/mediacodec/audio_encoder_mediacodec.c
-
-src/codec/ffmpeg_utils.c
-src/codec/audio_decoder.c
-src/codec/audio_encoder.c
-src/codec/sw/audio_encoder_sw.c
-src/codec/audio_muxer.c
-
 src/tools/avstring.c
 src/tools/conversion.c
 src/tools/dict.c
@@ -135,63 +93,6 @@ src/xm_audio_mixer.c
 src/xm_audio_utils.c
 src/xm_audio_generator.c
 )
-
-else()
-
-add_library(${PROJECT_NAME}
-src/codec/ffmpeg_utils.c
-src/codec/audio_decoder.c
-src/codec/audio_encoder.c
-src/codec/sw/audio_encoder_sw.c
-src/codec/audio_muxer.c
-
-src/tools/avstring.c
-src/tools/conversion.c
-src/tools/dict.c
-src/tools/fifo.c
-src/tools/log.c
-src/tools/mem.c
-src/tools/sdl_mutex.c
-src/tools/util.c
-
-src/effects/echo.c
-src/effects/echos.c
-src/effects/reverb.c
-
-src/effects/dsp_tools/fft/fft8g.c
-src/effects/dsp_tools/iir_design/iir_design.c
-src/effects/beautify/compressor.c
-src/effects/beautify/equalizer.c
-src/effects/beautify/flanger.c
-src/effects/beautify/limiter.c
-src/effects/beautify/multiband_compressor.c
-src/effects/beautify.c
-
-src/effects/math/junior_func.c
-src/effects/noise_suppression/noise_estimation.c
-src/effects/noise_suppression.c
-
-src/effects/volume_limiter.c
-
-src/json/cJSON.c
-src/json/json_parse.c
-
-src/mixer_effects/fade_in_out.c
-src/mixer_effects/side_chain_compress.c
-
-src/effects/voice_effect.c
-src/xm_audio_effects.c
-src/xm_audio_mixer.c
-src/xm_audio_utils.c
-src/xm_audio_generator.c
-)
-endif()
-
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Android")
-elseif(IOS)
-else()
-    target_link_libraries(${PROJECT_NAME} m pthread avformat avcodec avutil swresample)
-endif()
 
 # set prefix as global var
 set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install")

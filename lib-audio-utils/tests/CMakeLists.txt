@@ -17,20 +17,11 @@ target_link_libraries(test_beautify ${PROJECT_NAME} m pthread)
 add_executable(test_volume_limiter test_volume_limiter.c)
 target_link_libraries(test_volume_limiter ${PROJECT_NAME} m pthread)
 
-add_executable(test_audio_decoder test_audio_decoder.c)
-target_link_libraries(test_audio_decoder ${PROJECT_NAME} m pthread)
-
-add_executable(test_audio_encoder test_audio_encoder.c)
-target_link_libraries(test_audio_encoder ${PROJECT_NAME} m pthread)
-
 add_executable(test_xm_audio_effects test_xm_audio_effects.c)
 target_link_libraries(test_xm_audio_effects ${PROJECT_NAME} m pthread)
 
 add_executable(test_xm_audio_mixer test_xm_audio_mixer.c)
 target_link_libraries(test_xm_audio_mixer ${PROJECT_NAME} m pthread)
-
-add_executable(test_xm_audio_utils_decode test_xm_audio_utils_decode.c)
-target_link_libraries(test_xm_audio_utils_decode ${PROJECT_NAME} m pthread)
 
 add_executable(test_xm_audio_utils_mix test_xm_audio_utils_mix.c)
 target_link_libraries(test_xm_audio_utils_mix ${PROJECT_NAME} m pthread)
