@@ -2,7 +2,7 @@
 #define _VOICE_MIXER_STRUCT_
 #include "effects/effect_struct.h"
 #include "mixer_effects/fade_in_out.h"
-#include "codec/audio_decoder.h"
+#include "pcm_parser.h"
 
 enum EffectType {
     NoiseSuppression = 0,
@@ -20,6 +20,8 @@ typedef struct BgmMusic {
     FadeInOut fade_io;
     char *url;
     float volume;
+    int sample_rate;
+    int nb_channels;
     int start_time_ms;
     int end_time_ms;
     float left_factor;
@@ -27,7 +29,7 @@ typedef struct BgmMusic {
     float yl_prev;
     bool side_chain_enable;
     float makeup_gain;
-    AudioDecoder *decoder;
+    PcmParser *parser;
 } BgmMusic;
 
 typedef struct MixerEffcets {

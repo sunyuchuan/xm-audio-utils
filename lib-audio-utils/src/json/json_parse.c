@@ -4,6 +4,7 @@
 #include "tools/util.h"
 #include <string.h>
 #include <stdlib.h>
+#include "../tools/mem.h"
 
 static void bubble_sort(int nb, BgmMusic **data) {
     int i, j;
@@ -30,6 +31,8 @@ static int parse_bgm_music(cJSON *json, int nb, BgmMusic **data) {
     cJSON_ArrayForEach(sub, json)
     {
         cJSON *url = cJSON_GetObjectItemCaseSensitive(sub, "url");
+        cJSON *sample_rate = cJSON_GetObjectItemCaseSensitive(sub, "sampleRate");
+        cJSON *nb_channels = cJSON_GetObjectItemCaseSensitive(sub, "nbChannels");
         cJSON *start = cJSON_GetObjectItemCaseSensitive(sub, "startTimeMs");
         cJSON *end = cJSON_GetObjectItemCaseSensitive(sub, "endTimeMs");
         cJSON *vol = cJSON_GetObjectItemCaseSensitive(sub, "volume");
@@ -38,7 +41,8 @@ static int parse_bgm_music(cJSON *json, int nb, BgmMusic **data) {
         cJSON *side_chain = cJSON_GetObjectItemCaseSensitive(sub, "sideChain");
         cJSON *makeup_g = cJSON_GetObjectItemCaseSensitive(sub, "makeUpGain");
 
-        if (!cJSON_IsString(url) || !cJSON_IsNumber(start)
+        if (!cJSON_IsString(url) || !cJSON_IsNumber(sample_rate)
+            || !cJSON_IsNumber(nb_channels) || !cJSON_IsNumber(start)
             || !cJSON_IsNumber(end) || url->valuestring == NULL
             || !cJSON_IsNumber(fade_in_time) || !cJSON_IsNumber(fade_out_time)
             || !cJSON_IsNumber(vol) || !cJSON_IsString(side_chain)
@@ -61,6 +65,8 @@ static int parse_bgm_music(cJSON *json, int nb, BgmMusic **data) {
         }
 
         data[count]->url = av_strdup(url->valuestring);
+        data[count]->sample_rate = sample_rate->valuedouble;
+        data[count]->nb_channels = nb_channels->valuedouble;
         data[count]->start_time_ms = start->valuedouble;
         data[count]->end_time_ms  = end->valuedouble;
         data[count]->volume = vol->valuedouble / (float)100;

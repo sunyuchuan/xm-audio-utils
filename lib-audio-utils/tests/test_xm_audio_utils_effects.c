@@ -1,5 +1,4 @@
 #include "xm_audio_utils.h"
-#include "../src/codec/ffmpeg_utils.h"
 #include <sys/time.h>
 #include <stdlib.h>
 #include "error_def.h"
@@ -28,8 +27,6 @@ int main(int argc, char **argv) {
     buffer = (short *)calloc(sizeof(short), buffer_size_in_short);
     if (!buffer) goto end;
 
-    // Set Log
-    RegisterFFmpeg();
     XmAudioUtils *utils = xm_audio_utils_create();
     if (utils == NULL) {
         LogError("xm_audio_utils_create failed\n");

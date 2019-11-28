@@ -8,14 +8,14 @@
     ],
     "nb_bgm":3,
     "bgm": [
-        { "url":"../data/side_chain_music_test.wav","volume":80,"startTimeMs":5000,"endTimeMs":60000,"fadeInTimeMs":3000,"fadeOutTimeMs":3000,"sideChain":"on","makeUpGain":50},
-        { "url":"../data/bgm2.mp4","volume":80,"startTimeMs":70000,"endTimeMs":120000,"fadeInTimeMs":3000,"fadeOutTimeMs":3000,"sideChain":"off","makeUpGain":50},
-        { "url":"../data/bgm2.mp4","volume":80,"startTimeMs":120000,"endTimeMs":140000,"fadeInTimeMs":3000,"fadeOutTimeMs":3000,"sideChain":"off","makeUpGain":50}
+        { "url":"../data/side_chain_music_test.pcm","sampleRate":44100,"nbChannels":1,"volume":80,"startTimeMs":5000,"endTimeMs":60000,"fadeInTimeMs":3000,"fadeOutTimeMs":3000,"sideChain":"on","makeUpGain":50},
+        { "url":"../data/bgm2.pcm","sampleRate":44100,"nbChannels":2,"volume":80,"startTimeMs":70000,"endTimeMs":120000,"fadeInTimeMs":3000,"fadeOutTimeMs":3000,"sideChain":"off","makeUpGain":50},
+        { "url":"../data/bgm2.pcm","sampleRate":44100,"nbChannels":2,"volume":80,"startTimeMs":120000,"endTimeMs":140000,"fadeInTimeMs":3000,"fadeOutTimeMs":3000,"sideChain":"off","makeUpGain":50}
     ],
     "nb_music":3,
     "music": [
-        { "url":"../data/audio_effects_2.mp3","volume":80,"startTimeMs":1000,"endTimeMs":35000,"fadeInTimeMs":2000,"fadeOutTimeMs":3000,"sideChain":"off","makeUpGain":50},
-        { "url":"../data/audio_effects_2.mp3","volume":80,"startTimeMs":60000,"endTimeMs":90000,"fadeInTimeMs":2000,"fadeOutTimeMs":2000,"sideChain":"off","makeUpGain":50},
-        { "url":"../data/audio_effects_2.mp3","volume":80,"startTimeMs":140000,"endTimeMs":150000,"fadeInTimeMs":2000,"fadeOutTimeMs":2000,"sideChain":"off","makeUpGain":50}
+        { "url":"../data/audio_effects_2.pcm","sampleRate":44100,"nbChannels":2,"volume":80,"startTimeMs":1000,"endTimeMs":35000,"fadeInTimeMs":2000,"fadeOutTimeMs":3000,"sideChain":"off","makeUpGain":50},
+        { "url":"../data/audio_effects_2.pcm","sampleRate":44100,"nbChannels":2,"volume":80,"startTimeMs":60000,"endTimeMs":90000,"fadeInTimeMs":2000,"fadeOutTimeMs":2000,"sideChain":"off","makeUpGain":50},
+        { "url":"../data/audio_effects_2.pcm","sampleRate":44100,"nbChannels":2,"volume":80,"startTimeMs":140000,"endTimeMs":150000,"fadeInTimeMs":2000,"fadeOutTimeMs":2000,"sideChain":"off","makeUpGain":50}
     ]
 }

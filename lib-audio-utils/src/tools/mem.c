@@ -1,8 +1,6 @@
 //
 // Created by layne on 19-4-27.
 //
-#if !defined(__ANDROID__) && !defined (__linux__)
-
 #include "mem.h"
 #include <limits.h>
 #include <stdint.h>
@@ -146,4 +144,3 @@ void *av_memdup(const void *p, size_t size) {
     }
     return ptr;
 }
-#endif

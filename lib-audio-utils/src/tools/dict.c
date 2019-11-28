@@ -8,11 +8,7 @@
 #include <time.h>
 #include "avstring.h"
 #include "error_def.h"
-#if defined(__ANDROID__) || defined (__linux__)
-#include "libavutil/mem.h"
-#else
 #include "mem.h"
-#endif
 
 struct AVDictionary {
     int count;

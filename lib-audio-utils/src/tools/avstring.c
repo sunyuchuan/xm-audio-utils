@@ -6,11 +6,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#if defined(__ANDROID__) || defined (__linux__)
-#include "libavutil/mem.h"
-#else
 #include "mem.h"
-#endif
 
 size_t av_strlcat(char *dst, const char *src, size_t size) {
     size_t len = strlen(dst);

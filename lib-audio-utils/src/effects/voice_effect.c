@@ -6,11 +6,7 @@
 #include <string.h>
 #include "voice_effect.h"
 #include "error_def.h"
-#if defined(__ANDROID__) || defined (__linux__)
-#include "libavutil/mem.h"
-#else
 #include "tools/mem.h"
-#endif
 #include "tools/util.h"
 
 #define EFFECT(f) extern const EffectHandler *effect_##f##_fn(void);

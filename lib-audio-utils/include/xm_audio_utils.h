@@ -1,5 +1,3 @@
-#if defined(__ANDROID__) || defined (__linux__)
-
 #ifndef XM_AUDIO_UTILS_H_
 #define XM_AUDIO_UTILS_H_
 
@@ -18,27 +16,6 @@ enum ActionType {
 };
 
 typedef struct XmAudioUtils XmAudioUtils;
-
-/**
- * @brief Reference count subtract 1
- *
- * @param self XmAudioUtils
- */
-void xmau_dec_ref(XmAudioUtils *self);
-
-/**
- * @brief Reference count subtract 1
- *
- * @param self XmAudioUtils
- */
-void xmau_dec_ref_p(XmAudioUtils **self);
-
-/**
- * @brief Reference count plus 1
- *
- * @param self XmAudioUtils
- */
-void xmau_inc_ref(XmAudioUtils *self);
 
 /**
  * @brief free XmAudioUtils
@@ -123,8 +100,8 @@ int xm_audio_utils_mixer_seekTo(XmAudioUtils *self,
  * @return Less than 0 means failure
  */
 int xm_audio_utils_mixer_init(XmAudioUtils *self,
-        const char *in_pcm_path, int pcm_sample_rate, int pcm_channels,
-        const char *in_config_path);
+       const char *in_pcm_path, int pcm_sample_rate, int pcm_channels,
+       int dst_sample_rate, int dst_channels, const char *in_config_path);
 
 /**
  * @brief start fade bgm pcm data
@@ -163,35 +140,38 @@ int xm_audio_utils_fade_init(XmAudioUtils *self,
  * @param buffer output buffer
  * @param buffer_size_in_short the size of output buffer
  * @param loop true : re-start decoding when the audio file ends
- * @param decoder_type BGM or MUSIC
+ * @param parser_type BGM or MUSIC
  * @return size of valid buffer obtained.
                   Less than or equal to 0 means failure or end
  */
-int xm_audio_utils_get_decoded_frame(XmAudioUtils *self,
-    short *buffer, int buffer_size_in_short, bool loop, int decoder_type);
+int xm_audio_utils_get_parser_frame(XmAudioUtils *self,
+    short *buffer, int buffer_size_in_short, bool loop, int parser_type);
 
 /**
  * @brief decoder seekTo
  *
  * @param self XmAudioUtils
  * @param seek_time_ms seek target time in ms
- * @param decoder_type BGM or MUSIC
+ * @param parser_type BGM or MUSIC
  */
-void xm_audio_utils_decoder_seekTo(XmAudioUtils *self,
-    int seek_time_ms, int decoder_type);
+int xm_audio_utils_parser_seekTo(XmAudioUtils *self,
+        int seek_time_ms, int parser_type);
 
 /**
  * @brief create decoder that decode audio to pcm data
  *
  * @param self XmAudioUtils
- * @param in_audio_path Input audio file path
- * @param out_sample_rate Output audio sample_rate
- * @param out_channels Output audio nb_channels
- * @param decoder_type BGM or MUSIC
+ * @param in_pcm_path Input pcm file path
+ * @param src_sample_rate input pcm sample_rate
+ * @param src_channels input pcm nb_channels
+ * @param dst_sample_rate Output pcm sample_rate
+ * @param dst_channels Output pcm nb_channels
+ * @param parser_type BGM or MUSIC
  * @return Less than 0 means failure
  */
-int xm_audio_utils_decoder_create(XmAudioUtils *self,
-    const char *in_audio_path, int out_sample_rate, int out_channels, int decoder_type);
+int xm_audio_utils_parser_init(XmAudioUtils *self,
+    const char *in_pcm_path, int src_sample_rate, int src_channels,
+    int dst_sample_rate, int dst_channels, int parser_type);
 
 /**
  * @brief create XmAudioUtils
@@ -200,5 +180,4 @@ int xm_audio_utils_decoder_create(XmAudioUtils *self,
  */
 XmAudioUtils *xm_audio_utils_create();
 
-#endif
 #endif

@@ -1,5 +1,4 @@
 #include "xm_audio_generator.h"
-#include "../src/codec/ffmpeg_utils.h"
 #include <sys/time.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -8,8 +7,6 @@
 #include "error_def.h"
 #include "log.h"
 
-#define ENCODER_FFMPEG 0
-#define ENCODER_MEDIA_CODEC 1
 static volatile bool abort_request = false;
 
 void *get_progress(void *arg) {
@@ -49,8 +46,8 @@ int main(int argc, char **argv) {
     }
 
     int ret = xm_audio_generator_start(generator, argv[1],
-	atoi(argv[2]), atoi(argv[3]),
-	argv[4], argv[5], ENCODER_FFMPEG);
+	atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]),
+	argv[6], argv[7]);
     if (ret < 0) {
 	LogError("%s xm_audio_generator_start failed\n", __func__);
 	goto end;

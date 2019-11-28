@@ -56,12 +56,11 @@ int xm_audio_mixer_seekTo(XmMixerContext *ctx,
  * @brief mix bgm\music and output m4a
  *
  * @param ctx XmMixerContext
- * @param out_file_path output mp4 file path
- * @param encoder_type Support ffmpeg and MediaCodec
+ * @param out_file_path output pcm file path
  * @return Less than 0 means failure
  */
 int xm_audio_mixer_mix(XmMixerContext *ctx,
-    const char *out_file_path, int encoder_type);
+    const char *out_file_path);
 
 /**
  * @brief mixer init
@@ -70,12 +69,14 @@ int xm_audio_mixer_mix(XmMixerContext *ctx,
  * @param in_pcm_path Input pcm file path
  * @param pcm_sample_rate The sample rate of input pcm file
  * @param pcm_channels The channels of input pcm file
+ * @param dst_sample_rate The sample rate of output pcm file
+ * @param dst_channels The channels of output pcm file
  * @param in_config_path Config file about bgm and music parameter
  * @return Less than 0 means failure
  */
 int xm_audio_mixer_init(XmMixerContext *ctx,
         const char *in_pcm_path, int pcm_sample_rate, int pcm_channels,
-        const char *in_config_path);
+        int dst_sample_rate, int dst_channels, const char *in_config_path);
 
 /**
  * @brief create XmMixerContext
