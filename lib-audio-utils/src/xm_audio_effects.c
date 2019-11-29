@@ -2,7 +2,6 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 #include <pthread.h>
 #include "log.h"
 #include "tools/util.h"
@@ -10,6 +9,7 @@
 #include "json/json_parse.h"
 #include "voice_mixer_struct.h"
 #include "effects/voice_effect.h"
+#include "pcm_parser.h"
 
 #define DEFAULT_SAMPLE_RATE 44100
 #define DEFAULT_CHANNEL_NUMBER 1
@@ -24,16 +24,12 @@ struct XmEffectContext_T {
     // input pcm file seek position
     int seek_time_ms;
     // input pcm file fopen handle
-    FILE *reader;
+    PcmParser *parser;
     short buffer[MAX_NB_SAMPLES];
     fifo *audio_fifo;
     pthread_mutex_t mutex;
     VoiceEffcets voice_effects;
 };
-
-static int64_t align(int64_t x, int align) {
-    return ((( x ) + (align) - 1) / (align) * (align));
-}
 
 static void voice_effects_free(VoiceEffcets *voice) {
     LogInfo("%s\n", __func__);
@@ -54,9 +50,8 @@ static void ae_free(XmEffectContext *ctx) {
     if (NULL == ctx)
         return;
 
-    if (ctx->reader) {
-        fclose(ctx->reader);
-        ctx->reader = NULL;
+    if (ctx->parser) {
+        pcm_parser_freep(&ctx->parser);
     }
     if (ctx->audio_fifo) {
         fifo_delete(&ctx->audio_fifo);
@@ -151,13 +146,9 @@ static int add_effects_and_write_fifo(XmEffectContext *ctx) {
     if (!ctx)
         return ret;
 
-    if (feof(ctx->reader) || ferror(ctx->reader)) {
-        ret = -1;
-        goto end;
-    }
-
-    int read_len = fread(ctx->buffer, 2, MAX_NB_SAMPLES, ctx->reader);
-    if (read_len <= 0) {
+    int read_len = pcm_parser_get_pcm_frame(ctx->parser,
+        ctx->buffer, MAX_NB_SAMPLES, false);
+    if (read_len < 0) {
         ret = read_len;
         goto end;
     }
@@ -273,21 +264,14 @@ end:
 int xm_audio_effect_seekTo(XmEffectContext *ctx,
         int seek_time_ms) {
     LogInfo("%s seek_time_ms %d.\n", __func__, seek_time_ms);
-    if (!ctx || !ctx->reader)
+    if (!ctx || !ctx->parser)
         return -1;
 
     ctx->seek_time_ms = seek_time_ms > 0 ? seek_time_ms : 0;
-
     flush(ctx);
     if (ctx->audio_fifo) fifo_clear(ctx->audio_fifo);
 
-    //The offset needs to be a multiple of 2, because the pcm data is 16-bit.
-    //The size of seek is in pcm data.
-    int64_t offset = align(2 * ((int64_t) ctx->seek_time_ms * ctx->pcm_channels) *
-        (ctx->pcm_sample_rate / (float) 1000), 2);
-    LogInfo("%s fseek offset %"PRId64".\n", __func__, offset);
-    int ret = fseek(ctx->reader, offset, SEEK_SET);
-
+    int ret = pcm_parser_seekTo(ctx->parser, ctx->seek_time_ms);
     return ret;
 }
 
@@ -304,11 +288,12 @@ static int xm_audio_effect_add_effects_l(XmEffectContext *ctx,
     }
 
     int64_t cur_size = 0;
-    fseek(ctx->reader, 0, SEEK_END);
-    int64_t file_size = ftell(ctx->reader);
-    fseek(ctx->reader, 0, SEEK_SET);
+    float file_duration = ctx->parser->file_size / 2 / ctx->pcm_channels /
+        ctx->pcm_sample_rate;
     while (!ctx->abort) {
-        int progress = ((float)2*cur_size / file_size) * 100;
+        float cur_position = cur_size / ctx->pcm_channels /
+            ctx->pcm_sample_rate;
+        int progress = (cur_position / file_duration) * 100;
         pthread_mutex_lock(&ctx->mutex);
         ctx->progress = progress;
         pthread_mutex_unlock(&ctx->mutex);
@@ -380,8 +365,9 @@ int xm_audio_effect_init(XmEffectContext *ctx,
     ctx->pcm_channels = pcm_channels;
     ctx->seek_time_ms = 0;
 
-    if ((ret = ae_open_file(&ctx->reader, in_pcm_path, false)) < 0) {
-        LogError("%s open input file %s failed.\n", __func__, in_pcm_path);
+    if ((ctx->parser = pcm_parser_create(in_pcm_path, pcm_sample_rate,
+            pcm_channels, pcm_sample_rate, pcm_channels)) == NULL) {
+        LogError("%s open pcm parser failed, file addr %s.\n", __func__, in_pcm_path);
         goto fail;
     }
 

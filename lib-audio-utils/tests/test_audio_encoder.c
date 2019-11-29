@@ -1,8 +1,8 @@
 #include <sys/time.h>
 #include "codec/audio_muxer.h"
 #include "error_def.h"
-#include "file_helper.h"
 #include "log.h"
+#include "pcm_parser.h"
 
 #define DEFAULT_SAMPLE_RATE 44100
 #define DEFAULT_CHANNEL_NUMBER 2
@@ -24,8 +24,8 @@ int main(int argc, char **argv) {
     unsigned long timer;
     gettimeofday(&start, NULL);
 
-    FILE *pcm_reader = NULL;
-    OpenFile(&pcm_reader, argv[1], false);
+    PcmParser *parser = pcm_parser_create(argv[1], atoi(argv[2]), atoi(argv[3]),
+        atoi(argv[2]), atoi(argv[3]));
 
     buffer = (short *)calloc(sizeof(short), buffer_size_in_short);
     if (!buffer) goto end;
@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
     }
 
     while (1) {
-        ret = fread(buffer, sizeof(short), buffer_size_in_short, pcm_reader);
+        ret = pcm_parser_get_pcm_frame(parser, buffer, buffer_size_in_short, false);
         if (ret <= 0) {
             LogInfo("ret <= 0, EOF, exit\n");
             break;
@@ -65,9 +65,8 @@ end:
         free(buffer);
         buffer = NULL;
     }
-    if (pcm_reader) {
-        fclose(pcm_reader);
-        pcm_reader = NULL;
+    if (parser) {
+        pcm_parser_freep(&parser);
     }
     muxer_stop(muxer);
     muxer_freep(&muxer);

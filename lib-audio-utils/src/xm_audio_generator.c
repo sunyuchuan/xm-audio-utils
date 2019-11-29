@@ -174,22 +174,16 @@ int xm_audio_generator_start(XmAudioGenerator *self,
     xm_audio_mixer_stop(self->mixer_ctx);
     xm_audio_mixer_freep(&(self->mixer_ctx));
 
-    int len = 0, suffix_index = 0;
-    while (out_file_path[len] != '\0') {
-        if (out_file_path[len] == '.') suffix_index = len;
-        len ++;
-    }
+    int len = 0;
+    while(out_file_path[len++] != '\0');
 
-    char *out_pcm_path = (char *)calloc(1, (suffix_index + 4) * sizeof(char));
+    char *out_pcm_path = (char *)calloc(1, (len + 4) * sizeof(char));
     if (NULL == out_pcm_path) {
         LogError("%s calloc temp pcm file path failed.\n", __func__);
         return -1;
     }
-    strncpy(out_pcm_path, out_file_path, suffix_index);
-    out_pcm_path[suffix_index] = '.';
-    out_pcm_path[suffix_index + 1] = 'p';
-    out_pcm_path[suffix_index + 2] = 'c';
-    out_pcm_path[suffix_index + 3] = 'm';
+    strncpy(out_pcm_path, out_file_path, len - 1);
+    strncpy(out_pcm_path + len - 1, ".pcm", 5);
 
     if ((ret = add_voice_effects(self, in_pcm_path, pcm_sample_rate,
         pcm_channels, in_config_path, out_pcm_path)) < 0) {

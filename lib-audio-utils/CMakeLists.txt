@@ -130,6 +130,7 @@ src/mixer_effects/fade_in_out.c
 src/mixer_effects/side_chain_compress.c
 
 src/effects/voice_effect.c
+src/pcm_parser.c
 src/xm_audio_effects.c
 src/xm_audio_mixer.c
 src/xm_audio_utils.c
@@ -180,6 +181,7 @@ src/mixer_effects/fade_in_out.c
 src/mixer_effects/side_chain_compress.c
 
 src/effects/voice_effect.c
+src/pcm_parser.c
 src/xm_audio_effects.c
 src/xm_audio_mixer.c
 src/xm_audio_utils.c
