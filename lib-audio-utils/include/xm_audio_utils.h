@@ -9,12 +9,6 @@ enum BgmType {
     MUSIC
 };
 
-enum ActionType {
-    AC_NONE = -1,
-    ADD_EFFECTS,
-    MIXER_MIX
-};
-
 typedef struct XmAudioUtils XmAudioUtils;
 
 /**

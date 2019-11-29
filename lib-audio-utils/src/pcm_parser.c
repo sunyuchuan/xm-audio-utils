@@ -72,7 +72,6 @@ static int init_parser(PcmParser *parser, const char *file_addr,
     parser->src_nb_channels = src_nb_channels;
     parser->dst_sample_rate_in_Hz = dst_sample_rate;
     parser->dst_nb_channels = dst_nb_channels;
-    //parser->seek_req = false;
 
     // Allocate buffer for audio fifo
     parser->pcm_fifo = fifo_create(sizeof(int16_t));
@@ -158,7 +157,7 @@ void pcm_parser_free(PcmParser *parser) {
 
 void pcm_parser_freep(PcmParser **parser) {
     LogInfo("%s\n", __func__);
-    if (NULL == parser || NULL == *parser)
+    if (!parser || !*parser)
         return;
 
     pcm_parser_free(*parser);

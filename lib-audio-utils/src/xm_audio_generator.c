@@ -17,13 +17,11 @@ struct XmAudioGenerator {
 };
 
 static int mixer_mix(XmAudioGenerator *self, const char *in_pcm_path,
-        int pcm_sample_rate, int pcm_channels,
-        int dst_sample_rate, int dst_channels,
-        const char *in_config_path, const char *out_file_path) {
+        int pcm_sample_rate, int pcm_channels, int dst_sample_rate,
+        int dst_channels, const char *in_config_path, const char *out_file_path) {
     LogInfo("%s\n", __func__);
     int ret = -1;
-    if(NULL == self || NULL == in_pcm_path
-        || NULL == in_config_path || NULL == out_file_path) {
+    if(!self || !in_pcm_path || !in_config_path || !out_file_path) {
         return ret;
     }
 
@@ -130,7 +128,7 @@ int xm_audio_generator_get_progress(XmAudioGenerator *self) {
         return -1;
 
     return (xm_audio_effect_get_progress(self->effects_ctx)
-        + xm_audio_mixer_get_progress(self->mixer_ctx)) / 2;
+        + xm_audio_mixer_get_progress(self->mixer_ctx)) >> 1;
 }
 
 int xm_audio_generator_start(XmAudioGenerator *self,

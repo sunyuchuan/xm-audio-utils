@@ -217,7 +217,7 @@ static void mixer_free_l(XmMixerContext *ctx)
 {
     if(!ctx)
         return;
-    xm_audio_mixer_stop(ctx);
+    mixer_abort_l(ctx);
 
     mixer_effects_free(&(ctx->mixer_effects));
     memset(&(ctx->mixer_effects), 0,  sizeof(MixerEffcets));
@@ -251,8 +251,7 @@ static void mixer_free_l(XmMixerContext *ctx)
 static short *mixer_mix(XmMixerContext *ctx, short *pcm_buffer,
         int pcm_buffer_size, int pcm_start_time, int pcm_duration,
         BgmMusic *bgm_music, short *decoder_buffer, short *dst_buffer) {
-    if (!ctx || !pcm_buffer || !bgm_music
-            || !decoder_buffer || !dst_buffer)
+    if (!ctx || !pcm_buffer || !bgm_music || !decoder_buffer || !dst_buffer)
         return NULL;
 
     short *mix_buffer = NULL;
@@ -366,7 +365,7 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
         1000 * ((float)ctx->cur_size / ctx->dst_channels / ctx->dst_sample_rate);
     int read_len = pcm_parser_get_pcm_frame(ctx->parser,
         ctx->middle_buffer[VoicePcm], MAX_NB_SAMPLES, false);
-    if (read_len < 0) {
+    if (read_len <= 0) {
         ret = read_len;
         goto end;
     }
@@ -681,7 +680,6 @@ int xm_audio_mixer_init(XmMixerContext *ctx,
     pthread_mutex_lock(&ctx->mutex);
     ctx->mix_status = MIX_STATE_INITIALIZED;
     pthread_mutex_unlock(&ctx->mutex);
-
     return ret;
 fail:
     mixer_free_l(ctx);
