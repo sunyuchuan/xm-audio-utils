@@ -688,19 +688,19 @@ void MonoToStereoS16(short* dst, short* src, const int nb_samples) {
     short* q = dst;
     short v = 0;
     int n = nb_samples;
-    double sqrt2_div2 = 0.70710678118;
+    //double sqrt2_div2 = 0.70710678118;
 
     while (n >= 4) {
-        v = sqrt2_div2 * p[0];
+        v = p[0];
         q[0] = v;
         q[1] = v;
-        v = sqrt2_div2 * p[1];
+        v = p[1];
         q[2] = v;
         q[3] = v;
-        v = sqrt2_div2 * p[2];
+        v = p[2];
         q[4] = v;
         q[5] = v;
-        v = sqrt2_div2 * p[3];
+        v = p[3];
         q[6] = v;
         q[7] = v;
         q += 8;
@@ -708,7 +708,7 @@ void MonoToStereoS16(short* dst, short* src, const int nb_samples) {
         n -= 4;
     }
     while (n > 0) {
-        v = sqrt2_div2 * p[0];
+        v = p[0];
         q[0] = v;
         q[1] = v;
         q += 2;
