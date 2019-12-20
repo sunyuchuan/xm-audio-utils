@@ -1,4 +1,3 @@
-
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -7,6 +6,7 @@
 #include "tools/fifo.h"
 #include "tools/sdl_mutex.h"
 #include "tools/util.h"
+#include "tools/conversion.h"
 
 #define MAX_SAMPLE_SIZE 2048
 
@@ -117,6 +117,9 @@ typedef struct {
     size_t delay_samples;
     filter_array_t filter_array;
 
+    int flp_buffer_size;
+    float *flp_buffer;
+
     sample_type dry_buf[MAX_SAMPLE_SIZE];
     sample_type wet_buf[MAX_SAMPLE_SIZE];
 } priv_t;
@@ -212,6 +215,11 @@ static int reverb_close(EffectContext *ctx) {
         if (priv->fifo_in) fifo_delete(&priv->fifo_in);
         if (priv->fifo_out) fifo_delete(&priv->fifo_out);
         if (priv->sdl_mutex) sdl_mutex_free(&priv->sdl_mutex);
+        if (priv->flp_buffer) {
+            free(priv->flp_buffer);
+            priv->flp_buffer = NULL;
+            priv->flp_buffer_size = 0;
+        }
         filter_array_delete(&priv->filter_array);
     }
     return 0;
@@ -239,6 +247,9 @@ static int reverb_init(EffectContext *ctx, int argc, const char **argv) {
         ret = AEERROR_NOMEM;
         goto end;
     }
+
+    priv->flp_buffer_size = 0;
+    priv->flp_buffer = NULL;
 
     if (argc > 1 && argv != NULL) {
         ret = reverb_getopts(ctx, argc, argv);
@@ -283,7 +294,17 @@ static int reverb_send(EffectContext *ctx, const void *samples,
     assert(NULL != priv);
     assert(NULL != priv->fifo_in);
 
-    return fifo_write(priv->fifo_in, samples, nb_samples);
+    if (priv->flp_buffer_size < nb_samples) {
+        if(priv->flp_buffer) free(priv->flp_buffer);
+        priv->flp_buffer = (float *)calloc(nb_samples, sizeof(float));
+        if (NULL == priv->flp_buffer) {
+            LogError("%s calloc flp_buffer failed.\n", __func__);
+            return -1;
+        }
+        priv->flp_buffer_size = nb_samples;
+    }
+    S16ToFloat(samples, priv->flp_buffer, nb_samples);
+    return fifo_write(priv->fifo_in, priv->flp_buffer, nb_samples);
 }
 
 static int reverb_receive(EffectContext *ctx, void *samples,
@@ -326,7 +347,19 @@ static int reverb_receive(EffectContext *ctx, void *samples,
     if (atomic_load(&ctx->return_max_nb_samples) &&
         fifo_occupancy(priv->fifo_out) < max_nb_samples)
         return 0;
-    return fifo_read(priv->fifo_out, samples, max_nb_samples);
+
+    if (priv->flp_buffer_size < max_nb_samples) {
+        if(priv->flp_buffer) free(priv->flp_buffer);
+        priv->flp_buffer = (float *)calloc(max_nb_samples, sizeof(float));
+        if (NULL == priv->flp_buffer) {
+            LogError("%s calloc flp_buffer failed.\n", __func__);
+            return -1;
+        }
+        priv->flp_buffer_size = max_nb_samples;
+    }
+    int ret = fifo_read(priv->fifo_out, priv->flp_buffer, max_nb_samples);
+    FloatToS16(priv->flp_buffer, samples, max_nb_samples);
+    return ret;
 }
 
 const EffectHandler *effect_reverb_fn(void) {

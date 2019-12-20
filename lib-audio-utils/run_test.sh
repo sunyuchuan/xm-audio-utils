@@ -21,8 +21,8 @@ echo -e "\033[1;43;30m\ntest_noise_suppression...\033[0m"
 echo -e "\033[1;43;30m\ntest_volume_limiter...\033[0m"
 ./tests/test_volume_limiter ../data/pcm_mono_44kHz_0035.pcm test_volume_limiter.pcm
 
-#echo -e "\033[1;43;30m\ntest_reverb...\033[0m"
-#./tests/test_effects ../data/pcm_mono_44kHz_0035.pcm test_reverb.pcm reverb -w 50.0 50.0 100.0 0.0 5.0
+echo -e "\033[1;43;30m\ntest_reverb...\033[0m"
+./tests/test_reverb ../data/pcm_mono_44kHz_0035.pcm 44100 1 test_reverb.pcm
 
 echo -e "\033[1;43;30m\ntest_xm_audio_effects...\033[0m"
 ./tests/test_xm_audio_effects ../data/pcm_mono_44kHz_0035.pcm 44100 1 ../data/effect_config.txt test_xm_audio_effects.pcm
