@@ -10,6 +10,7 @@
 #include "tools/util.h"
 #include "tools/fifo.h"
 #include "pcm_parser.h"
+#include "tools/conversion.h"
 
 #define DEFAULT_SAMPLE_RATE 44100
 #define DEFAULT_CHANNEL_NUMBER 2
@@ -78,34 +79,14 @@ static void mixer_effects_free(MixerEffcets *mixer) {
     }
 }
 
-static void short_to_flp(float *float_buffer, short *src_buffer,
-        int buffer_size) {
-    if (!float_buffer || !src_buffer)
-        return;
-
-    for (int i = 0; i < buffer_size; i++) {
-        float_buffer[i] = src_buffer[i] / (float)32767;
-    }
-}
-
-static void flp_to_short(short *short_buffer, float *src_buffer,
-        int buffer_size) {
-    if (!short_buffer || !src_buffer)
-        return;
-
-    for (int i = 0; i < buffer_size; i++) {
-        short_buffer[i] = (short)(src_buffer[i] * 32767);
-    }
-}
-
 static void limiter(Limiter *limiter, short *short_buffer,
     float *flp_buffer, int buffer_size) {
     if (!limiter || !short_buffer || !flp_buffer)
         return;
 
-    short_to_flp(flp_buffer, short_buffer, buffer_size);
+    S16ToFloat(short_buffer, flp_buffer, buffer_size);
     LimiterProcess(limiter, flp_buffer, buffer_size);
-    flp_to_short(short_buffer, flp_buffer, buffer_size);
+    FloatToS16(flp_buffer, short_buffer, buffer_size);
 }
 
 static AudioDecoder *open_decoder(BgmMusic *bgm_music,

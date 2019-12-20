@@ -14,6 +14,9 @@ target_link_libraries(test_noise_suppression ${PROJECT_NAME} m pthread)
 add_executable(test_beautify test_beautify.c)
 target_link_libraries(test_beautify ${PROJECT_NAME} m pthread)
 
+add_executable(test_reverb test_reverb.c)
+target_link_libraries(test_reverb ${PROJECT_NAME} m pthread)
+
 add_executable(test_volume_limiter test_volume_limiter.c)
 target_link_libraries(test_volume_limiter ${PROJECT_NAME} m pthread)
 

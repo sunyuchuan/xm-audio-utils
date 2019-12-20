@@ -69,7 +69,7 @@ else()
 endif()
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Android")
-add_library(${PROJECT_NAME}
+SET(MEDIACODEC
 src/codec/mediacodec/xm_android_jni.c
 src/codec/mediacodec/ijkj4a/Build.c
 src/codec/mediacodec/ijkj4a/ByteBuffer.util.c
@@ -88,58 +88,13 @@ src/codec/mediacodec/ijksdl/ijksdl_codec_android_mediaformat_java.c
 src/codec/mediacodec/ijksdl/ijksdl_mutex.c
 src/codec/mediacodec/ijksdl/ijksdl_timer.c
 src/codec/mediacodec/audio_encoder_mediacodec.c
-
-src/codec/ffmpeg_utils.c
-src/codec/audio_decoder.c
-src/codec/audio_encoder.c
-src/codec/sw/audio_encoder_sw.c
-src/codec/audio_muxer.c
-
-src/tools/avstring.c
-src/tools/conversion.c
-src/tools/dict.c
-src/tools/fifo.c
-src/tools/log.c
-src/tools/mem.c
-src/tools/sdl_mutex.c
-src/tools/util.c
-
-src/effects/echo.c
-src/effects/echos.c
-src/effects/reverb.c
-
-src/effects/dsp_tools/fft/fft8g.c
-src/effects/dsp_tools/iir_design/iir_design.c
-src/effects/beautify/compressor.c
-src/effects/beautify/equalizer.c
-src/effects/beautify/flanger.c
-src/effects/beautify/limiter.c
-src/effects/beautify/multiband_compressor.c
-src/effects/beautify.c
-
-src/effects/math/junior_func.c
-src/effects/noise_suppression/noise_estimation.c
-src/effects/noise_suppression.c
-
-src/effects/volume_limiter.c
-
-src/json/cJSON.c
-src/json/json_parse.c
-
-src/mixer_effects/fade_in_out.c
-src/mixer_effects/side_chain_compress.c
-
-src/effects/voice_effect.c
-src/pcm_parser.c
-src/xm_audio_effects.c
-src/xm_audio_mixer.c
-src/xm_audio_utils.c
-src/xm_audio_generator.c
 )
-
 else()
+SET(MEDIACODEC )
+endif()
 
 add_library(${PROJECT_NAME}
+${MEDIACODEC}
 src/codec/ffmpeg_utils.c
 src/codec/audio_decoder.c
 src/codec/audio_encoder.c
@@ -187,7 +142,6 @@ src/xm_audio_mixer.c
 src/xm_audio_utils.c
 src/xm_audio_generator.c
 )
-endif()
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Android")
 elseif(IOS)

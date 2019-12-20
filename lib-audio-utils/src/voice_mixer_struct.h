@@ -7,6 +7,7 @@
 enum EffectType {
     NoiseSuppression = 0,
     Beautify,
+    Reverb,
     VolumeLimiter,
     MAX_NB_EFFECTS
 };
