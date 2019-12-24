@@ -11,11 +11,25 @@
 #include "tools/util.h"
 
 struct XmAudioGenerator {
+    volatile int status;
     volatile int ref_count;
     XmEffectContext *effects_ctx;
     XmMixerContext *mixer_ctx;
     pthread_mutex_t mutex;
 };
+
+static int chk_st_l(int state)
+{
+    if (state == GENERATOR_STATE_INITIALIZED ||
+            state == GENERATOR_STATE_COMPLETED) {
+        return 0;
+    }
+
+    LogError("%s state(%d) is invalid.\n", __func__, state);
+    LogError("%s expecting status == GENERATOR_STATE_INITIALIZED or \
+        state == GENERATOR_STATE_COMPLETED.\n", __func__);
+    return -1;
+}
 
 static int mixer_mix(XmAudioGenerator *self, const char *in_pcm_path,
         int pcm_sample_rate, int pcm_channels, const char *in_config_path,
@@ -169,6 +183,13 @@ int xm_audio_generator_start(XmAudioGenerator *self,
         return ret;
     }
 
+    if (chk_st_l(self->status) < 0) {
+        return AEERROR_INVALID_STATE;
+    }
+    pthread_mutex_lock(&self->mutex);
+    self->status = GENERATOR_STATE_STARTED;
+    pthread_mutex_unlock(&self->mutex);
+
     xm_audio_effect_stop(self->effects_ctx);
     xm_audio_effect_freep(&(self->effects_ctx));
     xm_audio_mixer_stop(self->mixer_ctx);
@@ -203,6 +224,9 @@ end:
         free(out_pcm_path);
         out_pcm_path = NULL;
     }
+    pthread_mutex_lock(&self->mutex);
+    self->status = GENERATOR_STATE_COMPLETED;
+    pthread_mutex_unlock(&self->mutex);
     return ret;
 }
 
@@ -215,6 +239,7 @@ XmAudioGenerator *xm_audio_generator_create() {
 
     pthread_mutex_init(&self->mutex, NULL);
     xmag_inc_ref(self);
+    self->status = GENERATOR_STATE_INITIALIZED;
     return self;
 }
 

@@ -5,6 +5,12 @@
 
 typedef struct XmAudioGenerator XmAudioGenerator;
 
+#define GENERATOR_STATE_UNINIT  0
+#define GENERATOR_STATE_INITIALIZED  1
+#define GENERATOR_STATE_STARTED  2
+#define GENERATOR_STATE_COMPLETED  3
+#define GENERATOR_STATE_ERROR  4
+
 /**
  * @brief Reference count subtract 1
  *

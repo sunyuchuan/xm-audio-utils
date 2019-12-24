@@ -176,7 +176,6 @@ static int reverb_start(EffectContext *ctx) {
         free(tmp_samples);
     }
     priv->delay_samples = delay_samples;
-    priv->effect_on = true;
 
     filter_array_delete(&priv->filter_array);
     filter_array_create(&priv->filter_array, ctx->in_signal.sample_rate, scale);
@@ -263,11 +262,22 @@ end:
     return ret;
 }
 
+static void reverb_set_mode(EffectContext *ctx, const char *mode) {
+    LogInfo("%s mode = %s.\n", __func__, mode);
+    priv_t *priv = (priv_t *)ctx->priv;
+    if (0 == strcasecmp(mode, "Original")) {
+        priv->effect_on = false;
+    } else {
+        reverb_parseopts(ctx, "50.0 50.0 100.0 0.0 5.0");
+        priv->effect_on = true;
+    }
+}
+
 static int reverb_set(EffectContext *ctx, const char *key, int flags) {
     assert(NULL != ctx);
 
     int ret = 0;
-    priv_t *priv = ctx->priv;
+    priv_t *priv = (priv_t *)ctx->priv;
     AEDictionaryEntry *entry = ae_dict_get(ctx->options, key, NULL, flags);
     if (entry) {
         LogInfo("%s key = %s val = %s\n", __func__, entry->key, entry->value);
@@ -281,7 +291,10 @@ static int reverb_set(EffectContext *ctx, const char *key, int flags) {
             } else if (0 == strcasecmp(entry->value, "On")) {
                 priv->effect_on = true;
             }
+        } else if (0 == strcasecmp(entry->key, "mode")) {
+            reverb_set_mode(ctx, entry->value);
         }
+
         sdl_mutex_unlock(priv->sdl_mutex);
     }
     return ret;
@@ -338,8 +351,8 @@ static int reverb_receive(EffectContext *ctx, void *samples,
     } else {
         while (fifo_occupancy(priv->fifo_in) > 0) {
             size_t nb_samples =
-                fifo_read(priv->fifo_in, samples, max_nb_samples);
-            fifo_write(priv->fifo_out, samples, nb_samples);
+                fifo_read(priv->fifo_in, priv->flp_buffer, max_nb_samples);
+            fifo_write(priv->fifo_out, priv->flp_buffer, nb_samples);
         }
     }
     sdl_mutex_unlock(priv->sdl_mutex);

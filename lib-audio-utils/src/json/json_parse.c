@@ -333,7 +333,7 @@ int effects_parse(VoiceEffcets *voice_effects, const char *json_file_addr, int s
              LogInfo("%s effect Reverb\n", __func__);
              voice_effects->effects[Reverb] = create_effect(find_effect("reverb"), sample_rate, channels);
              init_effect(voice_effects->effects[Reverb], 0, NULL);
-             set_effect(voice_effects->effects[Reverb], "reverb", "50.0 50.0 100.0 0.0 5.0", 0);
+             set_effect(voice_effects->effects[Reverb], "mode", info->valuestring, 0);
         } else if (0 == strcasecmp(name->valuestring, "VolumeLimiter")) {
              LogInfo("%s effect VolumeLimiter\n", __func__);
              voice_effects->effects[VolumeLimiter] = create_effect(find_effect("limiter"), sample_rate, channels);
