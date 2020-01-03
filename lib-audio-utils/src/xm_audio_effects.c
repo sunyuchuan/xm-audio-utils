@@ -88,7 +88,6 @@ static void ae_reset_l(XmEffectContext *ctx)
     ae_abort_l(ctx);
     ae_free(ctx);
 
-    ctx->voice_effects.nb_effects = 0;
     memset(ctx->voice_effects.effects, 0, MAX_NB_EFFECTS * sizeof(EffectContext *));
     memset(ctx->buffer, 0, MAX_NB_SAMPLES * sizeof(short));
     pthread_mutex_lock(&ctx->mutex);

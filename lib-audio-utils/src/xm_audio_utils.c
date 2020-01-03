@@ -225,7 +225,7 @@ int xm_audio_utils_fade(XmAudioUtils *self, short *buffer,
 
     check_fade_in_out(&fade->fade_io, buffer_start_time, buffer_duration_ms,
         fade->pcm_sample_rate, fade->bgm_start_time_ms, fade->bgm_end_time_ms);
-    set_gain_s16(&fade->fade_io, buffer,
+    scale_with_ramp(&fade->fade_io, buffer,
         buffer_size / fade->pcm_nb_channels, fade->pcm_nb_channels, fade->volume);
     return 0;
 }

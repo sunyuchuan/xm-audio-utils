@@ -87,6 +87,8 @@ static int read_audio_packet(AudioDecoder *decoder, AVPacket *pkt) {
             seek_pos + stream_start_pos, INT64_MAX, AVSEEK_FLAG_BACKWARD);
         if (ret < 0) {
             LogError("%s: error while seeking.\n", __func__);
+            decoder->seek_pos_ms = 0;
+            decoder->seek_req = false;
             return ret;
         } else {
             LogInfo("%s: avformat_seek_file success.\n", __func__);
