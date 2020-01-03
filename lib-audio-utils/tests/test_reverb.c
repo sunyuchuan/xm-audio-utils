@@ -37,6 +37,9 @@ int main(int argc, char **argv) {
     ret = init_effect(ctx, 0, NULL);
     if (ret < 0) goto end;
 
+    ret = set_effect(ctx, "Switch", "On", 0);
+    if (ret < 0) goto end;
+
     ret = set_effect(ctx, "reverb", "50.0 50.0 100.0 0.0 5.0", 0);
     if (ret < 0) goto end;
 

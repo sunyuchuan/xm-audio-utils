@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
     gettimeofday(&start, NULL);
 
     FILE *pcm_writer = NULL;
-    OpenFile(&pcm_writer, argv[5], true);
+    OpenFile(&pcm_writer, argv[7], true);
 
     buffer = (short *)calloc(sizeof(short), buffer_size_in_short);
     if (!buffer) goto end;

@@ -31,7 +31,7 @@ void check_fade_in_out(FadeInOut *fade_io,
     }
 }
 
-void set_gain_s16(FadeInOut *fade_io, short *data,
+void scale_with_ramp(FadeInOut *fade_io, short *data,
         int nb_samples, int nb_channels, float volume) {
     if (!fade_io || !data) {
         return;

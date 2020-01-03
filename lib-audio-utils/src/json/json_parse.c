@@ -6,31 +6,17 @@
 #include <stdlib.h>
 #include "../tools/mem.h"
 
-static void bubble_sort(int nb, BgmMusic **data) {
-    int i, j;
-    BgmMusic *temp;
-    for (i = nb - 1; i > 0; i--) {
-        for (j = 0; j < i; j++) {
-            if (data[j]->start_time_ms > data[j + 1]->start_time_ms) {
-                temp = data[j];
-                data[j] = data[j + 1];
-                data[j + 1] = temp;
-            }
-        }
-    }
-}
-
-static int parse_bgm_music(cJSON *json, int nb, BgmMusic **data) {
+static int parse_audio_source(cJSON *json, AudioSourceQueue *queue) {
     int ret = -1;
-    if (json == NULL) {
+    if (!json || !queue) {
         return ret;
     }
 
+    AudioSource source;
     const cJSON *sub = NULL;
-    int count = 0;
     cJSON_ArrayForEach(sub, json)
     {
-        cJSON *url = cJSON_GetObjectItemCaseSensitive(sub, "url");
+        cJSON *file_path = cJSON_GetObjectItemCaseSensitive(sub, "file_path");
         cJSON *sample_rate = cJSON_GetObjectItemCaseSensitive(sub, "sampleRate");
         cJSON *nb_channels = cJSON_GetObjectItemCaseSensitive(sub, "nbChannels");
         cJSON *start = cJSON_GetObjectItemCaseSensitive(sub, "startTimeMs");
@@ -39,84 +25,77 @@ static int parse_bgm_music(cJSON *json, int nb, BgmMusic **data) {
         cJSON *fade_in_time = cJSON_GetObjectItemCaseSensitive(sub, "fadeInTimeMs");
         cJSON *fade_out_time = cJSON_GetObjectItemCaseSensitive(sub, "fadeOutTimeMs");
         cJSON *side_chain = cJSON_GetObjectItemCaseSensitive(sub, "sideChain");
-        cJSON *makeup_g = cJSON_GetObjectItemCaseSensitive(sub, "makeUpGain");
 
-        if (!cJSON_IsString(url) || !cJSON_IsNumber(sample_rate)
+        if (!cJSON_IsString(file_path) || !cJSON_IsNumber(sample_rate)
             || !cJSON_IsNumber(nb_channels) || !cJSON_IsNumber(start)
-            || !cJSON_IsNumber(end) || url->valuestring == NULL
+            || !cJSON_IsNumber(end) || file_path->valuestring == NULL
             || !cJSON_IsNumber(fade_in_time) || !cJSON_IsNumber(fade_out_time)
-            || !cJSON_IsNumber(vol) || !cJSON_IsString(side_chain)
-            || !cJSON_IsNumber(makeup_g))
+            || !cJSON_IsNumber(vol) || !cJSON_IsString(side_chain))
         {
             LogError("%s failed\n", __func__);
             ret = -1;
             goto fail;
         }
-        if (count >= nb) {
-            LogError("%s bgm or music number is greater than the set nb.\n", __func__);
-            ret = 0;
-            goto fail;
-        }
-        data[count] = (BgmMusic *)calloc(1, sizeof(BgmMusic));
-        if (!data[count]) {
-            LogError("%s calloc BgmMusic failed.\n", __func__);
-            ret = -1;
-            goto fail;
-        }
 
-        data[count]->url = av_strdup(url->valuestring);
-        data[count]->sample_rate = sample_rate->valuedouble;
-        data[count]->nb_channels = nb_channels->valuedouble;
-        data[count]->start_time_ms = start->valuedouble;
-        data[count]->end_time_ms  = end->valuedouble;
-        data[count]->volume = vol->valuedouble / (float)100;
-        data[count]->fade_io.fade_in_time_ms = fade_in_time->valuedouble;
-        data[count]->fade_io.fade_out_time_ms = fade_out_time->valuedouble;
-        data[count]->left_factor = 1.0f;
-        data[count]->right_factor = 1.0f;
+        memset(&source, 0, sizeof(AudioSource));
+        source.file_path = av_strdup(file_path->valuestring);
+        source.sample_rate = sample_rate->valuedouble;
+        source.nb_channels = nb_channels->valuedouble;
+        source.start_time_ms = start->valuedouble;
+        source.end_time_ms  = end->valuedouble;
+        source.volume = vol->valuedouble / (float)100;
+        source.fade_io.fade_in_time_ms = fade_in_time->valuedouble;
+        source.fade_io.fade_out_time_ms = fade_out_time->valuedouble;
+        source.left_factor = 1.0f;
+        source.right_factor = 1.0f;
+
         if (0 == strcasecmp(side_chain->valuestring, "On")) {
-            data[count]->side_chain_enable = true;
+            source.side_chain_enable = true;
+            cJSON *makeup_g = cJSON_GetObjectItemCaseSensitive(sub, "makeUpGain");
+            if(!cJSON_IsNumber(makeup_g))
+            {
+                LogError("%s makeUpGain parse failed\n", __func__);
+                ret = -1;
+                goto fail;
+            }
+            source.makeup_gain = makeup_g->valuedouble / (float)100;
         } else {
-            data[count]->side_chain_enable = false;
+            source.side_chain_enable = false;
+            source.makeup_gain = 0.0;
         }
-        data[count]->makeup_gain = makeup_g->valuedouble / (float)100;
+        source_queue_put(queue, &source);
 
-        LogInfo("%s url %s\n", __func__, data[count]->url);
-        LogInfo("%s start time  %d\n", __func__, data[count]->start_time_ms );
-        LogInfo("%s end time %d\n", __func__, data[count]->end_time_ms );
-        LogInfo("%s volume %f\n", __func__, data[count]->volume);
-        LogInfo("%s fade_in_time_ms %d\n", __func__, data[count]->fade_io.fade_in_time_ms);
-        LogInfo("%s fade_out_time_ms %d\n", __func__, data[count]->fade_io.fade_out_time_ms);
-        LogInfo("%s side_chain_enable %d\n", __func__, data[count]->side_chain_enable);
-        LogInfo("%s makeup_gain %f\n", __func__, data[count]->makeup_gain);
-        count ++;
+        LogInfo("%s file_path %s\n", __func__, source.file_path);
+        LogInfo("%s start time  %d\n", __func__, source.start_time_ms );
+        LogInfo("%s end time %d\n", __func__, source.end_time_ms );
+        LogInfo("%s volume %f\n", __func__, source.volume);
+        LogInfo("%s fade_in_time_ms %d\n", __func__, source.fade_io.fade_in_time_ms);
+        LogInfo("%s fade_out_time_ms %d\n", __func__, source.fade_io.fade_out_time_ms);
+        LogInfo("%s side_chain_enable %d\n", __func__, source.side_chain_enable);
+        LogInfo("%s makeup_gain %f\n", __func__, source.makeup_gain);
     }
 
+    source_queue_bubble_sort(queue);
     return 0;
 fail:
-    for (int i = 0; i < nb; i++)
-    {
-        if (data[i]) {
-            if (data[i]->url) av_free(data[i]->url);
-            free(data[i]);
-            data[i] = NULL;
-        }
-    }
+    source_queue_flush(queue);
     return ret;
 }
 
 int mixer_parse(MixerEffcets *mixer_effects, const char *json_file_addr) {
     int ret = -1;
-    if (NULL == json_file_addr || NULL == mixer_effects) {
+    if (!json_file_addr || !mixer_effects) {
+        return ret;
+    }
+    if (!mixer_effects->bgmQueue || !mixer_effects->musicQueue) {
+        LogError("%s bgmQueue or musicQueue is NULL\n", __func__);
         return ret;
     }
 
     char *content = NULL;
     cJSON *root_json = NULL;
-    cJSON *nb_bgms = NULL;
     cJSON *bgms = NULL;
     cJSON *bgms_childs = NULL;
-    cJSON *nb_musics = NULL;
     cJSON *musics = NULL;
     cJSON *musics_childs = NULL;
     content = ae_read_file_to_string(json_file_addr);
@@ -129,24 +108,6 @@ int mixer_parse(MixerEffcets *mixer_effects, const char *json_file_addr) {
     root_json = cJSON_Parse(content);
     if (root_json == NULL) {
         LogError("%s cJSON_Parse failed\n", __func__);
-        ret = -1;
-        goto fail;
-    }
-
-    nb_bgms = cJSON_GetObjectItemCaseSensitive(root_json, "nb_bgm");
-    if (nb_bgms && cJSON_IsNumber(nb_bgms))
-    {
-        mixer_effects->nb_bgms = nb_bgms->valuedouble;
-    } else {
-        LogError("%s get nb_bgm failed\n", __func__);
-        ret = -1;
-        goto fail;
-    }
-    LogInfo("%s nb_bgm %d\n", __func__, mixer_effects->nb_bgms);
-    mixer_effects->bgms = (BgmMusic **)calloc(1, mixer_effects->nb_bgms * sizeof(BgmMusic*));
-    if (!mixer_effects->bgms)
-    {
-        LogError("%s mixer_effects->bgms calloc failed\n", __func__);
         ret = -1;
         goto fail;
     }
@@ -171,27 +132,9 @@ int mixer_parse(MixerEffcets *mixer_effects, const char *json_file_addr) {
         }
         bgms= bgms_childs;
     }
-    if ((ret = parse_bgm_music(bgms, mixer_effects->nb_bgms, mixer_effects->bgms)) < 0) {
-        LogError("%s parse bgms failed\n", __func__);
-        goto fail;
-    }
-    bubble_sort(mixer_effects->nb_bgms, mixer_effects->bgms);
 
-    nb_musics = cJSON_GetObjectItemCaseSensitive(root_json, "nb_music");
-    if (nb_musics && cJSON_IsNumber(nb_musics))
-    {
-        mixer_effects->nb_musics = nb_musics->valuedouble;
-    } else {
-        LogError("%s get nb_musics failed\n", __func__);
-        ret = -1;
-        goto fail;
-    }
-    LogInfo("%s nb_music %d\n", __func__, mixer_effects->nb_musics);
-    mixer_effects->musics = (BgmMusic **)calloc(1, mixer_effects->nb_musics * sizeof(BgmMusic*));
-    if (!mixer_effects->musics)
-    {
-        LogError("%s mixer_effects->musics calloc failed\n", __func__);
-        ret = -1;
+    if ((ret = parse_audio_source(bgms, mixer_effects->bgmQueue)) < 0) {
+        LogError("%s parse bgms source failed\n", __func__);
         goto fail;
     }
 
@@ -214,11 +157,11 @@ int mixer_parse(MixerEffcets *mixer_effects, const char *json_file_addr) {
         }
         musics = musics_childs;
     }
-    if ((ret = parse_bgm_music(musics, mixer_effects->nb_musics, mixer_effects->musics)) < 0) {
-        LogError("%s parse musics failed\n", __func__);
+
+    if ((ret = parse_audio_source(musics, mixer_effects->musicQueue)) < 0) {
+        LogError("%s parse musics source failed\n", __func__);
         goto fail;
     }
-    bubble_sort(mixer_effects->nb_musics, mixer_effects->musics);
 
     ret = 0;
 fail:
@@ -238,30 +181,17 @@ fail:
     {
         cJSON_Delete(musics_childs);
     }
-    if (ret < 0) {
-        if (mixer_effects->bgms != NULL)
-        {
-            free(mixer_effects->bgms);
-            mixer_effects->bgms = NULL;
-        }
-        if (mixer_effects->musics != NULL)
-        {
-            free(mixer_effects->musics);
-            mixer_effects->musics = NULL;
-        }
-    }
     return ret;
 }
 
 int effects_parse(VoiceEffcets *voice_effects, const char *json_file_addr, int sample_rate, int channels) {
     int ret = -1;
-    if (NULL == json_file_addr || NULL == voice_effects) {
+    if (!json_file_addr || !voice_effects) {
         return ret;
     }
 
     char *content = NULL;
     cJSON *root_json = NULL;
-    cJSON *nb_effects = NULL;
     cJSON *effects = NULL;
     cJSON *effects_childs = NULL;
     content = ae_read_file_to_string(json_file_addr);
@@ -277,17 +207,6 @@ int effects_parse(VoiceEffcets *voice_effects, const char *json_file_addr, int s
         ret = -1;
         goto fail;
     }
-
-    nb_effects = cJSON_GetObjectItemCaseSensitive(root_json, "nb_effects");
-    if (nb_effects && cJSON_IsNumber(nb_effects))
-    {
-        voice_effects->nb_effects = nb_effects->valuedouble;
-    } else {
-        LogError("%s get nb_effects failed\n", __func__);
-        ret = -1;
-        goto fail;
-    }
-    LogInfo("%s voice_effects->nb_effects %d\n", __func__, voice_effects->nb_effects);
 
     effects = cJSON_GetObjectItemCaseSensitive(root_json, "effects");
     if (effects == NULL) {
@@ -364,7 +283,6 @@ fail:
     {
         cJSON_Delete(effects_childs);
     }
-
     return ret;
 }
 
