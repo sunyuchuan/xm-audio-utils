@@ -274,7 +274,7 @@ static void mixer_free_l(XmMixerContext *ctx)
     pthread_mutex_unlock(&ctx->mutex);
 }
 
-static short *mixer_mix(XmMixerContext *ctx, short *pcm_buffer,
+static short *mixer_combine(XmMixerContext *ctx, short *pcm_buffer,
         int pcm_buffer_size, int pcm_start_time, int pcm_duration,
         AudioSource *source, short *decoder_buffer, short *dst_buffer) {
     if (!ctx || !pcm_buffer || !source
@@ -289,99 +289,69 @@ static short *mixer_mix(XmMixerContext *ctx, short *pcm_buffer,
         return pcm_buffer;
     }
 
+    int decode_size_in_short = 0;
+    int decode_data_start_index = 0;
+    memset(decoder_buffer, 0, sizeof(short) * MAX_NB_SAMPLES);
     if (pcm_start_time >= source->start_time_ms &&
             pcm_start_time + pcm_duration < source->end_time_ms) {
-        int decoder_buffer_size = xm_audio_decoder_get_decoded_frame(decoder,
-                decoder_buffer, pcm_buffer_size, true);
-        if (decoder_buffer_size <= 0) {
+        decode_data_start_index = 0;
+
+        int decoder_size_in_short = pcm_buffer_size > 0 ? pcm_buffer_size : 0;
+        decode_size_in_short = xm_audio_decoder_get_decoded_frame(decoder,
+                decoder_buffer, decoder_size_in_short, true);
+        if (decode_size_in_short <= 0) {
             LogWarning("%s 1 decoder_get_decoded_frame size is zero.\n", __func__);
             mix_buffer = pcm_buffer;
             goto end;
         }
-
-        fade_in_out(source, dst_sample_rate, dst_channels,
-                pcm_start_time, pcm_duration, decoder_buffer, decoder_buffer_size);
-        if (source->side_chain_enable) {
-            side_chain_compress(pcm_buffer, decoder_buffer, &(source->yl_prev),
-                    decoder_buffer_size, dst_sample_rate, dst_channels,
-                    SIDE_CHAIN_THRESHOLD, SIDE_CHAIN_RATIO, SIDE_CHAIN_ATTACK_MS,
-                    SIDE_CHAIN_RELEASE_MS, source->makeup_gain);
-        }
-        MixBufferS16(pcm_buffer, decoder_buffer, decoder_buffer_size / dst_channels,
-                dst_channels, dst_buffer, &(source->left_factor), &(source->right_factor));
-
-        if (decoder_buffer_size < pcm_buffer_size) {
-            memcpy(dst_buffer + decoder_buffer_size, pcm_buffer + decoder_buffer_size,
-                sizeof(short) * (pcm_buffer_size - decoder_buffer_size));
-        }
-        mix_buffer = dst_buffer;
     } else if (pcm_start_time < source->start_time_ms &&
             pcm_start_time + pcm_duration > source->start_time_ms) {
-        int decoder_start_index = ((source->start_time_ms - pcm_start_time) / (float)1000)
+        decode_data_start_index = ((source->start_time_ms - pcm_start_time) / (float)1000)
             * dst_sample_rate * dst_channels;
-        memcpy(dst_buffer, pcm_buffer, sizeof(short) * decoder_start_index);
+        int decoder_size_in_short = pcm_buffer_size -
+            decode_data_start_index > 0 ? pcm_buffer_size - decode_data_start_index : 0;
 
-        int decoder_buffer_size = xm_audio_decoder_get_decoded_frame(decoder,
-            decoder_buffer, pcm_buffer_size - decoder_start_index, true);
-        if (decoder_buffer_size <= 0) {
+        decode_size_in_short = xm_audio_decoder_get_decoded_frame(decoder,
+            decoder_buffer + decode_data_start_index, decoder_size_in_short, true);
+        if (decode_size_in_short <= 0) {
             LogWarning("%s 2 decoder_get_decoded_frame size is zero.\n", __func__);
             mix_buffer = pcm_buffer;
             goto end;
         }
-
-        fade_in_out(source, dst_sample_rate, dst_channels,
-                pcm_start_time, pcm_duration, decoder_buffer, decoder_buffer_size);
-        if (source->side_chain_enable) {
-            side_chain_compress(pcm_buffer + decoder_start_index, decoder_buffer, &(source->yl_prev),
-                    decoder_buffer_size, dst_sample_rate, dst_channels,
-                    SIDE_CHAIN_THRESHOLD, SIDE_CHAIN_RATIO, SIDE_CHAIN_ATTACK_MS,
-                    SIDE_CHAIN_RELEASE_MS, source->makeup_gain);
-        }
-        MixBufferS16(pcm_buffer + decoder_start_index, decoder_buffer,
-            decoder_buffer_size / dst_channels, dst_channels,
-            dst_buffer + decoder_start_index,
-            &(source->left_factor), &(source->right_factor));
-
-        if (decoder_buffer_size < (pcm_buffer_size - decoder_start_index)) {
-            memcpy(dst_buffer + decoder_start_index + decoder_buffer_size,
-                pcm_buffer + decoder_start_index + decoder_buffer_size, sizeof(short)
-                * (pcm_buffer_size - decoder_start_index - decoder_buffer_size));
-        }
-        mix_buffer = dst_buffer;
     } else if (pcm_start_time <= source->end_time_ms &&
             pcm_start_time + pcm_duration > source->end_time_ms) {
+        decode_data_start_index = 0;
         int decoder_size_in_short = ((source->end_time_ms - pcm_start_time) / (float)1000)
             * dst_sample_rate * dst_channels;
-        int decoder_buffer_size = xm_audio_decoder_get_decoded_frame(decoder,
+        decoder_size_in_short = decoder_size_in_short > 0 ? decoder_size_in_short : 0;
+
+        decode_size_in_short = xm_audio_decoder_get_decoded_frame(decoder,
             decoder_buffer, decoder_size_in_short, true);
-        if (decoder_buffer_size <= 0) {
-            LogWarning("%s 3 decoder_get_decoded_frame size is zero, decoder_size_in_short is %d.\n", __func__, decoder_size_in_short);
-            mix_buffer = pcm_buffer;
-            //update the decoder that point the next bgm
-            audio_source_free(source);
-            goto end;
-        }
-
-        fade_in_out(source, dst_sample_rate, dst_channels,
-                pcm_start_time, pcm_duration, decoder_buffer, decoder_buffer_size);
-        if (source->side_chain_enable) {
-            side_chain_compress(pcm_buffer, decoder_buffer, &(source->yl_prev),
-                    decoder_buffer_size, dst_sample_rate, dst_channels,
-                    SIDE_CHAIN_THRESHOLD, SIDE_CHAIN_RATIO, SIDE_CHAIN_ATTACK_MS,
-                    SIDE_CHAIN_RELEASE_MS, source->makeup_gain);
-        }
-        MixBufferS16(pcm_buffer, decoder_buffer, decoder_buffer_size / dst_channels,
-            dst_channels, dst_buffer, &(source->left_factor), &(source->right_factor));
-
-        memcpy(dst_buffer + decoder_buffer_size, pcm_buffer + decoder_buffer_size,
-            sizeof(short) * (pcm_buffer_size - decoder_buffer_size));
-        mix_buffer = dst_buffer;
         //update the decoder that point the next bgm
         audio_source_free(source);
+        if (decode_size_in_short <= 0) {
+            LogWarning("%s 3 decoder_get_decoded_frame size is zero, decoder_size_in_short is %d.\n", __func__, decoder_size_in_short);
+            mix_buffer = pcm_buffer;
+            goto end;
+        }
     } else {
         mix_buffer = pcm_buffer;
+        goto end;
     }
 
+    fade_in_out(source, dst_sample_rate, dst_channels, pcm_start_time,
+        pcm_duration, decoder_buffer + decode_data_start_index, decode_size_in_short);
+    if (source->side_chain_enable) {
+        side_chain_compress(pcm_buffer + decode_data_start_index,
+            decoder_buffer + decode_data_start_index, &(source->yl_prev),
+            decode_size_in_short, dst_sample_rate, dst_channels,
+            SIDE_CHAIN_THRESHOLD, SIDE_CHAIN_RATIO, SIDE_CHAIN_ATTACK_MS,
+            SIDE_CHAIN_RELEASE_MS, source->makeup_gain);
+    }
+    MixBufferS16(pcm_buffer, decoder_buffer, pcm_buffer_size / dst_channels,
+        dst_channels, dst_buffer, &(source->left_factor), &(source->right_factor));
+
+    mix_buffer = dst_buffer;
 end:
     return mix_buffer;
 }
@@ -403,11 +373,12 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
         1000 * ((float)read_len / ctx->dst_channels / ctx->dst_sample_rate);
     ctx->cur_size += read_len;
 
-    if (!ctx->mixer_effects.bgm->decoder) {
+    if ((!ctx->mixer_effects.bgm->decoder) &&
+            (source_queue_size(ctx->mixer_effects.bgmQueue) > 0)) {
         update_audio_source(ctx->mixer_effects.bgmQueue,
             ctx->mixer_effects.bgm, ctx->dst_sample_rate, ctx->dst_channels);
     }
-    short *voice_bgm_buffer = mixer_mix(ctx, ctx->middle_buffer[VoicePcm],
+    short *voice_bgm_buffer = mixer_combine(ctx, ctx->middle_buffer[VoicePcm],
         read_len, buffer_start_ms, duration, ctx->mixer_effects.bgm,
         ctx->middle_buffer[Decoder], ctx->middle_buffer[MixBgm]);
     if (voice_bgm_buffer == NULL) {
@@ -415,11 +386,12 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
         goto end;
     }
 
-    if (!ctx->mixer_effects.music->decoder) {
+    if ((!ctx->mixer_effects.music->decoder) &&
+            (source_queue_size(ctx->mixer_effects.musicQueue) > 0)) {
         update_audio_source(ctx->mixer_effects.musicQueue,
             ctx->mixer_effects.music, ctx->dst_sample_rate, ctx->dst_channels);
     }
-    short *voice_bgm_music_buffer = mixer_mix(ctx, voice_bgm_buffer,
+    short *voice_bgm_music_buffer = mixer_combine(ctx, voice_bgm_buffer,
         read_len, buffer_start_ms, duration, ctx->mixer_effects.music,
         ctx->middle_buffer[Decoder], ctx->middle_buffer[MixMusic]);
     if (voice_bgm_music_buffer == NULL) {
