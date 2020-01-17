@@ -51,6 +51,9 @@ static void mixer_effects_free(MixerEffcets *mixer) {
     if (NULL == mixer)
         return;
 
+    if (mixer->record) {
+        audio_record_source_freep(&mixer->record);
+    }
     if (mixer->bgm) {
         audio_source_freep(&mixer->bgm);
     }
@@ -72,6 +75,13 @@ static int mixer_effects_init(MixerEffcets *mixer) {
         return ret;
 
     mixer_effects_free(mixer);
+
+    mixer->record = (AudioRecordSource *)calloc(1, sizeof(AudioRecordSource));
+    if (NULL == mixer->record) {
+        LogError("%s alloc AudioRecordSource failed.\n", __func__);
+        ret = -1;
+        goto fail;
+    }
 
     mixer->bgm = (AudioSource *)calloc(1, sizeof(AudioSource));
     if (NULL == mixer->bgm) {
@@ -551,24 +561,16 @@ fail:
 }
 
 int xm_audio_mixer_init(XmMixerContext *ctx,
-        const char *in_pcm_path, int pcm_sample_rate, int pcm_channels,
-        int dst_sample_rate, int dst_channels, const char *in_config_path)
+        const char *in_pcm_path, const char *in_config_path)
 {
     int ret = -1;
-    if (!ctx || !in_config_path || !in_pcm_path) {
+    if (!ctx || !in_config_path) {
         return ret;
     }
-    if (pcm_sample_rate != dst_sample_rate) {
-        LogError("%s unsupport pcm resampling.\n", __func__);
-        return ret;
-    }
-    LogInfo("%s in_pcm_path = %s in_config_path = %s.\n", __func__, in_pcm_path, in_config_path);
+    LogInfo("%s in_config_path = %s.\n", __func__, in_config_path);
 
     mixer_free_l(ctx);
-    ctx->pcm_sample_rate = pcm_sample_rate;
-    ctx->pcm_channels = pcm_channels;
-    ctx->dst_sample_rate = dst_sample_rate;
-    ctx->dst_channels = dst_channels;
+    ctx->dst_channels = DEFAULT_CHANNEL_NUMBER;
     ctx->cur_size = 0;
     ctx->seek_time_ms = 0;
     ctx->in_config_path = av_strdup(in_config_path);
@@ -582,9 +584,13 @@ int xm_audio_mixer_init(XmMixerContext *ctx,
         LogError("%s mixer_parse %s failed\n", __func__, in_config_path);
         goto fail;
     }
+    ctx->pcm_sample_rate = ctx->mixer_effects.record->sample_rate;
+    ctx->pcm_channels = ctx->mixer_effects.record->nb_channels;
+    ctx->dst_sample_rate = ctx->mixer_effects.record->sample_rate;
 
-    if ((ctx->parser = pcm_parser_create(in_pcm_path, pcm_sample_rate,
-	    pcm_channels, dst_sample_rate, dst_channels)) == NULL) {
+    if (in_pcm_path == NULL) in_pcm_path = ctx->mixer_effects.record->file_path;
+    if ((ctx->parser = pcm_parser_create(in_pcm_path, ctx->pcm_sample_rate,
+	    ctx->pcm_channels, ctx->dst_sample_rate, ctx->dst_channels)) == NULL) {
 	LogError("%s pcm_parser_create failed, file addr : %s.\n", __func__, in_pcm_path);
 	goto fail;
     }

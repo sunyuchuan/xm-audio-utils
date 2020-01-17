@@ -36,12 +36,12 @@ int main(int argc, char **argv) {
         LogInfo("argv[%d] %s\n", i, argv[i]);
     }
 
-    if (argc < 4) {
+    if (argc < 2) {
         LogWarning("Usage %s param invalid\n", argv[0]);
         return 0;
     }
 
-    FILE *pcm_writer = fopen(argv[5], "w+");
+    FILE *pcm_writer = fopen(argv[2], "w+");
     if (!pcm_writer) {
         LogWarning("OpenFile pcm_writer(%s) failed\n", argv[3]);
     }
@@ -60,13 +60,12 @@ int main(int argc, char **argv) {
         goto end;
     }
 
-    if (xm_audio_effect_init(ctx, argv[1], atoi(argv[2]), atoi(argv[3]),
-        argv[4]) < 0) {
+    if (xm_audio_effect_init(ctx, argv[1]) < 0) {
         LogError("Error: xm_audio_effect_init failed\n");
         goto end;
     }
 
-    if (xm_audio_effect_add_effects(ctx, argv[5]) < 0) {
+    if (xm_audio_effect_add_effects(ctx, argv[2]) < 0) {
         LogError("Error: xm_audio_effect_add_effects failed\n");
         goto end;
     }

@@ -37,6 +37,10 @@ static void voice_effects_free(VoiceEffcets *voice) {
         return;
     }
 
+    if (voice->record) {
+        audio_record_source_freep(&voice->record);
+    }
+
     for (short i = 0; i < MAX_NB_EFFECTS; ++i) {
         if (voice->effects[i]) {
             free_effect(voice->effects[i]);
@@ -350,30 +354,34 @@ fail:
 }
 
 int xm_audio_effect_init(XmEffectContext *ctx,
-        const char *in_pcm_path, int pcm_sample_rate, int pcm_channels,
-        const char *in_config_path)
+    const char *in_config_path)
 {
     int ret = -1;
-    if (!ctx || !in_config_path || !in_pcm_path) {
+    if (!ctx || !in_config_path) {
         return ret;
     }
-    LogInfo("%s in_pcm_path = %s in_config_path = %s.\n", __func__, in_pcm_path, in_config_path);
-    LogInfo("%s pcm_sample_rate = %d, pcm_channels %d.\n", __func__, pcm_sample_rate, pcm_channels);
+    LogInfo("%s in_config_path = %s.\n", __func__, in_config_path);
 
     ae_reset_l(ctx);
-    ctx->pcm_sample_rate = pcm_sample_rate;
-    ctx->pcm_channels = pcm_channels;
-    ctx->seek_time_ms = 0;
 
-    if ((ctx->parser = pcm_parser_create(in_pcm_path, pcm_sample_rate,
-            pcm_channels, pcm_sample_rate, pcm_channels)) == NULL) {
-        LogError("%s open pcm parser failed, file addr %s.\n", __func__, in_pcm_path);
+    ctx->voice_effects.record = (AudioRecordSource *)calloc(1, sizeof(AudioRecordSource));
+    if (NULL == ctx->voice_effects.record) {
+        LogError("%s alloc AudioRecordSource failed.\n", __func__);
         goto fail;
     }
 
-    if ((ret = effects_parse(&(ctx->voice_effects), in_config_path,
-        ctx->pcm_sample_rate, ctx->pcm_channels)) < 0) {
+    if ((ret = effects_parse(&(ctx->voice_effects), in_config_path)) < 0) {
         LogError("%s effects_parse %s failed\n", __func__, in_config_path);
+        goto fail;
+    }
+    ctx->seek_time_ms = 0;
+    ctx->pcm_sample_rate = ctx->voice_effects.record->sample_rate;
+    ctx->pcm_channels = ctx->voice_effects.record->nb_channels;
+
+    char *in_pcm_path = ctx->voice_effects.record->file_path;
+    if ((ctx->parser = pcm_parser_create(in_pcm_path, ctx->pcm_sample_rate,
+            ctx->pcm_channels, ctx->pcm_sample_rate, ctx->pcm_channels)) == NULL) {
+        LogError("%s open pcm parser failed, file addr %s.\n", __func__, in_pcm_path);
         goto fail;
     }
 

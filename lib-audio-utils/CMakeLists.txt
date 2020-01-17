@@ -86,9 +86,11 @@ src/json/json_parse.c
 
 src/mixer_effects/fade_in_out.c
 src/mixer_effects/side_chain_compress.c
-src/mixer_effects/audio_source_queue.c
 
 src/effects/voice_effect.c
+
+src/audio_source.c
+src/audio_source_queue.c
 src/pcm_parser.c
 src/xm_audio_effects.c
 src/xm_audio_mixer.c

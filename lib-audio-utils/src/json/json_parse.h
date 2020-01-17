@@ -3,5 +3,5 @@
 #include "../voice_mixer_struct.h"
 
 int mixer_parse(MixerEffcets *mixer_effects, const char *json_file_addr);
-int effects_parse(VoiceEffcets *voice_effects, const char *json_file_addr, int sample_rate, int channels);
+int effects_parse(VoiceEffcets *voice_effects, const char *json_file_addr);
 #endif

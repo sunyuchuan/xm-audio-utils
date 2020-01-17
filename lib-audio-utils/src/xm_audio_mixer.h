@@ -67,16 +67,11 @@ int xm_audio_mixer_mix(XmMixerContext *ctx,
  *
  * @param ctx XmMixerContext
  * @param in_pcm_path Input pcm file path
- * @param pcm_sample_rate The sample rate of input pcm file
- * @param pcm_channels The channels of input pcm file
- * @param dst_sample_rate The sample rate of output pcm file
- * @param dst_channels The channels of output pcm file
  * @param in_config_path Config file about bgm and music parameter
  * @return Less than 0 means failure
  */
 int xm_audio_mixer_init(XmMixerContext *ctx,
-        const char *in_pcm_path, int pcm_sample_rate, int pcm_channels,
-        int dst_sample_rate, int dst_channels, const char *in_config_path);
+        const char *in_pcm_path, const char *in_config_path);
 
 /**
  * @brief create XmMixerContext

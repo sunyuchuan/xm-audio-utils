@@ -108,11 +108,10 @@ int xm_audio_utils_effect_seekTo(XmAudioUtils *self,
 }
 
 int xm_audio_utils_effect_init(XmAudioUtils *self,
-        const char *in_pcm_path, int pcm_sample_rate, int pcm_channels,
         const char *in_config_path) {
     LogInfo("%s\n", __func__);
     int ret = -1;
-    if (!self || !in_pcm_path || !in_config_path) {
+    if (!self || !in_config_path) {
         return -1;
     }
 
@@ -126,8 +125,7 @@ int xm_audio_utils_effect_init(XmAudioUtils *self,
         goto end;
     }
 
-    ret = xm_audio_effect_init(self->effects_ctx, in_pcm_path,
-        pcm_sample_rate, pcm_channels, in_config_path);
+    ret = xm_audio_effect_init(self->effects_ctx, in_config_path);
     if (ret < 0) {
         LogError("%s xm_audio_effect_init failed\n", __func__);
         goto end;
@@ -158,11 +156,10 @@ int xm_audio_utils_mixer_seekTo(XmAudioUtils *self,
 }
 
 int xm_audio_utils_mixer_init(XmAudioUtils *self,
-        const char *in_pcm_path, int pcm_sample_rate, int pcm_channels,
-        int dst_sample_rate, int dst_channels, const char *in_config_path) {
+    const char *in_config_path) {
     LogInfo("%s\n", __func__);
     int ret = -1;
-    if (!self || !in_pcm_path || !in_config_path) {
+    if (!self || !in_config_path) {
         return -1;
     }
 
@@ -176,9 +173,7 @@ int xm_audio_utils_mixer_init(XmAudioUtils *self,
         goto end;
     }
 
-    ret = xm_audio_mixer_init(self->mixer_ctx, in_pcm_path,
-        pcm_sample_rate, pcm_channels,
-        dst_sample_rate, dst_channels, in_config_path);
+    ret = xm_audio_mixer_init(self->mixer_ctx, NULL, in_config_path);
     if (ret < 0) {
         LogError("%s xm_audio_mixer_init failed\n", __func__);
         goto end;

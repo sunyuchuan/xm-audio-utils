@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
     gettimeofday(&start, NULL);
 
     FILE *pcm_writer = NULL;
-    OpenFile(&pcm_writer, argv[7], true);
+    OpenFile(&pcm_writer, argv[3], true);
 
     buffer = (short *)calloc(sizeof(short), buffer_size_in_short);
     if (!buffer) goto end;
@@ -33,8 +33,7 @@ int main(int argc, char **argv) {
         goto end;
     }
 
-    ret = xm_audio_utils_mixer_init(utils, argv[1], atoi(argv[2]), atoi(argv[3]),
-        atoi(argv[4]), atoi(argv[5]), argv[6]);
+    ret = xm_audio_utils_mixer_init(utils, argv[1]);
     if (ret < 0) {
         LogError("xm_audio_utils_mixer_init failed\n");
         goto end;

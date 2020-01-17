@@ -51,14 +51,10 @@ int xm_audio_utils_effect_seekTo(XmAudioUtils *self,
  * @brief init effect
  *
  * @param self XmAudioUtils
- * @param in_pcm_path Input pcm file path
- * @param pcm_sample_rate The sample rate of input pcm file
- * @param pcm_channels The channels of input pcm file
  * @param in_config_path Config file about bgm and music parameter
  * @return Less than 0 means failure
  */
 int xm_audio_utils_effect_init(XmAudioUtils *self,
-        const char *in_pcm_path, int pcm_sample_rate, int pcm_channels,
         const char *in_config_path);
 
 /**
@@ -87,15 +83,11 @@ int xm_audio_utils_mixer_seekTo(XmAudioUtils *self,
  * @brief init mixer
  *
  * @param self XmAudioUtils
- * @param in_pcm_path Input pcm file path
- * @param pcm_sample_rate The sample rate of input pcm file
- * @param pcm_channels The channels of input pcm file
  * @param in_config_path Config file about bgm and music parameter
  * @return Less than 0 means failure
  */
 int xm_audio_utils_mixer_init(XmAudioUtils *self,
-       const char *in_pcm_path, int pcm_sample_rate, int pcm_channels,
-       int dst_sample_rate, int dst_channels, const char *in_config_path);
+       const char *in_config_path);
 
 /**
  * @brief start fade bgm pcm data

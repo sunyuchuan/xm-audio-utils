@@ -31,8 +31,7 @@ static int chk_st_l(int state)
 }
 
 static int mixer_mix(XmAudioGenerator *self, const char *in_pcm_path,
-        int pcm_sample_rate, int pcm_channels, int dst_sample_rate,
-        int dst_channels, const char *in_config_path, const char *out_file_path) {
+        const char *in_config_path, const char *out_file_path) {
     LogInfo("%s\n", __func__);
     int ret = -1;
     if(!self || !in_pcm_path || !in_config_path || !out_file_path) {
@@ -49,9 +48,7 @@ static int mixer_mix(XmAudioGenerator *self, const char *in_pcm_path,
         goto end;
     }
 
-    ret = xm_audio_mixer_init(self->mixer_ctx, in_pcm_path,
-        pcm_sample_rate, pcm_channels, dst_sample_rate,
-        dst_channels, in_config_path);
+    ret = xm_audio_mixer_init(self->mixer_ctx, in_pcm_path, in_config_path);
     if (ret < 0) {
         LogError("%s xm_audio_mixer_init failed\n", __func__);
         goto end;
@@ -67,12 +64,11 @@ end:
     return ret;
 }
 
-static int add_voice_effects(XmAudioGenerator *self, const char *in_pcm_path,
-        int pcm_sample_rate, int pcm_channels, const char *in_config_path, const char *out_pcm_path) {
+static int add_voice_effects(XmAudioGenerator *self,
+        const char *in_config_path, const char *out_pcm_path) {
     LogInfo("%s\n", __func__);
     int ret = -1;
-    if(NULL == self || NULL == in_pcm_path
-        || NULL == in_config_path || NULL == out_pcm_path) {
+    if(!self || !in_config_path || !out_pcm_path) {
         return ret;
     }
 
@@ -86,8 +82,7 @@ static int add_voice_effects(XmAudioGenerator *self, const char *in_pcm_path,
         goto end;
     }
 
-    if ((ret = xm_audio_effect_init(self->effects_ctx, in_pcm_path,
-        pcm_sample_rate, pcm_channels, in_config_path)) < 0) {
+    if ((ret = xm_audio_effect_init(self->effects_ctx, in_config_path)) < 0) {
         LogError("%s xm_audio_effect_init failed.\n", __func__);
         goto end;
     }
@@ -146,13 +141,10 @@ int xm_audio_generator_get_progress(XmAudioGenerator *self) {
 }
 
 int xm_audio_generator_start(XmAudioGenerator *self,
-        const char *in_pcm_path, int pcm_sample_rate, int pcm_channels,
-        int dst_sample_rate, int dst_channels,
         const char *in_config_path, const char *out_file_path) {
     LogInfo("%s\n", __func__);
     int ret = -1;
-    if (NULL == self || NULL == in_pcm_path
-        || NULL == in_config_path || NULL == out_file_path) {
+    if (!self || !in_config_path || !out_file_path) {
         return ret;
     }
 
@@ -179,15 +171,12 @@ int xm_audio_generator_start(XmAudioGenerator *self,
     strncpy(out_pcm_path, out_file_path, len - 1);
     strncpy(out_pcm_path + len - 1, ".pcm", 5);
 
-    if ((ret = add_voice_effects(self, in_pcm_path, pcm_sample_rate,
-        pcm_channels, in_config_path, out_pcm_path)) < 0) {
+    if ((ret = add_voice_effects(self, in_config_path, out_pcm_path)) < 0) {
         LogError("%s add_voice_effects failed\n", __func__);
         goto end;
     }
 
-    if ((ret = mixer_mix(self, out_pcm_path, pcm_sample_rate,
-        pcm_channels, dst_sample_rate, dst_channels,
-        in_config_path, out_file_path)) < 0) {
+    if ((ret = mixer_mix(self, out_pcm_path, in_config_path, out_file_path)) < 0) {
         LogError("%s mixer_mix failed\n", __func__);
         goto end;
     }

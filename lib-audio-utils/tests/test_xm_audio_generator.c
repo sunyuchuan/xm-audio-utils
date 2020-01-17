@@ -46,8 +46,7 @@ int main(int argc, char **argv) {
     }
 
     int ret = xm_audio_generator_start(generator, argv[1],
-	atoi(argv[2]), atoi(argv[3]), atoi(argv[4]), atoi(argv[5]),
-	argv[6], argv[7]);
+	argv[2]);
     if (ret < 0) {
 	LogError("%s xm_audio_generator_start failed\n", __func__);
 	goto end;

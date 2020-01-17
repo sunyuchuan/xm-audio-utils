@@ -6,6 +6,77 @@
 #include <stdlib.h>
 #include "../tools/mem.h"
 
+static int parse_audio_record_source(cJSON *root_json, AudioRecordSource *record) {
+    int ret = -1;
+    if (!root_json || !record) {
+        return ret;
+    }
+
+    cJSON *record_json = NULL;
+    cJSON *record_childs = NULL;
+    record_json = cJSON_GetObjectItemCaseSensitive(root_json, "record");
+    if (!record_json)
+    {
+        LogError("%s get record_json failed\n", __func__);
+        ret = -1;
+        goto fail;
+    }
+    if (NULL != record_json->valuestring) {
+        LogInfo("%s record_json->valuestring %s\n", __func__, record_json->valuestring);
+    }
+
+    if (record_json->child == NULL && NULL != record_json->valuestring) {
+        record_childs = cJSON_Parse(record_json->valuestring);
+        if (record_childs == NULL) {
+            LogError("%s cJSON_Parse record_json->valuestring failed\n", __func__);
+            ret = -1;
+            goto fail;
+        }
+        record_json= record_childs;
+    }
+
+    const cJSON *sub = NULL;
+    cJSON_ArrayForEach(sub, record_json)
+    {
+        cJSON *file_path = cJSON_GetObjectItemCaseSensitive(sub, "file_path");
+        cJSON *start = cJSON_GetObjectItemCaseSensitive(sub, "startTimeMs");
+        cJSON *end = cJSON_GetObjectItemCaseSensitive(sub, "endTimeMs");
+        cJSON *sample_rate = cJSON_GetObjectItemCaseSensitive(sub, "sampleRate");
+        cJSON *nb_channel = cJSON_GetObjectItemCaseSensitive(sub, "nbChannels");
+        if (!cJSON_IsString(file_path) || !cJSON_IsNumber(start)
+            || !cJSON_IsNumber(end) || !file_path->valuestring
+            || !cJSON_IsNumber(sample_rate) || !cJSON_IsNumber(nb_channel))
+        {
+            LogError("%s failed\n", __func__);
+            ret = -1;
+            goto fail;
+        }
+        if (record->file_path) free(record->file_path);
+        record->file_path = av_strdup(file_path->valuestring);
+        record->start_time_ms = start->valuedouble;
+        record->end_time_ms  = end->valuedouble;
+        record->sample_rate= sample_rate->valuedouble;
+        record->nb_channels = nb_channel->valuedouble;
+
+        LogInfo("%s file_path %s\n", __func__, record->file_path);
+        LogInfo("%s start time  %d\n", __func__, record->start_time_ms );
+        LogInfo("%s end time %d\n", __func__, record->end_time_ms );
+        LogInfo("%s sample_rate %d\n", __func__, record->sample_rate);
+        LogInfo("%s nb_channels %d\n", __func__, record->nb_channels);
+    }
+
+    if (record_childs != NULL) {
+        cJSON_Delete(record_childs);
+    }
+    return 0;
+fail:
+    if (record_childs != NULL) {
+        cJSON_Delete(record_childs);
+    }
+    audio_record_source_free(record);
+    return ret;
+}
+
 static int parse_audio_source(cJSON *json, AudioSourceQueue *queue) {
     int ret = -1;
     if (!json || !queue) {
@@ -112,6 +183,11 @@ int mixer_parse(MixerEffcets *mixer_effects, const char *json_file_addr) {
         goto fail;
     }
 
+    if ((ret = parse_audio_record_source(root_json, mixer_effects->record)) < 0) {
+        LogError("%s parse_audio_record_source failed\n", __func__);
+        goto fail;
+    }
+
     bgms = cJSON_GetObjectItemCaseSensitive(root_json, "bgm");
     if (!bgms)
     {
@@ -184,7 +260,7 @@ fail:
     return ret;
 }
 
-int effects_parse(VoiceEffcets *voice_effects, const char *json_file_addr, int sample_rate, int channels) {
+int effects_parse(VoiceEffcets *voice_effects, const char *json_file_addr) {
     int ret = -1;
     if (!json_file_addr || !voice_effects) {
         return ret;
@@ -207,6 +283,13 @@ int effects_parse(VoiceEffcets *voice_effects, const char *json_file_addr, int s
         ret = -1;
         goto fail;
     }
+
+    if ((ret = parse_audio_record_source(root_json, voice_effects->record)) < 0) {
+        LogError("%s parse_audio_record_source failed\n", __func__);
+        goto fail;
+    }
+    int sample_rate = voice_effects->record->sample_rate;
+    int channels = voice_effects->record->nb_channels;
 
     effects = cJSON_GetObjectItemCaseSensitive(root_json, "effects");
     if (effects == NULL) {
