@@ -3,25 +3,6 @@
 #include <string.h>
 #include "log.h"
 
-void audio_source_free(AudioSource *source) {
-    if (source) {
-        if (source->file_path) {
-            free(source->file_path);
-            source->file_path = NULL;
-        }
-        xm_audio_decoder_freep(&(source->decoder));
-        memset(source, 0, sizeof(AudioSource));
-    }
-}
-
-void audio_source_freep(AudioSource **source) {
-    if (source && *source) {
-        audio_source_free(*source);
-        free(*source);
-        *source = NULL;
-    }
-}
-
 static bool audio_source_isValid(AudioSource *source)
 {
     if(!source || !source->file_path)

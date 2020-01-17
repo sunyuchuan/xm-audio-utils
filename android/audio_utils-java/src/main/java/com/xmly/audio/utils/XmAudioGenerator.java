@@ -81,9 +81,6 @@ public class XmAudioGenerator {
 
     /**
      * 添加特效并混音/编码输出
-     * @param inPcmPath 人声pcm文件
-     * @param pcmSampleRate pcm文件采样率
-     * @param pcmChannels pcm文件声道数
      * @param inConfigFilePath json配置文件,包含特效参数和混音参数等所有参数
      * @param outM4aPath 输出m4a文件路径
      * @param encoderType 编码器类型:
@@ -91,14 +88,12 @@ public class XmAudioGenerator {
      *                    ENCODER_MEDIA_CODEC 硬件编码
      * @return 小于0表示出错
      */
-    public int start(String inPcmPath, int pcmSampleRate, int pcmChannels,
-                     String inConfigFilePath, String outM4aPath, int encoderType) {
-        if (inPcmPath == null || inConfigFilePath == null || outM4aPath == null) {
+    public int start(String inConfigFilePath, String outM4aPath, int encoderType) {
+        if (inConfigFilePath == null || outM4aPath == null) {
             return -1;
         }
 
-        return native_start(inPcmPath, pcmSampleRate, pcmChannels,
-                inConfigFilePath, outM4aPath, encoderType);
+        return native_start(inConfigFilePath, outM4aPath, encoderType);
     }
 
     /**
@@ -126,8 +121,7 @@ public class XmAudioGenerator {
     private native void native_release();
     private native void native_stop();
     private native int native_get_progress();
-    private native int native_start(String inPcmPath, int sampleRate, int channels,
-                                                  String inConfigFilePath, String outM4aPath, int encoderType);
+    private native int native_start(String inConfigFilePath, String outM4aPath, int encoderType);
     private native void native_set_log(int logMode, int logLevel, String outLogPath);
     private native void native_setup();
 

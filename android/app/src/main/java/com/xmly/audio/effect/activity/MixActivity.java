@@ -31,7 +31,6 @@ import java.io.IOException;
 
 public class MixActivity extends AppCompatActivity implements View.OnClickListener {
     private final static String TAG = MixActivity.class.getName();
-    private static final String raw = "/sdcard/audio_effect_test/side_chain_test.pcm";
     private static final String config = "/sdcard/audio_effect_test/effect_config.txt";
     private static final String output = "/sdcard/audio_effect_test/mixed.pcm";
     private static final String encoderOutput = "/sdcard/audio_effect_test/final.m4a";
@@ -183,7 +182,7 @@ public class MixActivity extends AppCompatActivity implements View.OnClickListen
                     e.printStackTrace();
                 }
 
-                int ret = mAudioUtils.mixer_init(raw, 44100, 1, config);
+                int ret = mAudioUtils.mixer_init(config);
                 if (ret < 0) {
                     Log.e(TAG, "mixer_init failed");
                     return;
@@ -266,8 +265,7 @@ public class MixActivity extends AppCompatActivity implements View.OnClickListen
             public void run() {
                 JsonUtils.createOutputFile(encoderOutput);
                 long startTime = System.currentTimeMillis();
-                if (mAudioGenerator.start(raw, 44100, 1,
-                        config, encoderOutput, XmAudioUtils.ENCODER_MEDIA_CODEC) < 0) {
+                if (mAudioGenerator.start(config, encoderOutput, XmAudioUtils.ENCODER_MEDIA_CODEC) < 0) {
                     Log.e(TAG, "mix error");
                 }
                 long endTime = System.currentTimeMillis();

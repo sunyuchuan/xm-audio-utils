@@ -68,14 +68,10 @@ int xm_audio_effect_add_effects(XmEffectContext *ctx,
  * @brief effect init
  *
  * @param ctx XmEffectContext
- * @param in_pcm_path Input pcm file path
- * @param pcm_sample_rate The sample rate of input pcm file
- * @param pcm_channels The channels of input pcm file
  * @param in_config_path Config file about effects parameter
  * @return Less than 0 means failure
  */
 int xm_audio_effect_init(XmEffectContext *ctx,
-    const char *in_pcm_path, int pcm_sample_rate, int pcm_channels,
     const char *in_config_path);
 
 /**

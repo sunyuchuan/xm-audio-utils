@@ -139,7 +139,6 @@ LABEL_RETURN:
 
 static int
 XMAudioUtils_effects_init(JNIEnv *env, jobject thiz,
-    jstring inPcmPath, jint pcm_sample_rate, jint pcm_channels,
     jstring inConfigFilePath, jint action_type)
 {
     LOGI("%s\n", __func__);
@@ -147,21 +146,16 @@ XMAudioUtils_effects_init(JNIEnv *env, jobject thiz,
     XmAudioUtils *ctx = jni_get_xm_audio_utils(env, thiz);
     JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: mixer init: null ctx", LABEL_RETURN);
 
-    const char *in_pcm_path = NULL;
     const char *in_config_path = NULL;
-    if (inPcmPath)
-        in_pcm_path = (*env)->GetStringUTFChars(env, inPcmPath, 0);
     if (inConfigFilePath)
         in_config_path = (*env)->GetStringUTFChars(env, inConfigFilePath, 0);
 
     switch(action_type) {
         case ADD_EFFECTS:
-            ret = xm_audio_utils_effect_init(ctx, in_pcm_path, pcm_sample_rate,
-                pcm_channels, in_config_path);
+            ret = xm_audio_utils_effect_init(ctx, in_config_path);
             break;
         case MIXER_MIX:
-            ret = xm_audio_utils_mixer_init(ctx, in_pcm_path, pcm_sample_rate,
-                pcm_channels, in_config_path);
+            ret = xm_audio_utils_mixer_init(ctx, in_config_path);
             break;
         default:
             ret = -1;
@@ -169,8 +163,6 @@ XMAudioUtils_effects_init(JNIEnv *env, jobject thiz,
             break;
     }
 
-    if (in_pcm_path)
-        (*env)->ReleaseStringUTFChars(env, inPcmPath, in_pcm_path);
     if (in_config_path)
         (*env)->ReleaseStringUTFChars(env, inConfigFilePath, in_config_path);
 LABEL_RETURN:
@@ -308,7 +300,7 @@ static JNINativeMethod g_methods[] = {
     { "native_get_decoded_frame", "([SIZI)I", (void *) XMAudioUtils_get_decoded_frame },
     { "native_fade_init", "(IIIIIII)I", (void *) XMAudioUtils_fade_init },
     { "native_fade", "([SII)I", (void *) XMAudioUtils_fade },
-    { "native_effects_init", "(Ljava/lang/String;IILjava/lang/String;I)I", (void *) XMAudioUtils_effects_init },
+    { "native_effects_init", "(Ljava/lang/String;I)I", (void *) XMAudioUtils_effects_init },
     { "native_effects_seekTo", "(II)I", (void *) XMAudioUtils_effects_seekTo },
     { "native_get_effects_frame", "([SII)I", (void *) XMAudioUtils_get_effects_frame },
     { "native_release", "()V", (void *) XMAudioUtils_release },

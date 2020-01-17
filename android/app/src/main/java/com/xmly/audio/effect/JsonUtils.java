@@ -26,6 +26,8 @@ public class JsonUtils {
     private static final String TAG = "JsonUtils";
     private static final String EFFECT_NAME = "name";
     private static final String EFFECT_INFO = "info";
+    private static final String raw = "/sdcard/audio_effect_test/side_chain_test.pcm";
+    //private static final String raw = "/sdcard/audio_effect_test/pcm_mono_44kHz_0035.pcm";
     private static final String bgm1 = "/sdcard/audio_effect_test/bgm1.mp3";
     private static final String bgm2 = "/sdcard/audio_effect_test/bgm2.mp4";
     private static final String music1 = "/sdcard/audio_effect_test/audio_effects_1.mp3";
@@ -44,8 +46,21 @@ public class JsonUtils {
             jArray.put(generateJsonObject(entry.getKey(), entry.getValue()));
         }
 
-        JSONArray bgmArray = new JSONArray();
+        JSONArray recordArray = new JSONArray();
         JSONObject json = new JSONObject();
+        try {
+            json.put("file_path", raw);
+            json.put("sampleRate", 44100);
+            json.put("nbChannels", 1);
+            json.put("startTimeMs", 0);
+            json.put("endTimeMs", 150000);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        recordArray.put(json);
+
+        JSONArray bgmArray = new JSONArray();
+        json = new JSONObject();
         try {
             json.put("url", bgm2);
             json.put("volume", 80);
@@ -110,11 +125,9 @@ public class JsonUtils {
             FileOutputStream fileOutputStream = new FileOutputStream(jsonPath);
             JsonWriter jsonWriter = new JsonWriter(new OutputStreamWriter(fileOutputStream, "UTF-8"));
             jsonWriter.beginObject();
-            jsonWriter.name("nb_effects").value(jArray.length());
             jsonWriter.name("effects").value(jArray.toString());
-            jsonWriter.name("nb_bgm").value(bgmArray.length());
+            jsonWriter.name("record").value(recordArray.toString());
             jsonWriter.name("bgm").value(bgmArray.toString());
-            jsonWriter.name("nb_music").value(audioEffectsArray.length());
             jsonWriter.name("music").value(audioEffectsArray.toString());
             jsonWriter.endObject();
             jsonWriter.close();

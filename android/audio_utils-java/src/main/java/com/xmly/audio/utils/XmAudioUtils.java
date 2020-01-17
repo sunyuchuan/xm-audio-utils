@@ -112,18 +112,15 @@ public class XmAudioUtils {
 
     /**
      * 实时添加声音特效,初始化
-     * @param inPcmPath 人声pcm文件路径
-     * @param pcmSampleRate pcm数据的采样率
-     * @param pcmChannels pcm数据的声道数
      * @param inConfigFilePath 声音特效参数的配置文件,json格式
      * @return 小于0表示初始化失败
      */
-    public int add_effects_init(String inPcmPath, int pcmSampleRate, int pcmChannels, String inConfigFilePath) {
-        if (inPcmPath == null || inConfigFilePath == null) {
+    public int add_effects_init(String inConfigFilePath) {
+        if (inConfigFilePath == null) {
             return -1;
         }
 
-        return native_effects_init(inPcmPath, pcmSampleRate, pcmChannels, inConfigFilePath, ADD_EFFECTS);
+        return native_effects_init(inConfigFilePath, ADD_EFFECTS);
     }
 
     /**
@@ -151,18 +148,15 @@ public class XmAudioUtils {
 
     /**
      * 实时混音初始化
-     * @param inPcmPath 人声pcm文件路径
-     * @param pcmSampleRate pcm数据采样率
-     * @param pcmChannels pcm数据的声道数
      * @param inConfigFilePath 混音的配置文件路径,json格式
      * @return 小于0表示初始化失败
      */
-    public int mixer_init(String inPcmPath, int pcmSampleRate, int pcmChannels, String inConfigFilePath) {
-        if (inPcmPath == null || inConfigFilePath == null) {
+    public int mixer_init(String inConfigFilePath) {
+        if (inConfigFilePath == null) {
             return -1;
         }
 
-        return native_effects_init(inPcmPath, pcmSampleRate, pcmChannels, inConfigFilePath, MIXER_MIX);
+        return native_effects_init(inConfigFilePath, MIXER_MIX);
     }
 
     /**
@@ -276,8 +270,7 @@ public class XmAudioUtils {
                            int audioEndTimeMs, int volume, int fadeInTimeMs, int fadeOutTimeMs);
     private native int native_fade(short[] buffer, int bufferSize, int bufferStartTimeMs);
 
-    private native int native_effects_init(String inPcmPath, int pcmSampleRate, int pcmChannels,
-                                           String inConfigFilePath, int actionType);
+    private native int native_effects_init(String inConfigFilePath, int actionType);
     private native int native_effects_seekTo(int seekTimeMs, int actionType);
     private native int native_get_effects_frame(short[] buffer, int bufferSizeInShort, int actionType);
 

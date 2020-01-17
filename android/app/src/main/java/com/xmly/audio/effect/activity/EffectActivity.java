@@ -30,7 +30,6 @@ import com.xmly.audio.utils.XmAudioUtils;
 public class EffectActivity extends AppCompatActivity implements View.OnClickListener, RadioGroup.OnCheckedChangeListener {
     private final static String TAG = EffectActivity.class.getName();
 
-    private static final String raw = "/sdcard/audio_effect_test/pcm_mono_44kHz_0035.pcm";
     private static final String config = "/sdcard/audio_effect_test/config.txt";
     private static final String effect = "/sdcard/audio_effect_test/effect.pcm";
 
@@ -135,7 +134,7 @@ public class EffectActivity extends AppCompatActivity implements View.OnClickLis
                     e.printStackTrace();
                 }
 
-                int ret = mAudioUtils.add_effects_init(raw, 44100, 1, config);
+                int ret = mAudioUtils.add_effects_init(config);
                 if (ret < 0) {
                     Log.e(TAG, "add_effects_init failed");
                     return;

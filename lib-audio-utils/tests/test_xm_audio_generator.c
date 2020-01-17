@@ -49,8 +49,7 @@ int main(int argc, char **argv) {
     }
 
     int ret = xm_audio_generator_start(generator, argv[1],
-	atoi(argv[2]), atoi(argv[3]),
-	argv[4], argv[5], ENCODER_FFMPEG);
+	argv[2], ENCODER_FFMPEG);
     if (ret < 0) {
 	LogError("%s xm_audio_generator_start failed\n", __func__);
 	goto end;

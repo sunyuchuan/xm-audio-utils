@@ -112,7 +112,6 @@ LABEL_RETURN:
 
 static int
 XMAudioGenerator_start(JNIEnv *env, jobject thiz,
-        jstring inPcmPath, jint sample_rate, jint channels,
         jstring inConfigFilePath, jstring outM4aPath, jint encode_type)
 {
     LOGI("%s\n", __func__);
@@ -120,20 +119,14 @@ XMAudioGenerator_start(JNIEnv *env, jobject thiz,
     XmAudioGenerator *ctx = jni_get_xm_audio_generator(env, thiz);
     JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AGjni: start: null ctx", LABEL_RETURN);
 
-    const char *in_pcm_path = NULL;
     const char *in_config_path = NULL;
     const char *out_m4a_path = NULL;
-    if (inPcmPath)
-        in_pcm_path = (*env)->GetStringUTFChars(env, inPcmPath, 0);
     if (inConfigFilePath)
         in_config_path = (*env)->GetStringUTFChars(env, inConfigFilePath, 0);
     if (outM4aPath)
         out_m4a_path = (*env)->GetStringUTFChars(env, outM4aPath, 0);
 
-    ret = xm_audio_generator_start(ctx, in_pcm_path, sample_rate, channels,
-        in_config_path, out_m4a_path, encode_type);
-    if (in_pcm_path)
-        (*env)->ReleaseStringUTFChars(env, inPcmPath, in_pcm_path);
+    ret = xm_audio_generator_start(ctx, in_config_path, out_m4a_path, encode_type);
     if (in_config_path)
         (*env)->ReleaseStringUTFChars(env, inConfigFilePath, in_config_path);
     if (out_m4a_path)
@@ -180,7 +173,7 @@ LABEL_RETURN:
 static JNINativeMethod g_methods[] = {
     { "native_setup", "()V", (void *) XMAudioGenerator_setup },
     { "native_set_log", "(IILjava/lang/String;)V", (void *) XMAudioGenerator_set_log },
-    { "native_start", "(Ljava/lang/String;IILjava/lang/String;Ljava/lang/String;I)I", (void *) XMAudioGenerator_start },
+    { "native_start", "(Ljava/lang/String;Ljava/lang/String;I)I", (void *) XMAudioGenerator_start },
     { "native_get_progress", "()I", (void *) XMAudioGenerator_get_progress },
     { "native_stop", "()V", (void *) XMAudioGenerator_stop },
     { "native_release", "()V", (void *) XMAudioGenerator_release },
