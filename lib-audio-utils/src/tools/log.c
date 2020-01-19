@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include <sys/syscall.h>
 #include <time.h>
 #include <unistd.h>
@@ -92,13 +93,11 @@ static void UpdateBuffer(const LogLevel level, const char *filename,
                      ".%06ld %d-%ld/%c/%s:%d:", ts.tv_nsec / 1000, getpid(),
                      syscall(__NR_gettid), GetLeveFlag(level), basename, line);
 #elif defined(__APPLE__)
-        uint64_t tid;
-        pthread_threadid_np(NULL, &tid);
         len = strftime(self_log_buffer, sizeof(self_log_buffer), "%Y/%m/%d %T",
                        localtime(&ts.tv_sec));
         len += snprintf(self_log_buffer + len, MAX_BUFFER_SIZE - len,
                         ".%06ld %d-%llu/%c/%s:%d:", ts.tv_nsec / 1000, getpid(),
-                        tid, GetLeveFlag(level), basename, line);
+                        pthread_self(), GetLeveFlag(level), basename, line);
 #endif
     }
     vsnprintf(self_log_buffer + len, MAX_BUFFER_SIZE - len, format, args);

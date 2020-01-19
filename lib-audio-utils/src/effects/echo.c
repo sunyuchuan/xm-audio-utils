@@ -37,6 +37,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include "effect_struct.h"
 #include "tools/fifo.h"
 #include "tools/sdl_mutex.h"

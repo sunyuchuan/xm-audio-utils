@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
+#include <strings.h>
 #include "effect_struct.h"
 #include "error_def.h"
 #include "log.h"

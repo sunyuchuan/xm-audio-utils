@@ -94,18 +94,8 @@ build_wrap() {
             fi
         ;;
         Darwin)
-            echo "ANDROID_NDK=$ANDROID_NDK"
-            if [ ! -z "$ANDROID_NDK" ]; then
-                echo "build android"
-                build_android $1
-            fi
-            if xcode-select --install 2>&1 | grep installed; then
-                echo "build ios"
-                build_ios $1
-            else
-                echo_usage
-                exit 1
-            fi
+            echo "build ios"
+            build_ios $1
         ;;
         *)
             echo "unsupport host os.pls use mac or linux"
