@@ -95,9 +95,10 @@ static void UpdateBuffer(const LogLevel level, const char *filename,
 #elif defined(__APPLE__)
         len = strftime(self_log_buffer, sizeof(self_log_buffer), "%Y/%m/%d %T",
                        localtime(&ts.tv_sec));
+        pthread_t tid = pthread_self();
         len += snprintf(self_log_buffer + len, MAX_BUFFER_SIZE - len,
-                        ".%06ld %d-%llu/%c/%s:%d:", ts.tv_nsec / 1000, getpid(),
-                        pthread_self(), GetLeveFlag(level), basename, line);
+                        ".%06ld %d-%lu/%c/%s:%d:", ts.tv_nsec / 1000, getpid(),
+                        (unsigned long)tid, GetLeveFlag(level), basename, line);
 #endif
     }
     vsnprintf(self_log_buffer + len, MAX_BUFFER_SIZE - len, format, args);
