@@ -77,7 +77,11 @@ public class XmAudioUtils {
 
     private void init() {
         setLogModeAndLevel(LOG_MODE_ANDROID, LOG_LEVEL_DEBUG, null);
-        native_setup();
+        try {
+            native_setup();
+        } catch (OutOfMemoryError e) {
+            e.printStackTrace();
+        }
     }
 
     public XmAudioUtils()
@@ -116,11 +120,18 @@ public class XmAudioUtils {
      * @return 小于0表示初始化失败
      */
     public int add_effects_init(String inConfigFilePath) {
+        int ret = -1;
         if (inConfigFilePath == null) {
-            return -1;
+            return ret;
         }
 
-        return native_effects_init(inConfigFilePath, ADD_EFFECTS);
+        try {
+            ret = native_effects_init(inConfigFilePath, ADD_EFFECTS);
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+        }
+
+        return ret;
     }
 
     /**
@@ -129,7 +140,15 @@ public class XmAudioUtils {
      * @return 小于0表示快进快退设置失败
      */
     public int add_effects_seekTo(int seekTimeMs) {
-        return native_effects_seekTo(seekTimeMs, ADD_EFFECTS);
+        int ret = -1;
+
+        try {
+            ret = native_effects_seekTo(seekTimeMs, ADD_EFFECTS);
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+        }
+
+        return ret;
     }
 
     /**
@@ -139,11 +158,18 @@ public class XmAudioUtils {
      * @return 有效pcm数据的长度
      */
     public int get_effects_frame(short[] buffer, int bufferSizeInShort) {
+        int ret = -1;
         if (buffer == null) {
-            return -1;
+            return ret;
         }
 
-        return native_get_effects_frame(buffer, bufferSizeInShort, ADD_EFFECTS);
+        try {
+            ret = native_get_effects_frame(buffer, bufferSizeInShort, ADD_EFFECTS);
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+        }
+
+        return ret;
     }
 
     /**
@@ -152,11 +178,18 @@ public class XmAudioUtils {
      * @return 小于0表示初始化失败
      */
     public int mixer_init(String inConfigFilePath) {
+        int ret = -1;
         if (inConfigFilePath == null) {
-            return -1;
+            return ret;
         }
 
-        return native_effects_init(inConfigFilePath, MIXER_MIX);
+        try {
+            ret = native_effects_init(inConfigFilePath, MIXER_MIX);
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+        }
+
+        return ret;
     }
 
     /**
@@ -165,7 +198,15 @@ public class XmAudioUtils {
      * @return 小于0表示快进快退设置失败
      */
     public int mixer_seekTo(int seekTimeMs) {
-        return native_effects_seekTo(seekTimeMs, MIXER_MIX);
+        int ret = -1;
+
+        try {
+            ret = native_effects_seekTo(seekTimeMs, MIXER_MIX);
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+        }
+
+        return ret;
     }
 
     /**
@@ -175,11 +216,18 @@ public class XmAudioUtils {
      * @return 有效pcm数据的长度
      */
     public int get_mixed_frame(short[] buffer, int bufferSizeInShort) {
+        int ret = -1;
         if (buffer == null) {
-            return -1;
+            return ret;
         }
 
-        return native_get_effects_frame(buffer, bufferSizeInShort, MIXER_MIX);
+        try {
+            ret = native_get_effects_frame(buffer, bufferSizeInShort, MIXER_MIX);
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+        }
+
+        return ret;
     }
 
     /**
@@ -195,8 +243,16 @@ public class XmAudioUtils {
      */
     public int fadeInit(int pcmSampleRate, int pcmNbChannels, int audioStartTimeMs,
                     int audioEndTimeMs, int volume, int fadeInTimeMs, int fadeOutTimeMs) {
-        return native_fade_init(pcmSampleRate, pcmNbChannels, audioStartTimeMs,
-                audioEndTimeMs, volume,fadeInTimeMs, fadeOutTimeMs);
+        int ret = -1;
+
+        try {
+            ret = native_fade_init(pcmSampleRate, pcmNbChannels, audioStartTimeMs,
+                    audioEndTimeMs, volume,fadeInTimeMs, fadeOutTimeMs);
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+        }
+
+        return ret;
     }
 
     /**
@@ -207,10 +263,18 @@ public class XmAudioUtils {
      * @return 小于0表示失败
      */
     public int fade(short[] buffer, int bufferSize, int bufferStartTimeMs) {
+        int ret = -1;
         if (buffer == null) {
-            return -1;
+            return ret;
         }
-        return native_fade(buffer, bufferSize, bufferStartTimeMs);
+
+        try {
+            ret = native_fade(buffer, bufferSize, bufferStartTimeMs);
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+        }
+
+        return ret;
     }
 
     /**
@@ -222,10 +286,18 @@ public class XmAudioUtils {
      * @return 小于0表示失败
      */
     public int decoder_create(String inAudioPath, int outSampleRate, int outChannels, int decoderType) {
+        int ret = -1;
         if (inAudioPath == null) {
-            return -1;
+            return ret;
         }
-        return native_decoder_create(inAudioPath, outSampleRate, outChannels, decoderType);
+
+        try {
+            ret = native_decoder_create(inAudioPath, outSampleRate, outChannels, decoderType);
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+        }
+
+        return ret;
     }
 
     /**
@@ -234,7 +306,11 @@ public class XmAudioUtils {
      * @param decoderType 解码器类型:BGM或MUSIC
      */
     public void decoder_seekTo(int seekTimeMs, int decoderType) {
-        native_decoder_seekTo(seekTimeMs, decoderType);
+        try {
+            native_decoder_seekTo(seekTimeMs, decoderType);
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -246,17 +322,29 @@ public class XmAudioUtils {
      * @return 有效pcm数据的长度
      */
     public int get_decoded_frame(short[] buffer, int bufferSize, boolean loop, int decoderType) {
+        int ret = -1;
         if (buffer == null) {
-            return -1;
+            return ret;
         }
-        return native_get_decoded_frame(buffer, bufferSize, loop, decoderType);
+
+        try {
+            ret = native_get_decoded_frame(buffer, bufferSize, loop, decoderType);
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+        }
+
+        return ret;
     }
 
     /**
      * 释放native占用的内存
      */
     public void release() {
-        native_release();
+        try {
+            native_release();
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+        }
     }
 
     private native void native_set_log(int logMode, int logLevel, String outLogPath);
@@ -280,6 +368,8 @@ public class XmAudioUtils {
         Log.i(TAG, "finalize");
         try {
             native_release();
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
         } finally {
             super.finalize();
         }

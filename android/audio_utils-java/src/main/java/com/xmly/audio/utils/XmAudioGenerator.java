@@ -46,7 +46,11 @@ public class XmAudioGenerator {
 
     private void init() {
         setLogModeAndLevel(XmAudioUtils.LOG_MODE_ANDROID, XmAudioUtils.LOG_LEVEL_DEBUG, null);
-        native_setup();
+        try {
+            native_setup();
+        } catch (OutOfMemoryError e) {
+            e.printStackTrace();
+        }
     }
 
     public XmAudioGenerator()
@@ -89,11 +93,18 @@ public class XmAudioGenerator {
      * @return 小于0表示出错
      */
     public int start(String inConfigFilePath, String outM4aPath, int encoderType) {
+        int ret = -1;
         if (inConfigFilePath == null || outM4aPath == null) {
-            return -1;
+            return ret;
         }
 
-        return native_start(inConfigFilePath, outM4aPath, encoderType);
+        try {
+            ret = native_start(inConfigFilePath, outM4aPath, encoderType);
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+        }
+
+        return ret;
     }
 
     /**
@@ -101,21 +112,37 @@ public class XmAudioGenerator {
      * @return 进度值 范围是0到100
      */
     public int getProgress() {
-        return native_get_progress();
+        int ret = -1;
+
+        try {
+            ret = native_get_progress();
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+        }
+
+        return ret;
     }
 
     /**
      * 主动停止合成
      */
     public void stop() {
-        native_stop();
+        try {
+            native_stop();
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
      * 释放native内存
      */
     public void release() {
-        native_release();
+        try {
+            native_release();
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+        }
     }
 
     private native void native_release();
@@ -130,6 +157,8 @@ public class XmAudioGenerator {
         Log.i(TAG, "finalize");
         try {
             native_release();
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
         } finally {
             super.finalize();
         }
