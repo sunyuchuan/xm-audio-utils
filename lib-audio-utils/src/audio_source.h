@@ -2,6 +2,7 @@
 #define _AUDIO_SOURCE_H_
 #include "mixer_effects/fade_in_out.h"
 #include "pcm_parser.h"
+#include "wav_dec.h"
 
 typedef struct AudioSource {
     int sample_rate;
@@ -17,6 +18,7 @@ typedef struct AudioSource {
     char *file_path;
     PcmParser *parser;
     FadeInOut fade_io;
+    WavHeader wav_header;
 } AudioSource;
 
 typedef struct AudioRecordSource {
@@ -25,6 +27,7 @@ typedef struct AudioRecordSource {
     int sample_rate;
     int nb_channels;
     char *file_path;
+    WavHeader wav_header;
 } AudioRecordSource;
 
 void audio_source_free(AudioSource *source);

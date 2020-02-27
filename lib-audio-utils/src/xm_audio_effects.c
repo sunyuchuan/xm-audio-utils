@@ -93,7 +93,7 @@ static void ae_reset_l(XmEffectContext *ctx)
     ae_free(ctx);
 
     memset(ctx->voice_effects.effects, 0, MAX_NB_EFFECTS * sizeof(EffectContext *));
-    memset(ctx->buffer, 0, MAX_NB_SAMPLES * sizeof(short));
+    memset(ctx->buffer, 0, MAX_NB_SAMPLES * sizeof(*(ctx->buffer)));
     pthread_mutex_lock(&ctx->mutex);
     ctx->abort= false;
     ctx->progress = 0;
@@ -292,11 +292,11 @@ static int xm_audio_effect_add_effects_l(XmEffectContext *ctx,
     }
 
     int64_t cur_size = 0;
-    float file_duration = ctx->parser->file_size / 2 / ctx->pcm_channels /
-        ctx->pcm_sample_rate;
+    float file_duration = ctx->parser->file_size / (ctx->parser->bits_per_sample
+        / 8) / ctx->pcm_channels / ctx->pcm_sample_rate;
     while (!ctx->abort) {
-        float cur_position = cur_size / ctx->pcm_channels /
-            ctx->pcm_sample_rate;
+        float cur_position = (cur_size*sizeof(*(ctx->buffer))) / (ctx->parser->bits_per_sample
+            / 8) / ctx->pcm_channels / ctx->pcm_sample_rate;
         int progress = (cur_position / file_duration) * 100;
         pthread_mutex_lock(&ctx->mutex);
         ctx->progress = progress;
@@ -309,7 +309,7 @@ static int xm_audio_effect_add_effects_l(XmEffectContext *ctx,
         }
         cur_size += ret;
 
-        fwrite(ctx->buffer, 2, ret, writer);
+        fwrite(ctx->buffer, sizeof(*(ctx->buffer)), ret, writer);
     }
 
     ret = 0;
@@ -380,13 +380,14 @@ int xm_audio_effect_init(XmEffectContext *ctx,
 
     char *in_pcm_path = ctx->voice_effects.record->file_path;
     if ((ctx->parser = pcm_parser_create(in_pcm_path, ctx->pcm_sample_rate,
-            ctx->pcm_channels, ctx->pcm_sample_rate, ctx->pcm_channels)) == NULL) {
+            ctx->pcm_channels, ctx->pcm_sample_rate, ctx->pcm_channels,
+            &(ctx->voice_effects.record->wav_header))) == NULL) {
         LogError("%s open pcm parser failed, file addr %s.\n", __func__, in_pcm_path);
         goto fail;
     }
 
     // Allocate buffer for audio fifo
-    ctx->audio_fifo = fifo_create(sizeof(int16_t));
+    ctx->audio_fifo = fifo_create(sizeof(short));
     if (!ctx->audio_fifo) {
         LogError("%s Could not allocate audio FIFO\n", __func__);
         ret = AEERROR_NOMEM;
