@@ -1,7 +1,7 @@
 #include "wav_dec.h"
 #include "log.h"
 #include "tools/util.h"
-#include <stdio.h>
+#include <string.h>
 
 #define FILE_EOF -1000
 #define MKTAG(a,b,c,d) ((a) | ((b) << 8) | ((c) << 16) | ((unsigned)(d) << 24))
@@ -83,15 +83,51 @@ static int wav_parse_fmt_tag(FILE *reader,
     return 0;
 }
 
-int wav_read_header(const char *file_addr, WavHeader *header)
+int wav_write_header(FILE *writer, WavContext *ctx)
+{
+    int ret = -1;
+    if (!writer || !ctx) {
+        return -1;
+    }
+
+    ctx->pcm_data_offset = 0;
+    if (!ctx->is_wav) {
+        return 0;
+    }
+
+    if ((ret = fseek(writer, 0, SEEK_SET)) < 0) {
+        LogError("%s seek to 0 failed\n", __func__);
+        goto end;
+    }
+
+    memcpy(ctx->header.riff_id, TAG_ID_RIFF, 4);
+    memcpy(ctx->header.form, FILE_FORM_WAV, 4);
+    memcpy(ctx->header.fmt_id, TAG_ID_FMT, 4);
+    ctx->header.fmt_size= 16;
+    memcpy(ctx->header.data_id, TAG_ID_DATA, 4);
+    if ((ret = fwrite(&ctx->header, sizeof(ctx->header), 1, writer)) != 1) {
+        LogError("%s write wav header failed, ret %d.\n", __func__, ret);
+        ret = -1;
+        goto end;
+    }
+
+    ctx->pcm_data_offset = sizeof(ctx->header);
+    ret = 0;
+end:
+    return ret;
+}
+
+int wav_read_header(const char *file_addr, WavContext *ctx)
 {
     int got_fmt, ret = -1;
     uint32_t tag = 0;
     uint32_t size = 0, next_tag_ofs = 0;
-    if (!file_addr || !header) {
+    WavHeader *header;
+    if (!file_addr || !ctx) {
         return -1;
     }
 
+    header = &ctx->header;
     FILE *reader = NULL;
     if ((ret = ae_open_file(&reader, file_addr, false)) < 0) {
 	LogError("%s open file_addr %s failed\n", __func__, file_addr);
@@ -104,7 +140,7 @@ int wav_read_header(const char *file_addr, WavHeader *header)
         goto fail;
     }
 
-    header->is_wav = false;
+    ctx->is_wav = false;
     tag = avio_rl32(reader);
     if (tag == MKTAG('R', 'I', 'F', 'F')) {
         header->riff_size = avio_rl32(reader);
@@ -144,10 +180,10 @@ int wav_read_header(const char *file_addr, WavHeader *header)
             break;
         case MKTAG('d', 'a', 't', 'a'):
             header->data_size = size;
-            header->pcm_data_offset = ftell(reader);
+            ctx->pcm_data_offset = ftell(reader);
             LogInfo("%s find data tag, data offset 0x%x, data size 0x%x.\n", __func__,
-                header->pcm_data_offset, header->data_size);
-            if (header->riff_size + 8 - header->data_size != header->pcm_data_offset) {
+                ctx->pcm_data_offset, header->data_size);
+            if (header->riff_size + 8 - header->data_size != ctx->pcm_data_offset) {
                 LogWarning("%s pcm_data_offset != file_size - data_size, riff_size 0x%x.\n", __func__,
                     header->riff_size);
             }
@@ -173,7 +209,7 @@ int wav_read_header(const char *file_addr, WavHeader *header)
     }
 
 end:
-    header->is_wav = true;
+    ctx->is_wav = true;
     ret = 0;
 
 fail:

@@ -16,8 +16,8 @@ int main(int argc, char **argv) {
         LogInfo("argv[%d] %s\n", i, argv[i]);
     }
 
-    WavHeader wav_header;
-    if (wav_read_header(argv[1], &wav_header) < 0) {
+    WavContext wav_ctx;
+    if (wav_read_header(argv[1], &wav_ctx) < 0) {
         LogError("%s wav_read_header failed\n", __func__);
         goto end;
     }

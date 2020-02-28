@@ -116,7 +116,7 @@ static PcmParser *open_source_parser(AudioSource *source,
 
     if ((source->parser = pcm_parser_create(source->file_path,
             source->sample_rate, source->nb_channels,
-            dst_sample_rate, dst_channels, &(source->wav_header))) == NULL) {
+            dst_sample_rate, dst_channels, &(source->wav_ctx))) == NULL) {
 	LogError("%s open source pcm parser failed, file addr %s.\n", __func__, source->file_path);
 	return NULL;
     }
@@ -489,6 +489,11 @@ static int xm_audio_mixer_mix_l(XmMixerContext *ctx,
 	return ret;
     }
 
+    WavContext *wav_ctx = &(ctx->mixer_effects.record->wav_ctx);
+    if (wav_write_header(writer, wav_ctx) < 0) {
+        LogError("%s 1 write wav header failed, out_file_path %s\n", __func__, out_file_path);
+    }
+
     buffer = (short *)calloc(sizeof(short), MAX_NB_SAMPLES);
     if (!buffer) {
         LogError("%s calloc buffer failed.\n", __func__);
@@ -496,6 +501,7 @@ static int xm_audio_mixer_mix_l(XmMixerContext *ctx,
         goto fail;
     }
 
+    uint32_t data_size_byte = 0;
     ctx->seek_time_ms = 0;
     ctx->cur_size = 0;
     PcmParser *parser = ctx->parser;
@@ -516,8 +522,23 @@ static int xm_audio_mixer_mix_l(XmMixerContext *ctx,
         }
 
         fwrite(buffer, sizeof(*buffer), ret, writer);
+        data_size_byte += (ret * sizeof(*buffer));
     }
 
+    wav_ctx->header.sample_rate = ctx->dst_sample_rate;
+    wav_ctx->header.nb_channels = ctx->dst_channels;
+    wav_ctx->header.bits_per_sample = ctx->parser->bits_per_sample;
+    wav_ctx->header.block_align = ctx->dst_channels * (wav_ctx->header.bits_per_sample / 8);
+    wav_ctx->header.byte_rate = wav_ctx->header.block_align * ctx->dst_sample_rate;
+    wav_ctx->header.data_size = data_size_byte;
+    // total file size minus the size of riff_id(4 byte) and riff_size(4 byte) itself
+    wav_ctx->header.riff_size = wav_ctx->header.data_size +
+        sizeof(wav_ctx->header) - 8;
+    if (wav_write_header(writer, wav_ctx) < 0) {
+        LogError("%s 2 write wav header failed, out_file_path %s\n", __func__, out_file_path);
+    }
+
+    if (ret == PCM_FILE_EOF) ret = 0;
 fail:
     if (buffer != NULL) {
         free(buffer);
@@ -527,7 +548,7 @@ fail:
         fclose(writer);
         writer = NULL;
     }
-    return 0;
+    return ret;
 }
 
 int xm_audio_mixer_mix(XmMixerContext *ctx,
@@ -595,7 +616,7 @@ int xm_audio_mixer_init(XmMixerContext *ctx,
     if (in_pcm_path == NULL) in_pcm_path = ctx->mixer_effects.record->file_path;
     if ((ctx->parser = pcm_parser_create(in_pcm_path, ctx->pcm_sample_rate,
 	    ctx->pcm_channels, ctx->dst_sample_rate, ctx->dst_channels,
-	    &(ctx->mixer_effects.record->wav_header))) == NULL) {
+	    &(ctx->mixer_effects.record->wav_ctx))) == NULL) {
 	LogError("%s pcm_parser_create failed, file addr : %s.\n", __func__, in_pcm_path);
 	goto fail;
     }

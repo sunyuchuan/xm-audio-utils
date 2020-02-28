@@ -291,7 +291,12 @@ static int xm_audio_effect_add_effects_l(XmEffectContext *ctx,
         goto fail;
     }
 
-    int64_t cur_size = 0;
+    WavContext *wav_ctx = &(ctx->voice_effects.record->wav_ctx);
+    if (wav_write_header(writer, wav_ctx) < 0) {
+        LogError("%s 1 write wav header failed, out_pcm_path %s\n", __func__, out_pcm_path);
+    }
+
+    uint32_t cur_size = 0;
     float file_duration = ctx->parser->file_size / (ctx->parser->bits_per_sample
         / 8) / ctx->pcm_channels / ctx->pcm_sample_rate;
     while (!ctx->abort) {
@@ -310,6 +315,19 @@ static int xm_audio_effect_add_effects_l(XmEffectContext *ctx,
         cur_size += ret;
 
         fwrite(ctx->buffer, sizeof(*(ctx->buffer)), ret, writer);
+    }
+
+    wav_ctx->header.sample_rate = ctx->pcm_sample_rate;
+    wav_ctx->header.nb_channels = ctx->pcm_channels;
+    wav_ctx->header.bits_per_sample = ctx->parser->bits_per_sample;
+    wav_ctx->header.block_align = ctx->pcm_channels * (wav_ctx->header.bits_per_sample / 8);
+    wav_ctx->header.byte_rate = wav_ctx->header.block_align * ctx->pcm_sample_rate;
+    wav_ctx->header.data_size = cur_size * sizeof(*(ctx->buffer));
+    // total file size minus the size of riff_id(4 byte) and riff_size(4 byte) itself
+    wav_ctx->header.riff_size = wav_ctx->header.data_size +
+        sizeof(wav_ctx->header) - 8;
+    if (wav_write_header(writer, wav_ctx) < 0) {
+        LogError("%s 2 write wav header failed, out_pcm_path %s\n", __func__, out_pcm_path);
     }
 
     ret = 0;
@@ -381,7 +399,7 @@ int xm_audio_effect_init(XmEffectContext *ctx,
     char *in_pcm_path = ctx->voice_effects.record->file_path;
     if ((ctx->parser = pcm_parser_create(in_pcm_path, ctx->pcm_sample_rate,
             ctx->pcm_channels, ctx->pcm_sample_rate, ctx->pcm_channels,
-            &(ctx->voice_effects.record->wav_header))) == NULL) {
+            &(ctx->voice_effects.record->wav_ctx))) == NULL) {
         LogError("%s open pcm parser failed, file addr %s.\n", __func__, in_pcm_path);
         goto fail;
     }

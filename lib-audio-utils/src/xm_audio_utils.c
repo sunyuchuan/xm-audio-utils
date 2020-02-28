@@ -277,19 +277,19 @@ int xm_audio_utils_parser_init(XmAudioUtils *self,
     }
     pcm_parser_freep(parser);
 
-    WavHeader header;
-    if (wav_read_header(in_pcm_path, &header) >= 0) {
-        src_sample_rate = header.sample_rate;
-        src_channels = header.nb_channels;
-        dst_sample_rate = header.sample_rate;
+    WavContext wav_ctx;
+    if (wav_read_header(in_pcm_path, &wav_ctx) >= 0) {
+        src_sample_rate = wav_ctx.header.sample_rate;
+        src_channels = wav_ctx.header.nb_channels;
+        dst_sample_rate = wav_ctx.header.sample_rate;
     }
     if (dst_channels != 1 && dst_channels != 2) {
         LogWarning("dst_channels %d invalid.\n", dst_channels);
-        dst_channels = header.nb_channels;
+        dst_channels = wav_ctx.header.nb_channels;
     }
 
     *parser = pcm_parser_create(in_pcm_path, src_sample_rate,
-        src_channels, dst_sample_rate, dst_channels, &header);
+        src_channels, dst_sample_rate, dst_channels, &wav_ctx);
     if (*parser == NULL) {
         LogError("pcm_parser_create failed\n");
         return -1;

@@ -8,6 +8,7 @@
 
 #define BITS_PER_SAMPLE_16 16
 #define BITS_PER_SAMPLE_8 8
+#define PCM_FILE_EOF -1000
 
 typedef struct PcmParser {
     // seek parameters
@@ -32,7 +33,7 @@ typedef struct PcmParser {
     char* file_addr;
     int64_t file_size;
     FILE *reader;
-    WavHeader wav_header;
+    WavContext wav_ctx;
 } PcmParser;
 
 void pcm_parser_free(PcmParser *parser);
@@ -41,6 +42,6 @@ int pcm_parser_get_pcm_frame(PcmParser *parser,
     short *buffer, int buffer_size_in_short, bool loop);
 int pcm_parser_seekTo(PcmParser *parser, int seek_pos_ms);
 PcmParser *pcm_parser_create(const char *file_addr, int src_sample_rate,
-    int src_nb_channels, int dst_sample_rate, int dst_nb_channels, WavHeader *header);
+    int src_nb_channels, int dst_sample_rate, int dst_nb_channels, WavContext *wav_ctx);
 
 #endif // PCM_PARSER_H

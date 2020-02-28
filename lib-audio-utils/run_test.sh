@@ -27,12 +27,6 @@ echo -e "\033[1;43;30m\ntest_volume_limiter...\033[0m"
 echo -e "\033[1;43;30m\ntest_reverb...\033[0m"
 ./tests/test_reverb ../data/pcm_mono_44kHz_0035.pcm 44100 1 test_reverb.pcm
 
-echo -e "\033[1;43;30m\ntest_xm_audio_effects...\033[0m"
-./tests/test_xm_audio_effects ../data/effect_config.txt test_xm_audio_effects.pcm
-
-echo -e "\033[1;43;30m\ntest_xm_audio_mixer...\033[0m"
-./tests/test_xm_audio_mixer ../data/effect_config.txt test_xm_audio_mixer.pcm
-
 echo -e "\033[1;43;30m\ntest_xm_audio_utils_fade...\033[0m"
 ./tests/test_xm_audio_utils_fade ../data/pcm_mono_44kHz_0035.pcm 44100 1 44100 2 utils_fade_pcm_mono_44kHz_0035.pcm
 
@@ -41,6 +35,12 @@ echo -e "\033[1;43;30m\ntest_xm_audio_utils_mix...\033[0m"
 
 echo -e "\033[1;43;30m\ntest_xm_audio_utils_effects...\033[0m"
 ./tests/test_xm_audio_utils_effects ../data/effect_config.txt 44100 1 utils_effect_mono_44kHz_0035.pcm
+
+echo -e "\033[1;43;30m\ntest_xm_audio_generator_mix...\033[0m"
+./tests/test_xm_audio_generator_mix ../data/effect_config.txt generator_pcm_mono_44kHz_0035_mix.pcm
+
+echo -e "\033[1;43;30m\ntest_xm_audio_generator_effect...\033[0m"
+./tests/test_xm_audio_generator_effect ../data/effect_config.txt generator_pcm_mono_44kHz_0035_effect.pcm
 
 echo -e "\033[1;43;30m\ntest_xm_audio_generator...\033[0m"
 ./tests/test_xm_audio_generator ../data/effect_config.txt generator_pcm_mono_44kHz_0035.pcm

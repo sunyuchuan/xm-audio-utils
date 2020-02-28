@@ -7,8 +7,6 @@
 #include <stdlib.h>
 #include <inttypes.h>
 
-#define PCM_FILE_EOF -1000
-
 inline static int64_t align(int64_t x, int align) {
     return ((( x ) + (align) - 1) / (align) * (align));
 }
@@ -54,10 +52,10 @@ end:
 
 static int init_parser(PcmParser *parser, const char *file_addr,
         int src_sample_rate, int src_nb_channels,
-        int dst_sample_rate, int dst_nb_channels, WavHeader *header) {
+        int dst_sample_rate, int dst_nb_channels, WavContext *wav_ctx) {
     LogInfo("%s\n", __func__);
     int ret = -1;
-    if (!parser || !file_addr)
+    if (!parser || !file_addr || !wav_ctx)
         return ret;
 
     char *tmp_file_addr = NULL;
@@ -74,14 +72,14 @@ static int init_parser(PcmParser *parser, const char *file_addr,
     parser->pcm_start_pos = 0x0;
     parser->dst_sample_rate_in_Hz = dst_sample_rate;
     parser->dst_nb_channels = dst_nb_channels;
-    parser->wav_header = *header;
+    parser->wav_ctx = *wav_ctx;
 
     // Determine if it is in wav format
-    if (header->is_wav) {
-        parser->src_sample_rate_in_Hz = header->sample_rate;
-        parser->src_nb_channels = header->nb_channels;
-        parser->bits_per_sample = header->bits_per_sample;
-        parser->pcm_start_pos = header->pcm_data_offset;
+    if (wav_ctx->is_wav) {
+        parser->src_sample_rate_in_Hz = wav_ctx->header.sample_rate;
+        parser->src_nb_channels = wav_ctx->header.nb_channels;
+        parser->bits_per_sample = wav_ctx->header.bits_per_sample;
+        parser->pcm_start_pos = wav_ctx->pcm_data_offset;
     }
 
     // Allocate buffer for audio fifo
@@ -130,12 +128,12 @@ static int init_parser(PcmParser *parser, const char *file_addr,
 
     fseek(parser->reader, 0, SEEK_END);
     parser->file_size = ftell(parser->reader);
-    if (header->is_wav) {
-        int64_t wav_file_size = (int64_t)header->data_size + (int64_t)header->pcm_data_offset;
+    if (wav_ctx->is_wav) {
+        int64_t wav_file_size = (int64_t)wav_ctx->header.data_size + (int64_t)wav_ctx->pcm_data_offset;
         if (parser->file_size != wav_file_size) {
-            LogWarning("%s wav_header data_size 0x%x is Inaccurate.\n", __func__, header->data_size);
+            LogWarning("%s wav_header data_size 0x%x is Inaccurate.\n", __func__, wav_ctx->header.data_size);
         }
-        parser->file_size -= header->pcm_data_offset;
+        parser->file_size -= wav_ctx->pcm_data_offset;
     }
     fseek(parser->reader, parser->pcm_start_pos, SEEK_SET);
 
@@ -195,7 +193,7 @@ int pcm_parser_get_pcm_frame(PcmParser *parser,
 	    if (loop && ret == PCM_FILE_EOF) {
 	        init_parser(parser, parser->file_addr, parser->src_sample_rate_in_Hz,
 	            parser->src_nb_channels, parser->dst_sample_rate_in_Hz,
-	            parser->dst_nb_channels, &parser->wav_header);
+	            parser->dst_nb_channels, &parser->wav_ctx);
 	    } else if (0 < fifo_occupancy(parser->pcm_fifo)) {
 	        break;
 	    } else {
@@ -223,17 +221,17 @@ int pcm_parser_seekTo(PcmParser *parser, int seek_pos_ms) {
         ((int64_t) parser->seek_pos_ms * parser->src_nb_channels) *
         (parser->src_sample_rate_in_Hz / (float) 1000),
         (parser->src_nb_channels * parser->bits_per_sample / 8));
-    LogInfo("%s fseek offset %"PRId64".\n", __func__, offset + parser->pcm_start_pos);
+    LogInfo("%s fseek offset 0x%x.\n", __func__, offset + parser->pcm_start_pos);
     int ret = fseek(parser->reader, offset + parser->pcm_start_pos, SEEK_SET);
     return ret;
 }
 
 PcmParser *pcm_parser_create(const char *file_addr, int src_sample_rate,
-    int src_nb_channels, int dst_sample_rate, int dst_nb_channels, WavHeader *header) {
+    int src_nb_channels, int dst_sample_rate, int dst_nb_channels, WavContext *wav_ctx) {
     LogInfo("%s.\n", __func__);
     int ret = -1;
-    if (!file_addr || !header) {
-        LogError("%s file_addr or wav_header is NULL.\n", __func__);
+    if (!file_addr || !wav_ctx) {
+        LogError("%s file_addr or wav_ctx is NULL.\n", __func__);
         return NULL;
     }
 
@@ -249,7 +247,7 @@ PcmParser *pcm_parser_create(const char *file_addr, int src_sample_rate,
     }
 
     if ((ret = init_parser(parser, file_addr, src_sample_rate, src_nb_channels,
-        dst_sample_rate, dst_nb_channels, header)) < 0) {
+        dst_sample_rate, dst_nb_channels, wav_ctx)) < 0) {
         LogError("%s init_parser failed\n", __func__);
         goto end;
     }

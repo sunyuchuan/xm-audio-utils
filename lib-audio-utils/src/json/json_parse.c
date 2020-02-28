@@ -57,9 +57,9 @@ static int parse_audio_record_source(cJSON *root_json, AudioRecordSource *record
         record->end_time_ms  = end->valuedouble;
         record->sample_rate= sample_rate->valuedouble;
         record->nb_channels = nb_channel->valuedouble;
-        if (wav_read_header(record->file_path, &record->wav_header) >= 0) {
-            record->sample_rate = record->wav_header.sample_rate;
-            record->nb_channels = record->wav_header.nb_channels;
+        if (wav_read_header(record->file_path, &record->wav_ctx) >= 0) {
+            record->sample_rate = record->wav_ctx.header.sample_rate;
+            record->nb_channels = record->wav_ctx.header.nb_channels;
         }
 
         LogInfo("%s file_path %s\n", __func__, record->file_path);
@@ -138,9 +138,9 @@ static int parse_audio_source(cJSON *json, AudioSourceQueue *queue) {
             source.side_chain_enable = false;
             source.makeup_gain = 0.0;
         }
-        if (wav_read_header(source.file_path, &source.wav_header) >= 0) {
-            source.sample_rate = source.wav_header.sample_rate;
-            source.nb_channels = source.wav_header.nb_channels;
+        if (wav_read_header(source.file_path, &source.wav_ctx) >= 0) {
+            source.sample_rate = source.wav_ctx.header.sample_rate;
+            source.nb_channels = source.wav_ctx.header.nb_channels;
         }
         source_queue_put(queue, &source);
 
