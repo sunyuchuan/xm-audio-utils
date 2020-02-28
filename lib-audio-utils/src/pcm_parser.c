@@ -30,11 +30,14 @@ static int write_fifo(PcmParser *parser) {
 
     if (parser->src_nb_channels != parser->dst_nb_channels) {
         int write_size = 0;
+        int nb_samples = 0;
         if (parser->src_nb_channels == 1) {
-            MonoToStereoS16(parser->dst_buffer, parser->src_buffer, read_len);
+            nb_samples = read_len;
+            MonoToStereoS16(parser->dst_buffer, parser->src_buffer, nb_samples);
             write_size = read_len << 1;
         } else if (parser->src_nb_channels == 2) {
-            StereoToMonoS16(parser->dst_buffer, parser->src_buffer, read_len);
+            nb_samples = read_len >> 1;
+            StereoToMonoS16(parser->dst_buffer, parser->src_buffer, nb_samples);
             write_size = read_len >> 1;
         }
         ret = fifo_write(parser->pcm_fifo, parser->dst_buffer, write_size);
