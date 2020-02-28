@@ -93,6 +93,7 @@ src/audio_source.c
 src/audio_source_queue.c
 src/pcm_parser.c
 src/wav_dec.c
+src/xm_wav_utils.c
 src/xm_audio_effects.c
 src/xm_audio_mixer.c
 src/xm_audio_utils.c

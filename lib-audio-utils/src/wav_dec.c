@@ -92,6 +92,7 @@ int wav_write_header(FILE *writer, WavContext *ctx)
 
     ctx->pcm_data_offset = 0;
     if (!ctx->is_wav) {
+        LogWarning("%s is not wav file.\n", __func__);
         return 0;
     }
 
@@ -209,6 +210,11 @@ int wav_read_header(const char *file_addr, WavContext *ctx)
     }
 
 end:
+    if (header->data_size == 0) {
+        fseek(reader, 0, SEEK_END);
+        header->data_size = ftell(reader) - ctx->pcm_data_offset;
+        header->riff_size = header->data_size + ctx->pcm_data_offset - 8;
+    }
     ctx->is_wav = true;
     ret = 0;
 
