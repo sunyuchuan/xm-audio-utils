@@ -37,7 +37,7 @@ void side_chain_compress(short *voice, short *bgm, float *bgm_yl_prev,
 	yl_prev = yl;
 	if (nb_channels == 2) {
 	    bgm[i] = bgm[i] * gain;
-	    bgm[i + 1] =bgm[i + 1] * gain;
+	    if (i + 1 < buffer_size) bgm[i + 1] =bgm[i + 1] * gain;
 	    i += 2;
 	} else {
 	    bgm[i] =bgm[i] * gain;

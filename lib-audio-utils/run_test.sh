@@ -12,15 +12,6 @@ echo -e "\033[1;43;30m\ntest_fifo...\033[0m"
 echo -e "\033[1;43;30m\ntest_logger...\033[0m"
 ./tests/test_logger
 
-echo -e "\033[1;43;30m\ntest_wav_dec...\033[0m"
-./tests/test_wav_dec ../data/1582626292130.wav
-
-echo -e "\033[1;43;30m\ntest_wav_crop...\033[0m"
-./tests/test_wav_crop ../data/1582626292130.wav 1582626292130_crop.wav
-
-echo -e "\033[1;43;30m\ntest_wav_concat...\033[0m"
-./tests/test_wav_concat ../data/1582626292130.wav 1582626292130_concat.wav
-
 echo -e "\033[1;43;30m\ntest_beautify...\033[0m"
 ./tests/test_beautify ../data/pcm_mono_44kHz_0035.pcm test_beautify.pcm
 
@@ -41,6 +32,15 @@ echo -e "\033[1;43;30m\ntest_audio_decoder...\033[0m"
 
 echo -e "\033[1;43;30m\ntest_audio_encoder...\033[0m"
 ./tests/test_audio_encoder ../data/pcm_mono_44kHz_0035.pcm 44100 1 mono_0035_encoder.mp4
+
+echo -e "\033[1;43;30m\ntest_wav_dec...\033[0m"
+./tests/test_wav_dec ../data/1582626292130.wav
+
+echo -e "\033[1;43;30m\ntest_wav_crop...\033[0m"
+./tests/test_wav_crop ../data/1582626292130.wav 1582626292130_crop.wav
+
+echo -e "\033[1;43;30m\ntest_wav_concat...\033[0m"
+./tests/test_wav_concat ../data/1582626292130.wav 1582626292130_concat.wav
 
 echo -e "\033[1;43;30m\ntest_xm_audio_effects...\033[0m"
 ./tests/test_xm_audio_effects ../data/effect_config.txt test_xm_audio_effects.pcm

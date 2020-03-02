@@ -25,7 +25,7 @@ struct XmAudioUtils {
     AudioDecoder *bgm_decoder;
     AudioDecoder *music_decoder;
     XmEffectContext *effects_ctx;
-    XmMixerContext *mixer;
+    XmMixerContext *mixer_ctx;
     Fade *fade;
     pthread_mutex_t mutex;
 };
@@ -93,9 +93,9 @@ void xm_audio_utils_free(XmAudioUtils *self) {
     if (self->music_decoder) {
         xm_audio_decoder_freep(&self->music_decoder);
     }
-    if (self->mixer) {
-        xm_audio_mixer_stop(self->mixer);
-        xm_audio_mixer_freep(&(self->mixer));
+    if (self->mixer_ctx) {
+        xm_audio_mixer_stop(self->mixer_ctx);
+        xm_audio_mixer_freep(&(self->mixer_ctx));
     }
     if (self->effects_ctx) {
         xm_audio_effect_stop(self->effects_ctx);
@@ -169,7 +169,7 @@ int xm_audio_utils_mixer_get_frame(XmAudioUtils *self,
         return -1;
     }
 
-    return xm_audio_mixer_get_frame(self->mixer,
+    return xm_audio_mixer_get_frame(self->mixer_ctx,
         buffer, buffer_size_in_short);
 }
 
@@ -180,7 +180,7 @@ int xm_audio_utils_mixer_seekTo(XmAudioUtils *self,
         return -1;
     }
 
-    return xm_audio_mixer_seekTo(self->mixer, seek_time_ms);
+    return xm_audio_mixer_seekTo(self->mixer_ctx, seek_time_ms);
 }
 
 int xm_audio_utils_mixer_init(XmAudioUtils *self,
@@ -191,17 +191,17 @@ int xm_audio_utils_mixer_init(XmAudioUtils *self,
         return -1;
     }
 
-    xm_audio_mixer_stop(self->mixer);
-    xm_audio_mixer_freep(&(self->mixer));
+    xm_audio_mixer_stop(self->mixer_ctx);
+    xm_audio_mixer_freep(&(self->mixer_ctx));
 
-    self->mixer = xm_audio_mixer_create();
-    if (!self->mixer) {
+    self->mixer_ctx = xm_audio_mixer_create();
+    if (!self->mixer_ctx) {
         LogError("%s xm_audio_mixer_create failed\n", __func__);
         ret = -1;
         goto end;
     }
 
-    ret = xm_audio_mixer_init(self->mixer, NULL, in_config_path);
+    ret = xm_audio_mixer_init(self->mixer_ctx, in_config_path);
     if (ret < 0) {
         LogError("%s xm_audio_mixer_init failed\n", __func__);
         goto end;

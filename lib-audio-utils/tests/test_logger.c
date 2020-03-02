@@ -82,6 +82,7 @@ int main() {
     pthread_join(info_log_tid, NULL);
     pthread_join(waring_log_tid, NULL);
     pthread_join(error_log_tid, NULL);
+    AeCloseLogFile();
     gettimeofday(&end, NULL);
     timer = 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
     LogInfo("time consuming %ld us\n", timer);

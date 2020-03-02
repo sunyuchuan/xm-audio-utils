@@ -16,6 +16,15 @@ echo -e "\033[1;43;30m\ntest_noise_suppressionr...\033[0m"
 valgrind --leak-check=full --log-file=valgrind_log/test_noise_suppression.log ./tests/test_noise_suppression ../data/pcm_mono_44kHz_0035.pcm test_noise_suppression.pcm
 echo -e "\033[1;43;30m\ntest_volume_limiter...\033[0m"
 valgrind --leak-check=full --log-file=valgrind_log/test_volume_limiter.log ./tests/test_volume_limiter ../data/pcm_mono_44kHz_0035.pcm test_volume_limiter.pcm
+echo -e "\033[1;43;30m\ntest_reverb...\033[0m"
+valgrind --leak-check=full --log-file=valgrind_log/test_reverb.log ./tests/test_reverb ../data/pcm_mono_44kHz_0035.pcm 44100 1 test_reverb.pcm
+
+echo -e "\033[1;43;30m\ntest_wav_dec...\033[0m"
+valgrind --leak-check=full --log-file=valgrind_log/test_wav_dec.log ./tests/test_wav_dec ../data/1582626292130.wav
+echo -e "\033[1;43;30m\ntest_wav_crop...\033[0m"
+valgrind --leak-check=full --log-file=valgrind_log/test_wav_crop.log ./tests/test_wav_crop ../data/1582626292130.wav 1582626292130_crop.wav
+echo -e "\033[1;43;30m\ntest_wav_concat...\033[0m"
+valgrind --leak-check=full --log-file=valgrind_log/test_wav_concat.log ./tests/test_wav_concat ../data/1582626292130.wav 1582626292130_concat.wav
 
 echo -e "\033[1;43;30m\ntest_audio_decoder_1...\033[0m"
 valgrind --leak-check=full --log-file=valgrind_log/test_audio_decoder_1.log ./tests/test_audio_decoder ../data/bgm1.mp3 bgm1.pcm 44100 2
@@ -25,17 +34,17 @@ echo -e "\033[1;43;30m\ntest_audio_encoder...\033[0m"
 valgrind --leak-check=full --log-file=valgrind_log/test_audio_encoder.log ./tests/test_audio_encoder ../data/pcm_mono_44kHz_0035.pcm 44100 1 mono_0035_encoder.mp4
 
 echo -e "\033[1;43;30m\ntest_xm_audio_effects...\033[0m"
-valgrind --leak-check=full --log-file=valgrind_log/test_xm_audio_effects.log ./tests/test_xm_audio_effects ../data/pcm_mono_44kHz_0035.pcm 44100 1 ../data/effect_config.txt test_xm_audio_effects.pcm
+valgrind --leak-check=full --log-file=valgrind_log/test_xm_audio_effects.log ./tests/test_xm_audio_effects ../data/effect_config.txt test_xm_audio_effects.pcm
 echo -e "\033[1;43;30m\ntest_xm_audio_mixer...\033[0m"
-valgrind --leak-check=full --log-file=valgrind_log/test_xm_audio_mixer.log ./tests/test_xm_audio_mixer side_chain_test.pcm 44100 1 ../data/effect_config.txt test_xm_audio_mixer.mp4
+valgrind --leak-check=full --log-file=valgrind_log/test_xm_audio_mixer.log ./tests/test_xm_audio_mixer ../data/effect_config.txt test_xm_audio_mixer.mp4
 echo -e "\033[1;43;30m\ntest_xm_audio_utils_decode...\033[0m"
 valgrind --leak-check=full --log-file=valgrind_log/test_xm_audio_utils_decode.log ./tests/test_xm_audio_utils_decode ../data/side_chain_music_test.wav side_chain_music_test.pcm 44100 2
 echo -e "\033[1;43;30m\ntest_xm_audio_utils_mix...\033[0m"
-valgrind --leak-check=full --log-file=valgrind_log/test_xm_audio_utils_mix.log ./tests/test_xm_audio_utils_mix ../data/side_chain_test.pcm 44100 1 ../data/effect_config.txt utils_mix_side_chain_test.pcm
+valgrind --leak-check=full --log-file=valgrind_log/test_xm_audio_utils_mix.log ./tests/test_xm_audio_utils_mix ../data/effect_config.txt 44100 utils_mix_side_chain_test.pcm
 echo -e "\033[1;43;30m\ntest_xm_audio_utils_effects...\033[0m"
-valgrind --leak-check=full --log-file=valgrind_log/test_xm_audio_utils_effects.log ./tests/test_xm_audio_utils_effects ../data/pcm_mono_44kHz_0035.pcm 44100 1 ../data/effect_config.txt utils_effect_mono_44kHz_0035.pcm
+valgrind --leak-check=full --log-file=valgrind_log/test_xm_audio_utils_effects.log ./tests/test_xm_audio_utils_effects ../data/effect_config.txt 44100 1 utils_effect_mono_44kHz_0035.pcm
 echo -e "\033[1;43;30m\ntest_xm_audio_generator...\033[0m"
-valgrind --leak-check=full --log-file=valgrind_log/test_xm_audio_generator.log ./tests/test_xm_audio_generator ../data/pcm_mono_44kHz_0035.pcm 44100 1 ../data/effect_config.txt generator_pcm_mono_44kHz_0035.m4a
+valgrind --leak-check=full --log-file=valgrind_log/test_xm_audio_generator.log ./tests/test_xm_audio_generator ../data/effect_config.txt generator_pcm_mono_44kHz_0035.m4a
 
 cat valgrind_log/test_fifo.log
 echo -e "\n"
@@ -46,6 +55,15 @@ echo -e "\n"
 cat valgrind_log/test_noise_suppression.log
 echo -e "\n"
 cat valgrind_log/test_volume_limiter.log
+echo -e "\n"
+cat valgrind_log/test_reverb.log
+
+echo -e "\n"
+cat valgrind_log/test_wav_dec.log
+echo -e "\n"
+cat valgrind_log/test_wav_crop.log
+echo -e "\n"
+cat valgrind_log/test_wav_concat.log
 
 cat valgrind_log/test_audio_decoder_1.log
 echo -e "\n"

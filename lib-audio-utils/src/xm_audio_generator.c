@@ -1,5 +1,4 @@
 #include "xm_audio_generator.h"
-#include "xm_audio_effects.h"
 #include "xm_audio_mixer.h"
 #include <assert.h>
 #include <stdlib.h>
@@ -10,12 +9,9 @@
 #include "error_def.h"
 #include "tools/util.h"
 
-#define TEMP_FILE_SUFFIX ".cache"
-
 struct XmAudioGenerator {
     volatile int status;
     volatile int ref_count;
-    XmEffectContext *effects_ctx;
     XmMixerContext *mixer_ctx;
     pthread_mutex_t mutex;
 };
@@ -33,8 +29,8 @@ static int chk_st_l(int state)
     return -1;
 }
 
-static int mixer_mix(XmAudioGenerator *self, const char *in_pcm_path,
-        const char *in_config_path, const char *out_file_path, int encode_type) {
+static int mixer_mix(XmAudioGenerator *self, const char *in_config_path,
+        const char *out_file_path, int encode_type) {
     LogInfo("%s\n", __func__);
     int ret = -1;
     if(!self || !in_config_path || !out_file_path) {
@@ -51,7 +47,7 @@ static int mixer_mix(XmAudioGenerator *self, const char *in_pcm_path,
         goto end;
     }
 
-    ret = xm_audio_mixer_init(self->mixer_ctx, in_pcm_path, in_config_path);
+    ret = xm_audio_mixer_init(self->mixer_ctx, in_config_path);
     if (ret < 0) {
         LogError("%s xm_audio_mixer_init failed\n", __func__);
         goto end;
@@ -61,38 +57,6 @@ static int mixer_mix(XmAudioGenerator *self, const char *in_pcm_path,
     if (ret < 0) {
 	LogError("%s xm_audio_mixer_mix failed\n", __func__);
 	goto end;
-    }
-
-end:
-    return ret;
-}
-
-static int add_voice_effects(XmAudioGenerator *self,
-        const char *in_config_path, const char *out_pcm_path) {
-    LogInfo("%s\n", __func__);
-    int ret = -1;
-    if(!self || !in_config_path || !out_pcm_path) {
-        return ret;
-    }
-
-    xm_audio_effect_stop(self->effects_ctx);
-    xm_audio_effect_freep(&(self->effects_ctx));
-
-    self->effects_ctx = xm_audio_effect_create();
-    if (!self->effects_ctx) {
-        LogError("%s xm_audio_effect_create failed.\n", __func__);
-        ret = -1;
-        goto end;
-    }
-
-    if ((ret = xm_audio_effect_init(self->effects_ctx, in_config_path)) < 0) {
-        LogError("%s xm_audio_effect_init failed.\n", __func__);
-        goto end;
-    }
-
-    if ((ret = xm_audio_effect_add_effects(self->effects_ctx, out_pcm_path)) < 0) {
-        LogError("%s xm_audio_effect_add_effects failed.\n", __func__);
-        goto end;
     }
 
 end:
@@ -131,10 +95,6 @@ void xm_audio_generator_free(XmAudioGenerator *self) {
     if (NULL == self)
         return;
 
-    if (self->effects_ctx) {
-        xm_audio_effect_stop(self->effects_ctx);
-        xm_audio_effect_freep(&(self->effects_ctx));
-    }
     if (self->mixer_ctx) {
         xm_audio_mixer_stop(self->mixer_ctx);
         xm_audio_mixer_freep(&(self->mixer_ctx));
@@ -158,7 +118,6 @@ void xm_audio_generator_stop(XmAudioGenerator *self) {
     if (NULL == self)
         return;
 
-    xm_audio_effect_stop(self->effects_ctx);
     xm_audio_mixer_stop(self->mixer_ctx);
 }
 
@@ -166,8 +125,7 @@ int xm_audio_generator_get_progress(XmAudioGenerator *self) {
     if (NULL == self)
         return -1;
 
-    return (xm_audio_effect_get_progress(self->effects_ctx)
-        + xm_audio_mixer_get_progress(self->mixer_ctx)) / 2;
+    return xm_audio_mixer_get_progress(self->mixer_ctx);
 }
 
 int xm_audio_generator_start(XmAudioGenerator *self,
@@ -185,37 +143,15 @@ int xm_audio_generator_start(XmAudioGenerator *self,
     self->status = GENERATOR_STATE_STARTED;
     pthread_mutex_unlock(&self->mutex);
 
-    xm_audio_effect_stop(self->effects_ctx);
-    xm_audio_effect_freep(&(self->effects_ctx));
     xm_audio_mixer_stop(self->mixer_ctx);
     xm_audio_mixer_freep(&(self->mixer_ctx));
 
-    char *out_pcm_path = (char *)calloc(1, (strlen(out_file_path) +
-        strlen(TEMP_FILE_SUFFIX) + 1) * sizeof(char));
-    if (NULL == out_pcm_path) {
-        LogError("%s calloc temp pcm file path failed.\n", __func__);
-        return -1;
-    }
-    strncpy(out_pcm_path, out_file_path, strlen(out_file_path));
-    strncpy(out_pcm_path + strlen(out_file_path), TEMP_FILE_SUFFIX, strlen(TEMP_FILE_SUFFIX) + 1);
-
-    if ((ret = add_voice_effects(self, in_config_path, out_pcm_path)) < 0) {
-        LogError("%s add_voice_effects failed\n", __func__);
-        goto end;
-    }
-
-    if ((ret = mixer_mix(self, out_pcm_path,
-        in_config_path, out_file_path, encode_type)) < 0) {
+    if ((ret = mixer_mix(self, in_config_path, out_file_path, encode_type)) < 0) {
         LogError("%s mixer_mix failed\n", __func__);
         goto end;
     }
 
 end:
-    if (out_pcm_path != NULL) {
-        remove(out_pcm_path);
-        free(out_pcm_path);
-        out_pcm_path = NULL;
-    }
     pthread_mutex_lock(&self->mutex);
     self->status = GENERATOR_STATE_COMPLETED;
     pthread_mutex_unlock(&self->mutex);

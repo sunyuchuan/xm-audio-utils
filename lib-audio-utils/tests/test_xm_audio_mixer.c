@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
         goto end;
     }
 
-    int ret = xm_audio_mixer_init(mixer, NULL, argv[1]);
+    int ret = xm_audio_mixer_init(mixer, argv[1]);
     if (ret < 0) {
         LogError("%s xm_audio_mixer_init failed\n", __func__);
         goto end;

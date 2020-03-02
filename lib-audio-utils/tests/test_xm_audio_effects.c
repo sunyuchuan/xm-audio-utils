@@ -41,13 +41,6 @@ int main(int argc, char **argv) {
         return 0;
     }
 
-    FILE *pcm_writer = fopen(argv[5], "w+");
-    if (!pcm_writer) {
-        LogWarning("OpenFile pcm_writer(%s) failed\n", argv[3]);
-    }
-    fclose(pcm_writer);
-    pcm_writer = NULL;
-
     XmEffectContext *ctx = xm_audio_effect_create();
     if (!ctx) {
         LogError("%s xm_audio_effect_create failed\n", __func__);
@@ -76,11 +69,6 @@ end:
     // free xmly effects
     xm_audio_effect_stop(ctx);
     xm_audio_effect_freep(&ctx);
-    // close input and output file
-    if (pcm_writer) {
-        fclose(pcm_writer);
-        pcm_writer = NULL;
-    }
     gettimeofday(&end, NULL);
     timer = 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
     LogInfo("time consuming %ld us\n", timer);

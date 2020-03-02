@@ -26,6 +26,15 @@ target_link_libraries(test_audio_decoder ${PROJECT_NAME} m pthread)
 add_executable(test_audio_encoder test_audio_encoder.c)
 target_link_libraries(test_audio_encoder ${PROJECT_NAME} m pthread)
 
+add_executable(test_wav_dec test_wav_dec.c)
+target_link_libraries(test_wav_dec ${PROJECT_NAME})
+
+add_executable(test_wav_crop test_wav_crop.c)
+target_link_libraries(test_wav_crop ${PROJECT_NAME})
+
+add_executable(test_wav_concat test_wav_concat.c)
+target_link_libraries(test_wav_concat ${PROJECT_NAME})
+
 add_executable(test_xm_audio_effects test_xm_audio_effects.c)
 target_link_libraries(test_xm_audio_effects ${PROJECT_NAME} m pthread)
 
@@ -43,12 +52,3 @@ target_link_libraries(test_xm_audio_utils_effects ${PROJECT_NAME} m pthread)
 
 add_executable(test_xm_audio_generator test_xm_audio_generator.c)
 target_link_libraries(test_xm_audio_generator ${PROJECT_NAME} m pthread)
-
-add_executable(test_wav_dec test_wav_dec.c)
-target_link_libraries(test_wav_dec ${PROJECT_NAME})
-
-add_executable(test_wav_crop test_wav_crop.c)
-target_link_libraries(test_wav_crop ${PROJECT_NAME})
-
-add_executable(test_wav_concat test_wav_concat.c)
-target_link_libraries(test_wav_concat ${PROJECT_NAME})

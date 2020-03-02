@@ -76,6 +76,7 @@ bool xm_wav_utils_concat(char * const *in_wav_path,
 
     ret = true;
 fail:
+    if (writer != NULL) fclose(writer);
     return ret;
 }
 
@@ -147,6 +148,8 @@ bool xm_wav_utils_crop(const char *in_wav_path,
 
     ret = true;
 fail:
+    if (reader != NULL) fclose(reader);
+    if (writer != NULL) fclose(writer);
     return ret;
 }
 
