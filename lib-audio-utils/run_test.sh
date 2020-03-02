@@ -18,6 +18,9 @@ echo -e "\033[1;43;30m\ntest_wav_dec...\033[0m"
 echo -e "\033[1;43;30m\ntest_wav_crop...\033[0m"
 ./tests/test_wav_crop ../data/1582626292130.wav 1582626292130_crop.wav
 
+echo -e "\033[1;43;30m\ntest_wav_concat...\033[0m"
+./tests/test_wav_concat ../data/1582626292130.wav 1582626292130_concat.wav
+
 echo -e "\033[1;43;30m\ntest_beautify...\033[0m"
 ./tests/test_beautify ../data/pcm_mono_44kHz_0035.pcm test_beautify.pcm
 

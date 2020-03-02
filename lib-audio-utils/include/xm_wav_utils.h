@@ -3,6 +3,17 @@
 #include "wav_dec.h"
 
 /**
+ * @brief concat wav file
+ *
+ * @param in_wav_path Input wav file path array
+ * @param nb_in_wav number of Input wav file
+ * @param out_wav_path output wav file path
+ * @return false means failure, true means success.
+ */
+bool xm_wav_utils_concat(char * const *in_wav_path,
+    int nb_in_wav, const char *out_wav_path);
+
+/**
  * @brief crop wav file
  *
  * @param in_wav_path Input wav file path

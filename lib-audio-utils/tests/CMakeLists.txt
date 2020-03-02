@@ -43,3 +43,6 @@ target_link_libraries(test_wav_dec ${PROJECT_NAME})
 
 add_executable(test_wav_crop test_wav_crop.c)
 target_link_libraries(test_wav_crop ${PROJECT_NAME})
+
+add_executable(test_wav_concat test_wav_concat.c)
+target_link_libraries(test_wav_concat ${PROJECT_NAME})
