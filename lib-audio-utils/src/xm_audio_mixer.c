@@ -1,4 +1,5 @@
 #include "xm_audio_mixer.h"
+#include "xm_audio_effects.h"
 #include "pcm_parser.h"
 #include "json/json_parse.h"
 #include <pthread.h>
@@ -37,8 +38,8 @@ struct XmMixerContext_T {
     int seek_time_ms;
     // input pcm read location
     int64_t cur_size;
-    // input pcm file parser
-    PcmParser *parser;
+    // input data that is pcm effect context
+    XmEffectContext *effects_ctx;
     short *middle_buffer[NB_MIDDLE_BUFFERS];
     fifo *audio_fifo;
     char *in_config_path;
@@ -210,6 +211,8 @@ static void mixer_abort_l(XmMixerContext *ctx)
     if(!ctx)
         return;
 
+    xm_audio_effect_stop(ctx->effects_ctx);
+
     pthread_mutex_lock(&ctx->mutex);
     ctx->abort= true;
     pthread_mutex_unlock(&ctx->mutex);
@@ -239,9 +242,7 @@ static void mixer_free_l(XmMixerContext *ctx)
         }
     }
 
-    if (ctx->parser) {
-        pcm_parser_freep(&ctx->parser);
-    }
+    xm_audio_effect_freep(&ctx->effects_ctx);
 
     pthread_mutex_lock(&ctx->mutex);
     ctx->abort= false;
@@ -333,23 +334,38 @@ end:
 
 static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
     int ret = -1;
-    if (!ctx || !ctx->parser)
+    if (!ctx || !ctx->effects_ctx)
         return ret;
 
-    int buffer_start_ms = ctx->seek_time_ms +
-        1000 * ((float)(ctx->cur_size*sizeof(*(ctx->middle_buffer[VoicePcm]))) /
-        (ctx->parser->bits_per_sample / 8) /
-        ctx->dst_channels / ctx->dst_sample_rate);
-    int read_len = pcm_parser_get_pcm_frame(ctx->parser,
-        ctx->middle_buffer[VoicePcm], MAX_NB_SAMPLES, false);
+    PcmParser *parser = xm_audio_effect_get_pcm_parser(ctx->effects_ctx);
+    if (!parser) {
+        LogError("%s xm_audio_effect_get_pcm_parser failed\n", __func__);
+        return ret;
+    }
+
+    short buffer[MAX_NB_SAMPLES];
+    int buffer_len = 0;
+    if (parser->dst_nb_channels == 1) {
+        buffer_len = MAX_NB_SAMPLES >> 1;
+    } else if (parser->dst_nb_channels == 2) {
+        buffer_len = MAX_NB_SAMPLES;
+    }
+
+    int buffer_start_ms = ctx->seek_time_ms + 1000 * ((float)(ctx->cur_size*sizeof(*buffer)) /
+        (parser->bits_per_sample / 8) / ctx->dst_channels / ctx->dst_sample_rate);
+    int read_len = xm_audio_effect_get_frame(ctx->effects_ctx, buffer, buffer_len);
     if (read_len <= 0) {
         ret = read_len;
         goto end;
     }
-    int duration =
-        1000 * ((float)(read_len*sizeof(*(ctx->middle_buffer[VoicePcm]))) /
-        (ctx->parser->bits_per_sample / 8) /
-        ctx->dst_channels / ctx->dst_sample_rate);
+    if (parser->dst_nb_channels == 1) {
+        MonoToStereoS16(ctx->middle_buffer[VoicePcm], buffer, read_len);
+        read_len = read_len << 1;
+    } else if(parser->dst_nb_channels == 2) {
+        memcpy(ctx->middle_buffer[VoicePcm], buffer, read_len);
+    }
+    int duration = 1000 * ((float)(read_len*sizeof(*buffer)) /
+        (parser->bits_per_sample / 8) / ctx->dst_channels / ctx->dst_sample_rate);
     ctx->cur_size += read_len;
 
     if ((!ctx->mixer_effects.bgm->parser) &&
@@ -443,13 +459,17 @@ end:
 int xm_audio_mixer_seekTo(XmMixerContext *ctx,
         int seek_time_ms) {
     LogInfo("%s seek_time_ms %d.\n", __func__, seek_time_ms);
-    if (!ctx || !ctx->parser)
+    if (!ctx || !ctx->effects_ctx)
         return -1;
 
     ctx->seek_time_ms = seek_time_ms > 0 ? seek_time_ms : 0;
     if (ctx->audio_fifo) fifo_clear(ctx->audio_fifo);
 
-    int ret = pcm_parser_seekTo(ctx->parser, ctx->seek_time_ms);
+    int ret = xm_audio_effect_seekTo(ctx->effects_ctx, ctx->seek_time_ms);
+    if (ret < 0) {
+        LogError("%s xm_audio_effect_seekTo %d failed\n", __func__, ctx->seek_time_ms);
+        return ret;
+    }
     ctx->cur_size = 0;
 
     if ((ret = mixer_effects_init(&(ctx->mixer_effects))) < 0) {
@@ -479,8 +499,13 @@ static int xm_audio_mixer_mix_l(XmMixerContext *ctx,
     LogInfo("%s.\n", __func__);
     int ret = -1;
     short *buffer = NULL;
-    if (!ctx || !out_file_path || !ctx->parser) {
+    if (!ctx || !out_file_path || !ctx->effects_ctx) {
         return ret;
+    }
+    PcmParser *parser = xm_audio_effect_get_pcm_parser(ctx->effects_ctx);
+    if (!parser) {
+        LogError("%s xm_audio_effect_get_pcm_parser failed\n", __func__);
+        goto fail;
     }
 
     FILE *writer = NULL;
@@ -504,11 +529,10 @@ static int xm_audio_mixer_mix_l(XmMixerContext *ctx,
     uint32_t data_size_byte = 0;
     ctx->seek_time_ms = 0;
     ctx->cur_size = 0;
-    PcmParser *parser = ctx->parser;
-    float file_duration = parser->file_size / (ctx->parser->bits_per_sample / 8)
-        / ctx->pcm_channels / ctx->pcm_sample_rate;
+    float file_duration = parser->file_size / (parser->bits_per_sample / 8)
+        / parser->src_sample_rate_in_Hz / parser->src_nb_channels;
     while (!ctx->abort) {
-        float cur_position = (ctx->cur_size*sizeof(*buffer)) / (ctx->parser->bits_per_sample
+        float cur_position = (ctx->cur_size*sizeof(*buffer)) / (parser->bits_per_sample
             / 8) / ctx->dst_channels / ctx->dst_sample_rate;
         int progress = (cur_position / file_duration) * 100;
         pthread_mutex_lock(&ctx->mutex);
@@ -527,7 +551,7 @@ static int xm_audio_mixer_mix_l(XmMixerContext *ctx,
 
     wav_ctx->header.sample_rate = ctx->dst_sample_rate;
     wav_ctx->header.nb_channels = ctx->dst_channels;
-    wav_ctx->header.bits_per_sample = ctx->parser->bits_per_sample;
+    wav_ctx->header.bits_per_sample = parser->bits_per_sample;
     wav_ctx->header.block_align = ctx->dst_channels * (wav_ctx->header.bits_per_sample / 8);
     wav_ctx->header.byte_rate = wav_ctx->header.block_align * ctx->dst_sample_rate;
     wav_ctx->header.data_size = data_size_byte;
@@ -586,7 +610,7 @@ fail:
 }
 
 int xm_audio_mixer_init(XmMixerContext *ctx,
-        const char *in_pcm_path, const char *in_config_path)
+        const char *in_config_path)
 {
     int ret = -1;
     if (!ctx || !in_config_path) {
@@ -600,6 +624,17 @@ int xm_audio_mixer_init(XmMixerContext *ctx,
     ctx->seek_time_ms = 0;
     ctx->in_config_path = av_strdup(in_config_path);
 
+    ctx->effects_ctx = xm_audio_effect_create();
+    if (!ctx->effects_ctx) {
+        LogError("%s xm_audio_effect_create failed\n", __func__);
+        goto fail;
+    }
+
+    if ((ret = xm_audio_effect_init(ctx->effects_ctx, in_config_path)) < 0) {
+        LogError("Error: xm_audio_effect_init failed\n");
+        goto fail;
+    }
+
     if ((ret = mixer_effects_init(&(ctx->mixer_effects))) < 0) {
         LogError("%s mixer_effects_init failed\n", __func__);
         goto fail;
@@ -609,17 +644,15 @@ int xm_audio_mixer_init(XmMixerContext *ctx,
         LogError("%s mixer_parse %s failed\n", __func__, in_config_path);
         goto fail;
     }
-    ctx->pcm_sample_rate = ctx->mixer_effects.record->sample_rate;
-    ctx->pcm_channels = ctx->mixer_effects.record->nb_channels;
-    ctx->dst_sample_rate = ctx->mixer_effects.record->sample_rate;
 
-    if (in_pcm_path == NULL) in_pcm_path = ctx->mixer_effects.record->file_path;
-    if ((ctx->parser = pcm_parser_create(in_pcm_path, ctx->pcm_sample_rate,
-	    ctx->pcm_channels, ctx->dst_sample_rate, ctx->dst_channels,
-	    &(ctx->mixer_effects.record->wav_ctx))) == NULL) {
-	LogError("%s pcm_parser_create failed, file addr : %s.\n", __func__, in_pcm_path);
-	goto fail;
+    PcmParser *parser = xm_audio_effect_get_pcm_parser(ctx->effects_ctx);
+    if (!parser) {
+        LogError("%s xm_audio_effect_get_pcm_parser failed\n", __func__);
+        goto fail;
     }
+    ctx->pcm_sample_rate = parser->dst_sample_rate_in_Hz;
+    ctx->pcm_channels = parser->dst_nb_channels;
+    ctx->dst_sample_rate = parser->dst_sample_rate_in_Hz;
 
     for (int i = 0; i < NB_MIDDLE_BUFFERS; i++) {
         ctx->middle_buffer[i] = (short *)calloc(sizeof(short), MAX_NB_SAMPLES);
@@ -654,7 +687,7 @@ XmMixerContext *xm_audio_mixer_create()
 {
     LogInfo("%s.\n", __func__);
     XmMixerContext *self = (XmMixerContext *)calloc(1, sizeof(XmMixerContext));
-    if (NULL == self) {
+    if (!self) {
         LogError("%s alloc XmMixerContext failed.\n", __func__);
         return NULL;
     }

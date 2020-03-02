@@ -24,56 +24,6 @@ void xm_audio_generator_free(XmAudioGenerator *self);
 void xm_audio_generator_freep(XmAudioGenerator **self);
 
 /**
- * @brief stop mix voice\bgm\music
- *
- * @param self XmAudioGenerator
- */
-void xm_audio_generator_mix_stop(XmAudioGenerator *self);
-
-/**
- * @brief get progress of mix voice\bgm\music
- *
- * @param self XmAudioGenerator
- */
-int xm_audio_generator_mix_get_progress(XmAudioGenerator *self);
-
-/**
- * @brief startup mix voice\bgm\music
- *
- * @param self XmAudioGenerator
- * @param in_config_path Config file about audio mix parameter
- * @param out_file_path Output audio file path
- * @return Less than 0 means failure
- */
-int xm_audio_generator_mix(XmAudioGenerator *self,
-       const char *in_config_path, const char *out_file_path);
-
-/**
- * @brief stop add voice effects
- *
- * @param self XmAudioGenerator
- */
-void xm_audio_generator_effect_stop(XmAudioGenerator *self);
-
-/**
- * @brief get progress of add voice effects
- *
- * @param self XmAudioGenerator
- */
-int xm_audio_generator_effect_get_progress(XmAudioGenerator *self);
-
-/**
- * @brief startup add voice effects
- *
- * @param self XmAudioGenerator
- * @param in_config_path Config file about audio mix parameter
- * @param out_file_path Output audio file path
- * @return Less than 0 means failure
- */
-int xm_audio_generator_effect(XmAudioGenerator *self,
-       const char *in_config_path, const char *out_file_path);
-
-/**
  * @brief stop generator
  *
  * @param self XmAudioGenerator

@@ -1,20 +1,23 @@
-#include "xm_audio_generator.h"
-#include <sys/time.h>
-#include <stdlib.h>
 #include <pthread.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdbool.h>
+#include <sys/time.h>
+#include <termios.h>
 #include <unistd.h>
-#include "error_def.h"
+#include <stdio.h>
 #include "log.h"
+#include "xm_audio_effects.h"
+#include <stdlib.h>
 
 static volatile bool abort_request = false;
 
 void *get_progress(void *arg) {
     int progress = 0;
-    XmAudioGenerator *ctx = arg;
+    XmEffectContext *ctx = arg;
     while (progress < 100 && !abort_request) {
         usleep(100000);
-        progress = xm_audio_generator_mix_get_progress(ctx);
+        progress = xm_audio_effect_get_progress(ctx);
         LogInfo("%s get_progress : %d\n", __func__, progress);
     }
     return NULL;
@@ -33,34 +36,42 @@ int main(int argc, char **argv) {
         LogInfo("argv[%d] %s\n", i, argv[i]);
     }
 
-    XmAudioGenerator *generator = xm_audio_generator_create();
-    if (!generator) {
-        LogError("%s xm_audio_generator_create failed\n", __func__);
+    if (argc < 2) {
+        LogWarning("Usage %s param invalid\n", argv[0]);
+        return 0;
+    }
+
+    XmEffectContext *ctx = xm_audio_effect_create();
+    if (!ctx) {
+        LogError("%s xm_audio_effect_create failed\n", __func__);
         goto end;
     }
 
     pthread_t get_progress_tid = 0;
-    if (pthread_create(&get_progress_tid, NULL, get_progress, generator)) {
+    if (pthread_create(&get_progress_tid, NULL, get_progress, ctx)) {
         LogError("Error:unable to create get_progress thread\n");
         goto end;
     }
 
-    int ret = xm_audio_generator_mix(generator, argv[1],
-	argv[2]);
-    if (ret < 0) {
-	LogError("%s xm_audio_generator_mix failed\n", __func__);
-	goto end;
+    if (xm_audio_effect_init(ctx, argv[1]) < 0) {
+        LogError("Error: xm_audio_effect_init failed\n");
+        goto end;
+    }
+
+    if (xm_audio_effect_add_effects(ctx, argv[2]) < 0) {
+        LogError("Error: xm_audio_effect_add_effects failed\n");
+        goto end;
     }
 
 end:
     abort_request = true;
     pthread_join(get_progress_tid, NULL);
-    xm_audio_generator_mix_stop(generator);
-    xm_audio_generator_freep(&generator);
+    // free xmly effects
+    xm_audio_effect_stop(ctx);
+    xm_audio_effect_freep(&ctx);
     gettimeofday(&end, NULL);
     timer = 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
     LogInfo("time consuming %ld us\n", timer);
 
     return 0;
 }
-

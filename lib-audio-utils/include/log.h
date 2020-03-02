@@ -24,6 +24,7 @@ typedef enum {
     LOG_LEVEL_QUIET
 } LogLevel;
 
+void AeCloseLogFile();
 int AeSetLogPath(const char *path);
 void AeSetLogMode(const LogMode mode);
 void AeSetLogLevel(const LogLevel level);

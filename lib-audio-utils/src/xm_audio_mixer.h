@@ -66,12 +66,11 @@ int xm_audio_mixer_mix(XmMixerContext *ctx,
  * @brief mixer init
  *
  * @param ctx XmMixerContext
- * @param in_pcm_path Input pcm file path
  * @param in_config_path Config file about bgm and music parameter
  * @return Less than 0 means failure
  */
 int xm_audio_mixer_init(XmMixerContext *ctx,
-        const char *in_pcm_path, const char *in_config_path);
+    const char *in_config_path);
 
 /**
  * @brief create XmMixerContext

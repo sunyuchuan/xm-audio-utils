@@ -2,6 +2,7 @@
 #define XM_AUDIO_EFFECTS_H_
 
 #include <stddef.h>
+#include "pcm_parser.h"
 
 typedef struct XmEffectContext_T XmEffectContext;
 
@@ -53,6 +54,14 @@ int xm_audio_effect_get_frame(XmEffectContext *ctx,
  */
 int xm_audio_effect_seekTo(XmEffectContext *ctx,
     int seek_time_ms);
+
+/**
+ * @brief get PcmParser
+ *
+ * @param ctx XmEffectContext
+ * @return PcmParser*
+ */
+PcmParser *xm_audio_effect_get_pcm_parser(XmEffectContext *ctx);
 
 /**
  * @brief Add audio effects

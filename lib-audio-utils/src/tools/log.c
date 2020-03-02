@@ -195,6 +195,13 @@ void AePrintLog(const LogLevel level, const char *filename, const int line,
     }
 }
 
+void AeCloseLogFile() {
+    if (self_log_file && self_log_file != stderr) {
+        fclose(self_log_file);
+        self_log_file = NULL;
+    }
+}
+
 int AeSetLogPath(const char *path) {
     int ret = 0;
 

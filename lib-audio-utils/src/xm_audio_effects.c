@@ -1,5 +1,4 @@
 #include "xm_audio_effects.h"
-#include "pcm_parser.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
@@ -215,6 +214,7 @@ void xm_audio_effect_freep(XmEffectContext **ctx) {
         return;
     XmEffectContext *self = *ctx;
 
+    ae_abort_l(self);
     ae_free(self);
     pthread_mutex_destroy(&self->mutex);
     free(*ctx);
@@ -337,6 +337,14 @@ fail:
         writer = NULL;
     }
     return ret;
+}
+
+PcmParser *xm_audio_effect_get_pcm_parser(XmEffectContext *ctx) {
+    if (!ctx) {
+        return NULL;
+    }
+
+    return ctx->parser;
 }
 
 int xm_audio_effect_add_effects(XmEffectContext *ctx,
