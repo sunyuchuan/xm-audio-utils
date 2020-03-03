@@ -298,8 +298,8 @@ int effects_parse(VoiceEffcets *voice_effects, const char *json_file_addr) {
         LogError("%s parse_audio_record_source failed\n", __func__);
         goto fail;
     }
-    int sample_rate = voice_effects->record->sample_rate;
-    int channels = voice_effects->record->nb_channels;
+    voice_effects->dst_sample_rate = voice_effects->record->sample_rate;
+    voice_effects->dst_channels = voice_effects->record->nb_channels;
 
     effects = cJSON_GetObjectItemCaseSensitive(root_json, "effects");
     if (effects == NULL) {
@@ -339,22 +339,26 @@ int effects_parse(VoiceEffcets *voice_effects, const char *json_file_addr) {
 
         if (0 == strcasecmp(name->valuestring, "NoiseSuppression")) {
              LogInfo("%s effect NoiseSuppression\n", __func__);
-             voice_effects->effects[NoiseSuppression] = create_effect(find_effect("noise_suppression"), sample_rate, channels);
+             voice_effects->effects[NoiseSuppression] = create_effect(find_effect("noise_suppression"),
+                                  voice_effects->dst_sample_rate, voice_effects->dst_channels);
              init_effect(voice_effects->effects[NoiseSuppression], 0, NULL);
              set_effect(voice_effects->effects[NoiseSuppression], "Switch", info->valuestring, 0);
         } else if (0 == strcasecmp(name->valuestring, "Beautify")) {
              LogInfo("%s effect Beautify\n", __func__);
-             voice_effects->effects[Beautify] = create_effect(find_effect("beautify"), sample_rate, channels);
+             voice_effects->effects[Beautify] = create_effect(find_effect("beautify"),
+                                  voice_effects->dst_sample_rate, voice_effects->dst_channels);
              init_effect(voice_effects->effects[Beautify], 0, NULL);
              set_effect(voice_effects->effects[Beautify], "mode", info->valuestring, 0);
         } else if (0 == strcasecmp(name->valuestring, "Reverb")) {
              LogInfo("%s effect Reverb\n", __func__);
-             voice_effects->effects[Reverb] = create_effect(find_effect("reverb"), sample_rate, channels);
+             voice_effects->effects[Reverb] = create_effect(find_effect("reverb"),
+                                  voice_effects->dst_sample_rate, voice_effects->dst_channels);
              init_effect(voice_effects->effects[Reverb], 0, NULL);
              set_effect(voice_effects->effects[Reverb], "mode", info->valuestring, 0);
         } else if (0 == strcasecmp(name->valuestring, "VolumeLimiter")) {
              LogInfo("%s effect VolumeLimiter\n", __func__);
-             voice_effects->effects[VolumeLimiter] = create_effect(find_effect("limiter"), sample_rate, channels);
+             voice_effects->effects[VolumeLimiter] = create_effect(find_effect("limiter"),
+                                  voice_effects->dst_sample_rate, voice_effects->dst_channels);
              init_effect(voice_effects->effects[VolumeLimiter], 0, NULL);
              set_effect(voice_effects->effects[VolumeLimiter], "Switch", info->valuestring, 0);
         } else {

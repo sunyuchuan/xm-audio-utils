@@ -18,8 +18,8 @@ struct XmEffectContext_T {
     int ae_status;
     int progress;
     // input pcm sample rate and number channels
-    int pcm_sample_rate;
-    int pcm_channels;
+    int dst_sample_rate;
+    int dst_channels;
     // input pcm file seek position
     int seek_time_ms;
     // input pcm file fopen handle
@@ -241,6 +241,14 @@ int xm_audio_effect_get_progress(XmEffectContext *ctx) {
     return ret;
 }
 
+PcmParser *xm_audio_effect_get_pcm_parser(XmEffectContext *ctx) {
+    if (!ctx) {
+        return NULL;
+    }
+
+    return ctx->parser;
+}
+
 int xm_audio_effect_get_frame(XmEffectContext *ctx,
     short *buffer, int buffer_size_in_short) {
     int ret = -1;
@@ -298,10 +306,10 @@ static int xm_audio_effect_add_effects_l(XmEffectContext *ctx,
 
     uint32_t cur_size = 0;
     float file_duration = ctx->parser->file_size / (ctx->parser->bits_per_sample
-        / 8) / ctx->pcm_channels / ctx->pcm_sample_rate;
+        / 8) / ctx->parser->src_nb_channels/ ctx->parser->src_sample_rate_in_Hz;
     while (!ctx->abort) {
         float cur_position = (cur_size*sizeof(*(ctx->buffer))) / (ctx->parser->bits_per_sample
-            / 8) / ctx->pcm_channels / ctx->pcm_sample_rate;
+            / 8) / ctx->dst_channels / ctx->dst_sample_rate;
         int progress = (cur_position / file_duration) * 100;
         pthread_mutex_lock(&ctx->mutex);
         ctx->progress = progress;
@@ -317,11 +325,11 @@ static int xm_audio_effect_add_effects_l(XmEffectContext *ctx,
         fwrite(ctx->buffer, sizeof(*(ctx->buffer)), ret, writer);
     }
 
-    wav_ctx->header.sample_rate = ctx->pcm_sample_rate;
-    wav_ctx->header.nb_channels = ctx->pcm_channels;
+    wav_ctx->header.sample_rate = ctx->dst_sample_rate;
+    wav_ctx->header.nb_channels = ctx->dst_channels;
     wav_ctx->header.bits_per_sample = ctx->parser->bits_per_sample;
-    wav_ctx->header.block_align = ctx->pcm_channels * (wav_ctx->header.bits_per_sample / 8);
-    wav_ctx->header.byte_rate = wav_ctx->header.block_align * ctx->pcm_sample_rate;
+    wav_ctx->header.block_align = ctx->dst_channels * (wav_ctx->header.bits_per_sample / 8);
+    wav_ctx->header.byte_rate = wav_ctx->header.block_align * ctx->dst_sample_rate;
     wav_ctx->header.data_size = cur_size * sizeof(*(ctx->buffer));
     // total file size minus the size of riff_id(4 byte) and riff_size(4 byte) itself
     wav_ctx->header.riff_size = wav_ctx->header.data_size +
@@ -337,14 +345,6 @@ fail:
         writer = NULL;
     }
     return ret;
-}
-
-PcmParser *xm_audio_effect_get_pcm_parser(XmEffectContext *ctx) {
-    if (!ctx) {
-        return NULL;
-    }
-
-    return ctx->parser;
 }
 
 int xm_audio_effect_add_effects(XmEffectContext *ctx,
@@ -401,16 +401,20 @@ int xm_audio_effect_init(XmEffectContext *ctx,
         goto fail;
     }
     ctx->seek_time_ms = 0;
-    ctx->pcm_sample_rate = ctx->voice_effects.record->sample_rate;
-    ctx->pcm_channels = ctx->voice_effects.record->nb_channels;
 
+    int src_sample_rate = ctx->voice_effects.record->sample_rate;
+    int src_channels = ctx->voice_effects.record->nb_channels;
+    int dst_sample_rate = ctx->voice_effects.dst_sample_rate;
+    int dst_channels = ctx->voice_effects.dst_channels;
     char *in_pcm_path = ctx->voice_effects.record->file_path;
-    if ((ctx->parser = pcm_parser_create(in_pcm_path, ctx->pcm_sample_rate,
-            ctx->pcm_channels, ctx->pcm_sample_rate, ctx->pcm_channels,
+    if ((ctx->parser = pcm_parser_create(in_pcm_path, src_sample_rate,
+            src_channels, dst_sample_rate, dst_channels,
             &(ctx->voice_effects.record->wav_ctx))) == NULL) {
         LogError("%s open pcm parser failed, file addr %s.\n", __func__, in_pcm_path);
         goto fail;
     }
+    ctx->dst_sample_rate = ctx->parser->dst_sample_rate_in_Hz;
+    ctx->dst_channels = ctx->parser->dst_nb_channels;
 
     // Allocate buffer for audio fifo
     ctx->audio_fifo = fifo_create(sizeof(short));
@@ -439,8 +443,8 @@ XmEffectContext *xm_audio_effect_create() {
         return NULL;
     }
 
-    self->pcm_sample_rate = DEFAULT_SAMPLE_RATE;
-    self->pcm_channels = DEFAULT_CHANNEL_NUMBER;
+    self->dst_sample_rate = DEFAULT_SAMPLE_RATE;
+    self->dst_channels = DEFAULT_CHANNEL_NUMBER;
     memset(self->voice_effects.effects, 0, MAX_NB_EFFECTS * sizeof(EffectContext *));
     pthread_mutex_init(&self->mutex, NULL);
     self->ae_status = AE_STATE_UNINIT;

@@ -34,6 +34,14 @@ void xm_audio_effect_stop(XmEffectContext *ctx);
 int xm_audio_effect_get_progress(XmEffectContext *ctx);
 
 /**
+ * @brief get PcmParser
+ *
+ * @param ctx XmEffectContext
+ * @return PcmParser*
+ */
+PcmParser *xm_audio_effect_get_pcm_parser(XmEffectContext *ctx);
+
+/**
  * @brief Get frame data with voice effects
  *
  * @param ctx XmEffectContext
@@ -54,14 +62,6 @@ int xm_audio_effect_get_frame(XmEffectContext *ctx,
  */
 int xm_audio_effect_seekTo(XmEffectContext *ctx,
     int seek_time_ms);
-
-/**
- * @brief get PcmParser
- *
- * @param ctx XmEffectContext
- * @return PcmParser*
- */
-PcmParser *xm_audio_effect_get_pcm_parser(XmEffectContext *ctx);
 
 /**
  * @brief Add audio effects

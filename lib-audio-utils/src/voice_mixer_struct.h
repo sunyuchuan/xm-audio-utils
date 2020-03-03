@@ -14,6 +14,8 @@ enum EffectType {
 typedef struct VoiceEffcets {
     AudioRecordSource *record;
     EffectContext *effects[MAX_NB_EFFECTS];
+    int dst_sample_rate;
+    int dst_channels;
 } VoiceEffcets;
 
 typedef struct MixerEffcets {
