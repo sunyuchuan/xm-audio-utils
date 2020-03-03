@@ -24,8 +24,16 @@ int main(int argc, char **argv) {
     unsigned long timer;
     gettimeofday(&start, NULL);
 
-    PcmParser *parser = pcm_parser_create(argv[1], atoi(argv[2]), atoi(argv[3]),
-        atoi(argv[2]), atoi(argv[3]));
+    int sample_rate = atoi(argv[2]);
+    int nb_channels = atoi(argv[3]);
+    WavContext wav_ctx;
+    if (wav_read_header(argv[1], &wav_ctx) >= 0) {
+        sample_rate = wav_ctx.header.sample_rate;
+        nb_channels = wav_ctx.header.nb_channels;
+    }
+
+    PcmParser *parser = pcm_parser_create(argv[1], sample_rate, nb_channels,
+        sample_rate, nb_channels, &wav_ctx);
 
     buffer = (short *)calloc(sizeof(short), buffer_size_in_short);
     if (!buffer) goto end;

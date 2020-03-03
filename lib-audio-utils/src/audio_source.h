@@ -2,6 +2,7 @@
 #define _AUDIO_SOURCE_H_
 #include "mixer_effects/fade_in_out.h"
 #include "codec/audio_decoder.h"
+#include "wav_dec.h"
 
 typedef struct AudioSource {
     int start_time_ms;
@@ -23,6 +24,7 @@ typedef struct AudioRecordSource {
     int sample_rate;
     int nb_channels;
     char *file_path;
+    WavContext wav_ctx;
 } AudioRecordSource;
 
 void audio_source_free(AudioSource *source);

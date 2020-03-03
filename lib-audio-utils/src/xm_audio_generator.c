@@ -10,6 +10,8 @@
 #include "error_def.h"
 #include "tools/util.h"
 
+#define TEMP_FILE_SUFFIX ".cache"
+
 struct XmAudioGenerator {
     volatile int status;
     volatile int ref_count;
@@ -35,8 +37,7 @@ static int mixer_mix(XmAudioGenerator *self, const char *in_pcm_path,
         const char *in_config_path, const char *out_file_path, int encode_type) {
     LogInfo("%s\n", __func__);
     int ret = -1;
-    if(NULL == self || NULL == in_pcm_path
-        || NULL == in_config_path || NULL == out_file_path) {
+    if(!self || !in_config_path || !out_file_path) {
         return ret;
     }
 
@@ -189,16 +190,14 @@ int xm_audio_generator_start(XmAudioGenerator *self,
     xm_audio_mixer_stop(self->mixer_ctx);
     xm_audio_mixer_freep(&(self->mixer_ctx));
 
-    int len = 0;
-    while(out_file_path[len++] != '\0');
-
-    char *out_pcm_path = (char *)calloc(1, (len + 4) * sizeof(char));
+    char *out_pcm_path = (char *)calloc(1, (strlen(out_file_path) +
+        strlen(TEMP_FILE_SUFFIX) + 1) * sizeof(char));
     if (NULL == out_pcm_path) {
         LogError("%s calloc temp pcm file path failed.\n", __func__);
         return -1;
     }
-    strncpy(out_pcm_path, out_file_path, len - 1);
-    strncpy(out_pcm_path + len - 1, ".pcm", 5);
+    strncpy(out_pcm_path, out_file_path, strlen(out_file_path));
+    strncpy(out_pcm_path + strlen(out_file_path), TEMP_FILE_SUFFIX, strlen(TEMP_FILE_SUFFIX) + 1);
 
     if ((ret = add_voice_effects(self, in_config_path, out_pcm_path)) < 0) {
         LogError("%s add_voice_effects failed\n", __func__);

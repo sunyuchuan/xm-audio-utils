@@ -56,6 +56,10 @@ static int parse_audio_record_source(cJSON *root_json, AudioRecordSource *record
         record->end_time_ms  = end->valuedouble;
         record->sample_rate= sample_rate->valuedouble;
         record->nb_channels = nb_channel->valuedouble;
+        if (wav_read_header(record->file_path, &record->wav_ctx) >= 0) {
+            record->sample_rate = record->wav_ctx.header.sample_rate;
+            record->nb_channels = record->wav_ctx.header.nb_channels;
+        }
 
         LogInfo("%s file_path %s\n", __func__, record->file_path);
         LogInfo("%s start time  %d\n", __func__, record->start_time_ms );
