@@ -18,24 +18,31 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Iterator;
 
 import com.xmly.audio.effect.JsonUtils;
 import com.xmly.audio.effect.R;
 import com.xmly.audio.effect.Utils;
+import com.xmly.audio.effect.audio.AudioCapturer;
 import com.xmly.audio.effect.audio.AudioPlayer;
 import com.xmly.audio.utils.XmAudioUtils;
 
-public class EffectActivity extends AppCompatActivity implements View.OnClickListener, RadioGroup.OnCheckedChangeListener {
+public class EffectActivity extends AppCompatActivity implements View.OnClickListener,
+        RadioGroup.OnCheckedChangeListener, AudioCapturer.OnAudioFrameCapturedListener {
     private final static String TAG = EffectActivity.class.getName();
 
     private static final String config = "/sdcard/audio_effect_test/config.txt";
     private static final String effect = "/sdcard/audio_effect_test/effect.pcm";
+    private static final String speech = "/sdcard/speech.pcm";
+
+    private OutputStream mOsSpeech;
 
     private Button mBtnNsSwitch;
     private Button mBtnLimitSwitch;
 
+    private Button mBtnRecord;
     private Button mBtnAudition;
     private XmAudioUtils mAudioUtils;
     private AudioPlayer mPlayer;
@@ -45,6 +52,7 @@ public class EffectActivity extends AppCompatActivity implements View.OnClickLis
     private static final int MSG_PROGRESS = 1;
     private static final int MSG_COMPLETED = 2;
     private volatile boolean abort = false;
+    private AudioCapturer mCapturer;
 
     public static Intent newIntent(Context context) {
         Intent intent = new Intent(context, EffectActivity.class);
@@ -71,6 +79,12 @@ public class EffectActivity extends AppCompatActivity implements View.OnClickLis
 
         mBtnAudition = findViewById(R.id.btn_audition);
         mBtnAudition.setOnClickListener(this);
+
+        mBtnRecord = findViewById(R.id.btn_record);
+        mBtnRecord.setOnClickListener(this);
+
+        mCapturer = new AudioCapturer();
+        mCapturer.setOnAudioFrameCapturedListener(EffectActivity.this);
 
         ((RadioGroup) findViewById(R.id.voice_group)).setOnCheckedChangeListener(this);
         ((RadioGroup) findViewById(R.id.eq_group)).setOnCheckedChangeListener(this);
@@ -100,12 +114,14 @@ public class EffectActivity extends AppCompatActivity implements View.OnClickLis
 
     @Override
     protected void onStop() {
+        stopRecord();
         stopAudition();
         super.onStop();
     }
 
     @Override
     protected void onDestroy() {
+        stopRecord();
         mAudioUtils.release();
         super.onDestroy();
     }
@@ -208,6 +224,56 @@ public class EffectActivity extends AppCompatActivity implements View.OnClickLis
         abort = true;
     }
 
+    private void startRecord() {
+        mBtnRecord.setText("停止录制");
+        // 打开录制文件
+        File outSpeech = new File(speech);
+        if (outSpeech.exists()) outSpeech.delete();
+        try {
+            mOsSpeech = new FileOutputStream(outSpeech);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        // 启动录音
+        if (!mCapturer.isCaptureStarted()) {
+            mCapturer.startCapture();
+        }
+    }
+
+    private void stopRecord() {
+        mBtnRecord.setText("开始录制");
+        // 停止录音
+        if (mCapturer.isCaptureStarted()) {
+            mCapturer.stopCapture();
+        }
+        try {
+            if (null != mOsSpeech) mOsSpeech.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void onAudioFrameCaptured(byte[] audioData) {
+        try {
+            mOsSpeech.write(audioData, 0, audioData.length);
+            mOsSpeech.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void onAudioFrameCaptured(short[] audioData) {
+        try {
+            byte[] data = Utils.getByteArrayInLittleOrder(audioData);
+            mOsSpeech.write(data, 0, data.length);
+            mOsSpeech.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
     @Override
     public void onClick(View v) {
         int id = v.getId();
@@ -232,6 +298,14 @@ public class EffectActivity extends AppCompatActivity implements View.OnClickLis
             } else if (mBtnLimitSwitch.getText().toString().contentEquals("关闭限幅")) {
                 addEffectsToMap("VolumeLimiter", "Off");
                 mBtnLimitSwitch.setText("打开限幅");
+            }
+        } else if (id == R.id.btn_record) {
+            if (mBtnRecord.getText().toString().contentEquals("开始录音")) {
+                startRecord();
+                mBtnRecord.setText("停止录音");
+            } else if (mBtnRecord.getText().toString().contentEquals("停止录音")) {
+                stopRecord();
+                mBtnRecord.setText("开始录音");
             }
         }
     }
