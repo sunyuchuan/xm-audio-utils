@@ -259,6 +259,13 @@ LABEL_RETURN:
 }
 
 static void
+XMAudioUtils_close_log_file(JNIEnv *env, jobject thiz)
+{
+    LOGI("%s\n", __func__);
+    AeCloseLogFile();
+}
+
+static void
 XMAudioUtils_set_log(JNIEnv *env, jobject thiz,
         jint logMode, jint logLevel,  jstring outLogPath)
 {
@@ -295,6 +302,7 @@ LABEL_RETURN:
 static JNINativeMethod g_methods[] = {
     { "native_setup", "()V", (void *) XMAudioUtils_setup },
     { "native_set_log", "(IILjava/lang/String;)V", (void *) XMAudioUtils_set_log },
+    { "native_close_log_file", "()V", (void *) XMAudioUtils_close_log_file },
     { "native_decoder_create", "(Ljava/lang/String;III)I", (void *) XMAudioUtils_decoder_create },
     { "native_decoder_seekTo", "(II)V", (void *) XMAudioUtils_decoder_seekTo },
     { "native_get_decoded_frame", "([SIZI)I", (void *) XMAudioUtils_get_decoded_frame },

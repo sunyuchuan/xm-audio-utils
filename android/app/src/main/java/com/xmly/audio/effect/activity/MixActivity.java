@@ -104,7 +104,7 @@ public class MixActivity extends AppCompatActivity implements View.OnClickListen
                         case MSG_MIX_COMPLETED:
                             mBtnMix.setText("合成");
                             mProgressBar.setProgress(0);
-                            stopMix();
+                            abortProgress = true;
                             break;
                         case MSG_FADE_COMPLETED:
                             mBtnFade.setText("试听");

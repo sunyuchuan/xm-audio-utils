@@ -150,6 +150,7 @@ public class XmAudioGenerator {
     private native int native_get_progress();
     private native int native_start(String inConfigFilePath, String outM4aPath, int encoderType);
     private native void native_set_log(int logMode, int logLevel, String outLogPath);
+    private native void native_close_log_file();
     private native void native_setup();
 
     @Override

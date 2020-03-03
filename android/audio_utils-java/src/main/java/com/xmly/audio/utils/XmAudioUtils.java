@@ -348,6 +348,7 @@ public class XmAudioUtils {
     }
 
     private native void native_set_log(int logMode, int logLevel, String outLogPath);
+    private native void native_close_log_file();
     private native void native_setup();
 
     private native int native_decoder_create(String inAudioPath, int outSampleRate, int outChannels, int decoderType);
