@@ -4,12 +4,14 @@
 
 void audio_source_free(AudioSource *source) {
     if (source) {
-        if (source->file_path) {
-            free(source->file_path);
-            source->file_path = NULL;
+        if (source->file_path || source->parser) {
+            if (source->file_path) {
+                free(source->file_path);
+                source->file_path = NULL;
+            }
+            pcm_parser_freep(&(source->parser));
+            memset(source, 0, sizeof(AudioSource));
         }
-        pcm_parser_freep(&(source->parser));
-        memset(source, 0, sizeof(AudioSource));
     }
 }
 

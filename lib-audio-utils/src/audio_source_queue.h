@@ -16,6 +16,7 @@ typedef struct AudioSourceQueue
     pthread_mutex_t mLock;
 } AudioSourceQueue;
 
+int source_queue_get_end_time_ms(AudioSourceQueue *queue);
 void source_queue_bubble_sort(AudioSourceQueue *queue);
 int source_queue_size(AudioSourceQueue *queue);
 void source_queue_flush(AudioSourceQueue *queue);

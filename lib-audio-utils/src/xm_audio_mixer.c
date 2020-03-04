@@ -294,7 +294,7 @@ static short *mixer_combine(XmMixerContext *ctx, short *pcm_buffer,
             mix_buffer = pcm_buffer;
             goto end;
         }
-    } else if (pcm_start_time <= source->end_time_ms &&
+    } else if (pcm_start_time < source->end_time_ms &&
             pcm_start_time + pcm_duration > source->end_time_ms) {
         parse_data_start_index = 0;
         int parser_size_in_short = ((source->end_time_ms - pcm_start_time) / (float)1000)
@@ -303,13 +303,16 @@ static short *mixer_combine(XmMixerContext *ctx, short *pcm_buffer,
 
         parse_size_in_short = pcm_parser_get_pcm_frame(parser,
             decoder_buffer, parser_size_in_short, true);
-        //update the parser that point the next bgm
-        audio_source_free(source);
         if (parse_size_in_short <= 0) {
             LogWarning("%s 3 pcm_parser_get_pcm_frame size is zero, parser_size_in_short is %d.\n", __func__, parser_size_in_short);
             mix_buffer = pcm_buffer;
             goto end;
         }
+    } else if(pcm_start_time >= source->end_time_ms) {
+        //update the parser that point the next bgm
+        audio_source_free(source);
+        mix_buffer = pcm_buffer;
+        goto end;
     } else {
         mix_buffer = pcm_buffer;
         goto end;
@@ -360,9 +363,17 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
 
     int read_len = xm_audio_effect_get_frame(ctx->effects_ctx, buffer, buffer_len);
     if (read_len <= 0) {
-        ret = read_len;
-        goto end;
+        if (buffer_start_ms >= ctx->mixer_effects.mix_duration_ms) {
+            ret = read_len;
+            goto end;
+        } else {
+            // If the recording ends, but the mix does not end,
+            // zeros are added at the end of the recording.
+            memset(buffer, 0, buffer_len * sizeof(*buffer));
+            read_len = buffer_len;
+        }
     }
+
     if (parser->dst_nb_channels == 1) {
         MonoToStereoS16(ctx->middle_buffer[VoicePcm], buffer, read_len);
         read_len = read_len << 1;
@@ -534,12 +545,11 @@ static int xm_audio_mixer_mix_l(XmMixerContext *ctx,
     uint32_t data_size_byte = 0;
     ctx->seek_time_ms = 0;
     ctx->cur_size = 0;
-    float file_duration = parser->file_size / (float)(parser->bits_per_sample / 8)
-        / parser->src_sample_rate_in_Hz / parser->src_nb_channels;
-    if (1000 * file_duration > MAX_DURATION_MIX_IN_MS) file_duration = MAX_DURATION_MIX_IN_MS / 1000;
+    int file_duration = ctx->mixer_effects.mix_duration_ms;
+    if (file_duration > MAX_DURATION_MIX_IN_MS) file_duration = MAX_DURATION_MIX_IN_MS;
     while (!ctx->abort) {
-        float cur_position = ctx->cur_size / (float)(parser->bits_per_sample / 8)
-            / ctx->dst_channels / ctx->dst_sample_rate + ctx->seek_time_ms / (float)1000;
+        float cur_position = 1000 * (ctx->cur_size / (float)(parser->bits_per_sample / 8)
+            / ctx->dst_channels / ctx->dst_sample_rate) + ctx->seek_time_ms;
         int progress = (cur_position / file_duration) * 100;
         pthread_mutex_lock(&ctx->mutex);
         ctx->progress = progress;

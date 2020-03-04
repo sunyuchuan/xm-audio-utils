@@ -27,6 +27,7 @@ typedef struct WavHeader {
 
 typedef struct WavContext {
     bool is_wav;
+    uint32_t file_size;
     uint32_t pcm_data_offset;
     WavHeader header;
 } WavContext;

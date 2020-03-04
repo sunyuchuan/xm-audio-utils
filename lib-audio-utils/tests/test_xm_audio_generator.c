@@ -12,7 +12,7 @@ static volatile bool abort_request = false;
 void *get_progress(void *arg) {
     int progress = 0;
     XmAudioGenerator *ctx = arg;
-    while (progress < 100 && !abort_request) {
+    while (!abort_request) {
         usleep(100000);
         progress = xm_audio_generator_get_progress(ctx);
         LogInfo("%s get_progress : %d\n", __func__, progress);

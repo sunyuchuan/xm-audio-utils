@@ -15,6 +15,7 @@
 
 struct XmEffectContext_T {
     volatile bool abort;
+    volatile bool flush;
     int ae_status;
     int progress;
     // input pcm sample rate and number channels
@@ -98,6 +99,7 @@ static void ae_reset_l(XmEffectContext *ctx)
     pthread_mutex_lock(&ctx->mutex);
     ctx->abort= false;
     ctx->progress = 0;
+    ctx->flush = false;
     pthread_mutex_unlock(&ctx->mutex);
 }
 
@@ -142,6 +144,7 @@ static void flush(XmEffectContext *ctx) {
     }
 end:
     LogInfo("%s end.\n", __func__);
+    ctx->flush = true;
     return;
 }
 
@@ -268,7 +271,7 @@ int xm_audio_effect_get_frame(XmEffectContext *ctx,
     while (fifo_occupancy(ctx->audio_fifo) < (size_t) buffer_size_in_short) {
 	ret = add_effects_and_write_fifo(ctx);
 	if (ret < 0) {
-	    flush(ctx);
+	    if (!ctx->flush) flush(ctx);
 	    if (0 < fifo_occupancy(ctx->audio_fifo)) {
 	        break;
 	    } else {
@@ -293,6 +296,7 @@ int xm_audio_effect_seekTo(XmEffectContext *ctx,
 
     flush(ctx);
     if (ctx->audio_fifo) fifo_clear(ctx->audio_fifo);
+    ctx->flush = false;
 
     int ret = pcm_parser_seekTo(ctx->parser, ctx->seek_time_ms);
     return ret;
@@ -317,6 +321,7 @@ static int xm_audio_effect_add_effects_l(XmEffectContext *ctx,
 
     ctx->seek_time_ms = 0;
     ctx->cur_size = 0;
+    ctx->flush = false;
     uint32_t data_size_byte = 0;
     float file_duration = ctx->parser->file_size / (float)(ctx->parser->bits_per_sample
         / 8) / ctx->parser->src_nb_channels/ ctx->parser->src_sample_rate_in_Hz;
