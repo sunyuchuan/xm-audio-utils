@@ -1,6 +1,6 @@
 #ifndef XM_WAV_UTILS_H
 #define XM_WAV_UTILS_H
-#include "wav_dec.h"
+#include <stdbool.h>
 
 /**
  * @brief concat wav file
