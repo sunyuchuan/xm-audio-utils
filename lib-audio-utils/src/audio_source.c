@@ -4,12 +4,14 @@
 
 void audio_source_free(AudioSource *source) {
     if (source) {
-        if (source->file_path) {
-            free(source->file_path);
-            source->file_path = NULL;
+        if (source->file_path || source->decoder) {
+            if (source->file_path) {
+                free(source->file_path);
+                source->file_path = NULL;
+            }
+            xm_audio_decoder_freep(&(source->decoder));
+            memset(source, 0, sizeof(AudioSource));
         }
-        xm_audio_decoder_freep(&(source->decoder));
-        memset(source, 0, sizeof(AudioSource));
     }
 }
 

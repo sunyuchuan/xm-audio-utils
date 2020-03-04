@@ -184,6 +184,11 @@ int mixer_parse(MixerEffcets *mixer_effects, const char *json_file_addr) {
         LogError("%s parse_audio_record_source failed\n", __func__);
         goto fail;
     }
+    AudioRecordSource *record = mixer_effects->record;
+    mixer_effects->mix_duration_ms =
+        1000 * ((record->wav_ctx.file_size - record->wav_ctx.pcm_data_offset)
+        / (float)(record->wav_ctx.header.bits_per_sample / 8)
+        / record->sample_rate / record->nb_channels);
 
     bgms = cJSON_GetObjectItemCaseSensitive(root_json, "bgm");
     if (!bgms)
@@ -210,6 +215,10 @@ int mixer_parse(MixerEffcets *mixer_effects, const char *json_file_addr) {
         LogError("%s parse bgms source failed\n", __func__);
         goto fail;
     }
+    int end_time_ms = source_queue_get_end_time_ms(mixer_effects->bgmQueue);
+    if (mixer_effects->mix_duration_ms < end_time_ms) {
+        mixer_effects->mix_duration_ms = end_time_ms;
+    }
 
     musics = cJSON_GetObjectItemCaseSensitive(root_json, "music");
     if (musics == NULL) {
@@ -234,6 +243,10 @@ int mixer_parse(MixerEffcets *mixer_effects, const char *json_file_addr) {
     if ((ret = parse_audio_source(musics, mixer_effects->musicQueue)) < 0) {
         LogError("%s parse musics source failed\n", __func__);
         goto fail;
+    }
+    end_time_ms = source_queue_get_end_time_ms(mixer_effects->musicQueue);
+    if (mixer_effects->mix_duration_ms < end_time_ms) {
+        mixer_effects->mix_duration_ms = end_time_ms;
     }
 
     ret = 0;

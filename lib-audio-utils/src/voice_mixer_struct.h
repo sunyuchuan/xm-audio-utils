@@ -22,6 +22,7 @@ typedef struct VoiceEffcets {
 } VoiceEffcets;
 
 typedef struct MixerEffcets {
+    int mix_duration_ms;
     AudioRecordSource *record;
     AudioSource *bgm;
     AudioSourceQueue *bgmQueue;

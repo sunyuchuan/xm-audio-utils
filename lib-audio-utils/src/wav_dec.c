@@ -134,6 +134,9 @@ int wav_read_header(const char *file_addr, WavContext *ctx)
 	LogError("%s open file_addr %s failed\n", __func__, file_addr);
 	goto fail;
     }
+    fseek(reader, 0, SEEK_END);
+    ctx->file_size = ftell(reader);
+    fseek(reader, 0, SEEK_SET);
 
     if (feof(reader) || ferror(reader)) {
         LogInfo("%s 1 EOF or read file error.\n", __func__);
@@ -211,8 +214,7 @@ int wav_read_header(const char *file_addr, WavContext *ctx)
 
 end:
     if (header->data_size == 0) {
-        fseek(reader, 0, SEEK_END);
-        header->data_size = ftell(reader) - ctx->pcm_data_offset;
+        header->data_size = ctx->file_size - ctx->pcm_data_offset;
         header->riff_size = header->data_size + ctx->pcm_data_offset - 8;
     }
     ctx->is_wav = true;

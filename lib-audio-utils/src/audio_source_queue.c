@@ -11,6 +11,17 @@ static bool audio_source_isValid(AudioSource *source)
     return true;
 }
 
+int source_queue_get_end_time_ms(AudioSourceQueue *queue)
+{
+    if(!queue)
+        return -1;
+
+    pthread_mutex_lock(&queue->mLock);
+    int end_time_ms = queue->mLast->source.end_time_ms;
+    pthread_mutex_unlock(&queue->mLock);
+    return end_time_ms;
+}
+
 void source_queue_bubble_sort(AudioSourceQueue *queue)
 {
     if(!queue)
@@ -26,12 +37,15 @@ void source_queue_bubble_sort(AudioSourceQueue *queue)
                 sourceList->next = next->next;
                 next->next = sourceList;
                 if (prev) prev->next = next;
+                else queue->mFirst = next;
                 prev = next;
             } else {
                 prev = sourceList;
                 sourceList = sourceList->next;
             }
         }
+        if (!next->next) queue->mLast = next;
+        if (!sourceList->next) queue->mLast = sourceList;
     }
     pthread_mutex_unlock(&queue->mLock);
 }
