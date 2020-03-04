@@ -23,6 +23,8 @@ struct XmEffectContext_T {
     int dst_channels;
     // input pcm file seek position
     int seek_time_ms;
+    // input pcm read location
+    int64_t cur_size;
     // input pcm file fopen handle
     PcmParser *parser;
     short buffer[MAX_NB_SAMPLES];
@@ -149,12 +151,20 @@ static int add_effects_and_write_fifo(XmEffectContext *ctx) {
     if (!ctx)
         return ret;
 
+    float cur_position = ctx->cur_size / (float)(ctx->parser->bits_per_sample / 8)
+        / ctx->dst_channels / ctx->dst_sample_rate + ctx->seek_time_ms / (float)1000;
+    if (1000 * cur_position > MAX_DURATION_MIX_IN_MS) {
+        ret = PCM_FILE_EOF;
+        goto end;
+    }
+
     int read_len = pcm_parser_get_pcm_frame(ctx->parser,
         ctx->buffer, MAX_NB_SAMPLES, false);
     if (read_len < 0) {
         ret = read_len;
         goto end;
     }
+    ctx->cur_size += (read_len * sizeof(*ctx->buffer));
 
     VoiceEffcets *voice_effects = &ctx->voice_effects;
     bool find_valid_effect = false;
@@ -280,6 +290,8 @@ int xm_audio_effect_seekTo(XmEffectContext *ctx,
         return -1;
 
     ctx->seek_time_ms = seek_time_ms > 0 ? seek_time_ms : 0;
+    ctx->cur_size = 0;
+
     flush(ctx);
     if (ctx->audio_fifo) fifo_clear(ctx->audio_fifo);
 
@@ -304,12 +316,15 @@ static int xm_audio_effect_add_effects_l(XmEffectContext *ctx,
         LogError("%s 1 write wav header failed, out_pcm_path %s\n", __func__, out_pcm_path);
     }
 
-    uint32_t cur_size = 0;
-    float file_duration = ctx->parser->file_size / (ctx->parser->bits_per_sample
+    ctx->seek_time_ms = 0;
+    ctx->cur_size = 0;
+    uint32_t data_size_byte = 0;
+    float file_duration = ctx->parser->file_size / (float)(ctx->parser->bits_per_sample
         / 8) / ctx->parser->src_nb_channels/ ctx->parser->src_sample_rate_in_Hz;
+    if (1000 * file_duration > MAX_DURATION_MIX_IN_MS) file_duration = MAX_DURATION_MIX_IN_MS / 1000;
     while (!ctx->abort) {
-        float cur_position = (cur_size*sizeof(*(ctx->buffer))) / (ctx->parser->bits_per_sample
-            / 8) / ctx->dst_channels / ctx->dst_sample_rate;
+        float cur_position = ctx->cur_size / (float)(ctx->parser->bits_per_sample
+            / 8) / ctx->dst_channels / ctx->dst_sample_rate + ctx->seek_time_ms / (float)1000;
         int progress = (cur_position / file_duration) * 100;
         pthread_mutex_lock(&ctx->mutex);
         ctx->progress = progress;
@@ -320,9 +335,9 @@ static int xm_audio_effect_add_effects_l(XmEffectContext *ctx,
             LogInfo("xm_audio_effect_get_frame len <= 0.\n");
             break;
         }
-        cur_size += ret;
 
         fwrite(ctx->buffer, sizeof(*(ctx->buffer)), ret, writer);
+        data_size_byte += (ret * sizeof(*(ctx->buffer)));
     }
 
     wav_ctx->header.sample_rate = ctx->dst_sample_rate;
@@ -330,7 +345,7 @@ static int xm_audio_effect_add_effects_l(XmEffectContext *ctx,
     wav_ctx->header.bits_per_sample = ctx->parser->bits_per_sample;
     wav_ctx->header.block_align = ctx->dst_channels * (wav_ctx->header.bits_per_sample / 8);
     wav_ctx->header.byte_rate = wav_ctx->header.block_align * ctx->dst_sample_rate;
-    wav_ctx->header.data_size = cur_size * sizeof(*(ctx->buffer));
+    wav_ctx->header.data_size = data_size_byte;
     // total file size minus the size of riff_id(4 byte) and riff_size(4 byte) itself
     wav_ctx->header.riff_size = wav_ctx->header.data_size +
         sizeof(wav_ctx->header) - 8;
@@ -338,7 +353,7 @@ static int xm_audio_effect_add_effects_l(XmEffectContext *ctx,
         LogError("%s 2 write wav header failed, out_pcm_path %s\n", __func__, out_pcm_path);
     }
 
-    ret = 0;
+    if (ret == PCM_FILE_EOF) ret = 0;
 fail:
     if (writer) {
         fclose(writer);
@@ -401,6 +416,7 @@ int xm_audio_effect_init(XmEffectContext *ctx,
         goto fail;
     }
     ctx->seek_time_ms = 0;
+    ctx->cur_size = 0;
 
     int src_sample_rate = ctx->voice_effects.record->sample_rate;
     int src_channels = ctx->voice_effects.record->nb_channels;

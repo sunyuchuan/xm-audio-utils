@@ -388,8 +388,13 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
         buffer_len = MAX_NB_SAMPLES;
     }
 
-    int buffer_start_ms = ctx->seek_time_ms + 1000 * ((float)(ctx->cur_size*sizeof(*buffer)) /
-        (parser->bits_per_sample / 8) / ctx->dst_channels / ctx->dst_sample_rate);
+    int buffer_start_ms = ctx->seek_time_ms + 1000 * (ctx->cur_size /
+        (float)(parser->bits_per_sample / 8) / ctx->dst_channels / ctx->dst_sample_rate);
+    if (buffer_start_ms > MAX_DURATION_MIX_IN_MS) {
+        ret = PCM_FILE_EOF;
+        goto end;
+    }
+
     int read_len = xm_audio_effect_get_frame(ctx->effects_ctx, buffer, buffer_len);
     if (read_len <= 0) {
         ret = read_len;
@@ -403,7 +408,7 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
     }
     int duration = 1000 * ((float)(read_len*sizeof(*buffer)) /
         (parser->bits_per_sample / 8) / ctx->dst_channels / ctx->dst_sample_rate);
-    ctx->cur_size += read_len;
+    ctx->cur_size += (read_len * sizeof(*buffer));
 
     if ((!ctx->mixer_effects.bgm->decoder) &&
             (source_queue_size(ctx->mixer_effects.bgmQueue) > 0)) {
@@ -563,11 +568,12 @@ static int xm_audio_mixer_mix_l(XmMixerContext *ctx,
 
     ctx->seek_time_ms = 0;
     ctx->cur_size = 0;
-    float file_duration = parser->file_size / (parser->bits_per_sample / 8)
+    float file_duration = parser->file_size / (float)(parser->bits_per_sample / 8)
         / parser->src_sample_rate_in_Hz / parser->src_nb_channels;
+    if (1000 * file_duration > MAX_DURATION_MIX_IN_MS) file_duration = MAX_DURATION_MIX_IN_MS / 1000;
     while (!ctx->abort) {
-        float cur_position = (ctx->cur_size*sizeof(*buffer)) / (parser->bits_per_sample
-            / 8) / ctx->dst_channels / ctx->dst_sample_rate;
+        float cur_position = ctx->cur_size / (float)(parser->bits_per_sample / 8)
+            / ctx->dst_channels / ctx->dst_sample_rate + ctx->seek_time_ms / (float)1000;
         int progress = (cur_position / file_duration) * 100;
         pthread_mutex_lock(&ctx->mutex);
         ctx->progress = progress;
