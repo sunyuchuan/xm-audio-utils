@@ -3,6 +3,9 @@
 #include "effects/effect_struct.h"
 #include "audio_source_queue.h"
 
+// Limit the maximum duration of a mix
+#define MAX_DURATION_MIX_IN_MS (25*60*1000)
+
 enum EffectType {
     NoiseSuppression = 0,
     Beautify,
