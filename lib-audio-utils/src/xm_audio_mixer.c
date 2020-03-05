@@ -47,6 +47,11 @@ struct XmMixerContext_T {
     MixerEffcets mixer_effects;
 };
 
+static inline int calculation_duration_ms(int64_t size,
+    float bytes_per_sample, int nb_channles, int sample_rate) {
+    return 1000 * (size / bytes_per_sample / nb_channles / sample_rate);
+}
+
 static void mixer_effects_free(MixerEffcets *mixer) {
     LogInfo("%s\n", __func__);
     if (NULL == mixer)
@@ -196,7 +201,7 @@ static void fade_in_out(AudioSource *source, int sample_rate,
 }
 
 static AudioMuxer *open_muxer(int dst_sample_rate, int dst_channels,
-	const char *out_file_path, int encoder_type) {
+	int bytes_per_sample, const char *out_file_path, int encoder_type) {
     LogInfo("%s\n", __func__);
     if (!out_file_path )
         return NULL;
@@ -209,7 +214,20 @@ static AudioMuxer *open_muxer(int dst_sample_rate, int dst_channels,
     config.dst_nb_channels = dst_channels;
     config.mime = MIME_AUDIO_AAC;
     config.output_filename = av_strdup(out_file_path);
-    config.src_sample_fmt = AV_SAMPLE_FMT_S16;
+    switch (bytes_per_sample) {
+        case 1:
+            config.src_sample_fmt = AV_SAMPLE_FMT_U8;
+            break;
+        case 2:
+            config.src_sample_fmt = AV_SAMPLE_FMT_S16;
+            break;
+        case 4:
+            config.src_sample_fmt = AV_SAMPLE_FMT_S32;
+            break;
+        default:
+            LogError("%s bytes_per_sample %d is invalid.\n", __func__, bytes_per_sample);
+            return NULL;
+    }
     config.codec_id = AV_CODEC_ID_AAC;
     switch (encoder_type) {
         case ENCODER_FFMPEG:
@@ -391,8 +409,8 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
         buffer_len = MAX_NB_SAMPLES;
     }
 
-    int buffer_start_ms = ctx->seek_time_ms + 1000 * (ctx->cur_size /
-        (float)(parser->bits_per_sample / 8) / ctx->dst_channels / ctx->dst_sample_rate);
+    int buffer_start_ms = ctx->seek_time_ms + calculation_duration_ms(ctx->cur_size,
+        parser->bits_per_sample/8, ctx->dst_channels, ctx->dst_sample_rate);
     if (buffer_start_ms > MAX_DURATION_MIX_IN_MS) {
         ret = PCM_FILE_EOF;
         goto end;
@@ -417,8 +435,8 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
     } else if(parser->dst_nb_channels == 2) {
         memcpy(ctx->middle_buffer[VoicePcm], buffer, read_len);
     }
-    int duration = 1000 * ((float)(read_len*sizeof(*buffer)) /
-        (parser->bits_per_sample / 8) / ctx->dst_channels / ctx->dst_sample_rate);
+    int duration = calculation_duration_ms(read_len*sizeof(*buffer),
+        parser->bits_per_sample/8, ctx->dst_channels, ctx->dst_sample_rate);
     ctx->cur_size += (read_len * sizeof(*buffer));
 
     if ((!ctx->mixer_effects.bgm->decoder) &&
@@ -562,7 +580,7 @@ static int xm_audio_mixer_mix_l(XmMixerContext *ctx,
     }
 
     ctx->muxer = open_muxer(ctx->dst_sample_rate, ctx->dst_channels,
-        out_file_path, encoder_type);
+        parser->bits_per_sample/8, out_file_path, encoder_type);
     if (!ctx->muxer)
     {
         LogError("%s open_muxer failed.\n", __func__);
@@ -582,9 +600,9 @@ static int xm_audio_mixer_mix_l(XmMixerContext *ctx,
     int file_duration = ctx->mixer_effects.mix_duration_ms;
     if (file_duration > MAX_DURATION_MIX_IN_MS) file_duration = MAX_DURATION_MIX_IN_MS;
     while (!ctx->abort) {
-        float cur_position = 1000 * (ctx->cur_size / (float)(parser->bits_per_sample / 8)
-            / ctx->dst_channels / ctx->dst_sample_rate) + ctx->seek_time_ms;
-        int progress = (cur_position / file_duration) * 100;
+        int cur_position = ctx->seek_time_ms + calculation_duration_ms(ctx->cur_size,
+            parser->bits_per_sample/8, ctx->dst_channels, ctx->dst_sample_rate);
+        int progress = ((float)cur_position / file_duration) * 100;
         pthread_mutex_lock(&ctx->mutex);
         ctx->progress = progress;
         pthread_mutex_unlock(&ctx->mutex);

@@ -6,6 +6,11 @@
 #include "file_helper.h"
 #include "log.h"
 
+static inline int calculation_duration_ms(int64_t size,
+    float bytes_per_sample, int nb_channles, int sample_rate) {
+    return 1000 * (size / bytes_per_sample / nb_channles / sample_rate);
+}
+
 int main(int argc, char **argv) {
     AeSetLogLevel(LOG_LEVEL_TRACE);
     AeSetLogMode(LOG_MODE_SCREEN);
@@ -44,7 +49,8 @@ int main(int argc, char **argv) {
     while (1) {
         ret = xm_audio_utils_get_decoded_frame(utils, buffer, buffer_size_in_short, false, BGM);
         if (ret <= 0) break;
-        int buffer_start_time = (float)(1000 * cur_size) / atoi(argv[4]) / atoi(argv[3]);
+        int buffer_start_time = calculation_duration_ms(cur_size*sizeof(short),
+            16/8, atoi(argv[4]), atoi(argv[3]));
         cur_size += ret;
         xm_audio_utils_fade(utils, buffer, ret, buffer_start_time);
         fwrite(buffer, sizeof(short), ret, pcm_writer);
