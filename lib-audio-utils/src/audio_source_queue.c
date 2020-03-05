@@ -13,7 +13,7 @@ static bool audio_source_isValid(AudioSource *source)
 
 int source_queue_get_end_time_ms(AudioSourceQueue *queue)
 {
-    if(!queue)
+    if(!queue || !queue->mLast)
         return -1;
 
     pthread_mutex_lock(&queue->mLock);
