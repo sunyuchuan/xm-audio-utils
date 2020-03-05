@@ -5,6 +5,11 @@
 #include "file_helper.h"
 #include "log.h"
 
+static inline int calculation_duration_ms(int64_t size,
+    float bytes_per_sample, int nb_channles, int sample_rate) {
+    return 1000 * (size / bytes_per_sample / nb_channles / sample_rate);
+}
+
 int main(int argc, char **argv) {
     AeSetLogLevel(LOG_LEVEL_TRACE);
     AeSetLogMode(LOG_MODE_SCREEN);
@@ -51,7 +56,8 @@ int main(int argc, char **argv) {
 	if (ret <= 0) break;
 	fwrite(buffer, sizeof(short), ret, pcm_writer);
 	cur_size += ret;
-	if (1000 * (cur_size / (float) atoi(argv[2]) / atoi(argv[3])) > 13000)
+	if (calculation_duration_ms(cur_size*sizeof(short), 16/8,
+	    atoi(argv[3]), atoi(argv[2])) > 13000)
 	    break;
     }
 

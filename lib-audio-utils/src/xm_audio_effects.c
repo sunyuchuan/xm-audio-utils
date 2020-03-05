@@ -33,6 +33,11 @@ struct XmEffectContext_T {
     VoiceEffcets voice_effects;
 };
 
+static inline int calculation_duration_ms(int64_t size,
+    float bytes_per_sample, int nb_channles, int sample_rate) {
+    return 1000 * (size / bytes_per_sample / nb_channles / sample_rate);
+}
+
 static void voice_effects_free(VoiceEffcets *voice) {
     LogInfo("%s\n", __func__);
     if (!voice) {
@@ -153,9 +158,9 @@ static int add_effects_and_write_fifo(XmEffectContext *ctx) {
     if (!ctx)
         return ret;
 
-    float cur_position = ctx->cur_size / (float)(ctx->parser->bits_per_sample / 8)
-        / ctx->dst_channels / ctx->dst_sample_rate + ctx->seek_time_ms / (float)1000;
-    if (1000 * cur_position > MAX_DURATION_MIX_IN_MS) {
+    int cur_position = ctx->seek_time_ms + calculation_duration_ms(ctx->cur_size,
+        ctx->parser->bits_per_sample/8, ctx->dst_channels, ctx->dst_sample_rate);
+    if (cur_position > MAX_DURATION_MIX_IN_MS) {
         ret = PCM_FILE_EOF;
         goto end;
     }
@@ -323,13 +328,14 @@ static int xm_audio_effect_add_effects_l(XmEffectContext *ctx,
     ctx->cur_size = 0;
     ctx->flush = false;
     uint32_t data_size_byte = 0;
-    float file_duration = ctx->parser->file_size / (float)(ctx->parser->bits_per_sample
-        / 8) / ctx->parser->src_nb_channels/ ctx->parser->src_sample_rate_in_Hz;
-    if (1000 * file_duration > MAX_DURATION_MIX_IN_MS) file_duration = MAX_DURATION_MIX_IN_MS / 1000;
+    int file_duration = calculation_duration_ms(ctx->parser->file_size,
+        ctx->parser->bits_per_sample/8, ctx->parser->src_nb_channels,
+        ctx->parser->src_sample_rate_in_Hz);
+    if (file_duration > MAX_DURATION_MIX_IN_MS) file_duration = MAX_DURATION_MIX_IN_MS;
     while (!ctx->abort) {
-        float cur_position = ctx->cur_size / (float)(ctx->parser->bits_per_sample
-            / 8) / ctx->dst_channels / ctx->dst_sample_rate + ctx->seek_time_ms / (float)1000;
-        int progress = (cur_position / file_duration) * 100;
+        int cur_position = ctx->seek_time_ms + calculation_duration_ms(ctx->cur_size,
+            ctx->parser->bits_per_sample/8, ctx->dst_channels, ctx->dst_sample_rate);
+        int progress = ((float)cur_position / file_duration) * 100;
         pthread_mutex_lock(&ctx->mutex);
         ctx->progress = progress;
         pthread_mutex_unlock(&ctx->mutex);
