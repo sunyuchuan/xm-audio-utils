@@ -4,6 +4,7 @@
 #include "tools/util.h"
 #include <string.h>
 #include <stdlib.h>
+#include "../pcm_parser.h"
 
 static int parse_audio_record_source(cJSON *root_json, AudioRecordSource *record) {
     int ret = -1;
@@ -185,10 +186,15 @@ int mixer_parse(MixerEffcets *mixer_effects, const char *json_file_addr) {
         goto fail;
     }
     AudioRecordSource *record = mixer_effects->record;
+    int bits_per_sample = record->wav_ctx.header.bits_per_sample;
+    if (bits_per_sample <= 0) {
+        bits_per_sample = BITS_PER_SAMPLE_16;
+        record->wav_ctx.header.bits_per_sample = bits_per_sample;
+    }
     mixer_effects->mix_duration_ms =
         1000 * ((record->wav_ctx.file_size - record->wav_ctx.pcm_data_offset)
-        / (float)(record->wav_ctx.header.bits_per_sample / 8)
-        / record->sample_rate / record->nb_channels);
+        / (float)(bits_per_sample / 8) / record->sample_rate
+        / record->nb_channels);
 
     bgms = cJSON_GetObjectItemCaseSensitive(root_json, "bgm");
     if (!bgms)
