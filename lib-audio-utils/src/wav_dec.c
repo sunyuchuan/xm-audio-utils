@@ -129,6 +129,7 @@ int wav_read_header(const char *file_addr, WavContext *ctx)
     }
 
     header = &ctx->header;
+    memset(header, 0, sizeof(WavHeader));
     FILE *reader = NULL;
     if ((ret = ae_open_file(&reader, file_addr, false)) < 0) {
 	LogError("%s open file_addr %s failed\n", __func__, file_addr);
