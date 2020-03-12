@@ -39,13 +39,15 @@ static int parse_audio_record_source(cJSON *root_json, AudioRecordSource *record
     cJSON_ArrayForEach(sub, record_json)
     {
         cJSON *file_path = cJSON_GetObjectItemCaseSensitive(sub, "file_path");
+        cJSON *vol = cJSON_GetObjectItemCaseSensitive(sub, "volume");
         cJSON *start = cJSON_GetObjectItemCaseSensitive(sub, "startTimeMs");
         cJSON *end = cJSON_GetObjectItemCaseSensitive(sub, "endTimeMs");
         cJSON *sample_rate = cJSON_GetObjectItemCaseSensitive(sub, "sampleRate");
         cJSON *nb_channel = cJSON_GetObjectItemCaseSensitive(sub, "nbChannels");
-        if (!cJSON_IsString(file_path) || !cJSON_IsNumber(start)
-            || !cJSON_IsNumber(end) || !file_path->valuestring
-            || !cJSON_IsNumber(sample_rate) || !cJSON_IsNumber(nb_channel))
+        if (!cJSON_IsString(file_path) || !cJSON_IsNumber(vol)
+            || !cJSON_IsNumber(start) || !cJSON_IsNumber(end)
+            || !file_path->valuestring || !cJSON_IsNumber(sample_rate)
+            || !cJSON_IsNumber(nb_channel))
         {
             LogError("%s failed\n", __func__);
             ret = -1;
@@ -53,6 +55,7 @@ static int parse_audio_record_source(cJSON *root_json, AudioRecordSource *record
         }
         if (record->file_path) free(record->file_path);
         record->file_path = av_strdup(file_path->valuestring);
+        record->volume = vol->valuedouble / (float)100;
         record->start_time_ms = start->valuedouble;
         record->end_time_ms  = end->valuedouble;
         record->sample_rate= sample_rate->valuedouble;
@@ -63,6 +66,7 @@ static int parse_audio_record_source(cJSON *root_json, AudioRecordSource *record
         }
 
         LogInfo("%s file_path %s\n", __func__, record->file_path);
+        LogInfo("%s volume %f\n", __func__, record->volume);
         LogInfo("%s start time  %d\n", __func__, record->start_time_ms );
         LogInfo("%s end time %d\n", __func__, record->end_time_ms );
         LogInfo("%s sample_rate %d\n", __func__, record->sample_rate);
@@ -128,9 +132,10 @@ static int parse_audio_source(cJSON *json, AudioSourceQueue *queue) {
                 goto fail;
             }
             source.makeup_gain = makeup_g->valuedouble / (float)100;
+            source.volume = 1.0f;
         } else {
             source.side_chain_enable = false;
-            source.makeup_gain = 0.0;
+            source.makeup_gain = 0.0f;
         }
         source_queue_put(queue, &source);
 

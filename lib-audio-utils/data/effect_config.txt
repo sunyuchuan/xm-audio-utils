@@ -1,12 +1,11 @@
 {
     "effects": [
-        { "name":"Reverb","info":"Church"},
         { "name":"NoiseSuppression","info":"On"},
         { "name":"Beautify","info":"Magnetic"},
         { "name":"VolumeLimiter","info":"On"}
     ],
     "record": [
-        { "file_path":"../data/side_chain_test.wav","sampleRate":0,"nbChannels":0,"startTimeMs":0,"endTimeMs":150000}
+        { "file_path":"../data/side_chain_test.wav","volume":80,"sampleRate":0,"nbChannels":0,"startTimeMs":0,"endTimeMs":150000}
     ],
     "bgm": [
         { "file_path":"../data/side_chain_music_test.wav","volume":80,"startTimeMs":5000,"endTimeMs":60000,"fadeInTimeMs":3000,"fadeOutTimeMs":3000,"sideChain":"on","makeUpGain":50},
