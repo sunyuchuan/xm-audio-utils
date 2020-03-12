@@ -12,6 +12,7 @@
 #include "tools/fifo.h"
 #include "pcm_parser.h"
 #include "tools/conversion.h"
+#include "effects/voice_effect.h"
 
 #define DEFAULT_SAMPLE_RATE 44100
 #define DEFAULT_CHANNEL_NUMBER 2
@@ -43,6 +44,7 @@ struct XmMixerContext_T {
     fifo *audio_fifo;
     AudioMuxer *muxer ;
     char *in_config_path;
+    EffectContext *reverb_ctx;
     pthread_mutex_t mutex;
     MixerEffcets mixer_effects;
 };
@@ -50,6 +52,16 @@ struct XmMixerContext_T {
 static inline int calculation_duration_ms(int64_t size,
     float bytes_per_sample, int nb_channles, int sample_rate) {
     return 1000 * (size / bytes_per_sample / nb_channles / sample_rate);
+}
+
+static void reverb_free(XmMixerContext *ctx) {
+    LogInfo("%s\n", __func__);
+    if (!ctx) return;
+
+    if (ctx->reverb_ctx) {
+        free_effect(ctx->reverb_ctx);
+        ctx->reverb_ctx = NULL;
+    }
 }
 
 static void mixer_effects_free(MixerEffcets *mixer) {
@@ -72,6 +84,34 @@ static void mixer_effects_free(MixerEffcets *mixer) {
     if (mixer->musicQueue) {
         source_queue_freep(&mixer->musicQueue);
     }
+}
+
+static int reverb_init(XmMixerContext *ctx) {
+    int ret = -1;
+    if (!ctx) return -1;
+
+    if (ctx->reverb_ctx) {
+        free_effect(ctx->reverb_ctx);
+        ctx->reverb_ctx = NULL;
+    }
+
+    ctx->reverb_ctx = create_effect(find_effect("reverb"),
+        ctx->dst_sample_rate, ctx->dst_channels);
+
+    ret = init_effect(ctx->reverb_ctx, 0, NULL);
+    if (ret < 0) goto fail;
+
+    ret = set_effect(ctx->reverb_ctx, "Switch", "On", 0);
+    if (ret < 0) goto fail;
+
+    ret = set_effect(ctx->reverb_ctx, "reverb", REVERB_PARAMS, 0);
+    if (ret < 0) goto fail;
+
+    return ret;
+fail:
+    if (ctx->reverb_ctx) free_effect(ctx->reverb_ctx);
+    ctx->reverb_ctx = NULL;
+    return ret;
 }
 
 static int mixer_effects_init(MixerEffcets *mixer) {
@@ -278,6 +318,8 @@ static void mixer_free_l(XmMixerContext *ctx)
 
     mixer_effects_free(&(ctx->mixer_effects));
 
+    reverb_free(ctx);
+
     if (ctx->in_config_path) {
         free(ctx->in_config_path);
         ctx->in_config_path = NULL;
@@ -303,6 +345,32 @@ static void mixer_free_l(XmMixerContext *ctx)
     ctx->abort= false;
     ctx->progress = 0;
     pthread_mutex_unlock(&ctx->mutex);
+}
+
+static void add_reverb_and_write_fifo(XmMixerContext *ctx,
+        short *buffer, int buffer_len) {
+    if (!ctx || !buffer || buffer_len <= 0)
+        return;
+
+    if (!ctx->reverb_ctx || !ctx->audio_fifo)
+        return;
+
+    volatile int read_len = -1;
+    // send data
+    send_samples(ctx->reverb_ctx, buffer, buffer_len);
+
+    // receive data
+    read_len = receive_samples(ctx->reverb_ctx, buffer, buffer_len);
+    if (read_len > 0) {
+        fifo_write(ctx->audio_fifo, buffer, read_len);
+    }
+
+    while(read_len > 0) {
+        read_len = receive_samples(ctx->reverb_ctx, buffer, buffer_len);
+        if (read_len > 0) {
+            fifo_write(ctx->audio_fifo, buffer, read_len);
+        }
+    }
 }
 
 static short *mixer_combine(XmMixerContext *ctx, short *pcm_buffer,
@@ -465,8 +533,7 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
         goto end;
     }
 
-    ret = fifo_write(ctx->audio_fifo, voice_bgm_music_buffer, read_len);
-    if (ret < 0) goto end;
+    add_reverb_and_write_fifo(ctx, voice_bgm_music_buffer, read_len);
     ret = read_len;
 
 end:
@@ -724,6 +791,11 @@ int xm_audio_mixer_init(XmMixerContext *ctx,
     if (!ctx->audio_fifo) {
         LogError("%s Could not allocate audio FIFO\n", __func__);
         ret = AEERROR_NOMEM;
+        goto fail;
+    }
+
+    if ((ret = reverb_init(ctx)) < 0) {
+        LogError("%s reverb_init failed\n", __func__);
         goto fail;
     }
 

@@ -9,6 +9,7 @@
 #include "log.h"
 
 #define MAX_NB_SAMPLES 1024
+#define REVERB_PARAMS "1.5 50.0 100.0 0.0 -6.0"
 
 typedef float sample_type;
 typedef struct EffectContext_T EffectContext;
