@@ -269,7 +269,7 @@ static void reverb_set_mode(EffectContext *ctx, const char *mode) {
     if (0 == strcasecmp(mode, "Original")) {
         priv->effect_on = false;
     } else {
-        reverb_parseopts(ctx, "50.0 50.0 100.0 0.0 5.0");
+        reverb_parseopts(ctx, REVERB_PARAMS);
         priv->effect_on = true;
     }
 }

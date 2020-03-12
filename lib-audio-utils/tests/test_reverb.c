@@ -40,7 +40,7 @@ int main(int argc, char **argv) {
     ret = set_effect(ctx, "Switch", "On", 0);
     if (ret < 0) goto end;
 
-    ret = set_effect(ctx, "reverb", "50.0 50.0 100.0 0.0 5.0", 0);
+    ret = set_effect(ctx, "reverb", REVERB_PARAMS, 0);
     if (ret < 0) goto end;
 
     while (buffer_size ==
