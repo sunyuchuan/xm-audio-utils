@@ -26,6 +26,7 @@ typedef struct AudioRecordSource {
     int end_time_ms;
     int sample_rate;
     int nb_channels;
+    float volume;
     char *file_path;
     WavContext wav_ctx;
 } AudioRecordSource;
