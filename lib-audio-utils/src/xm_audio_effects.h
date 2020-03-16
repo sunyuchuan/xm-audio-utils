@@ -2,7 +2,7 @@
 #define XM_AUDIO_EFFECTS_H_
 
 #include <stddef.h>
-#include "pcm_parser.h"
+#include "idecoder.h"
 
 typedef struct XmEffectContext_T XmEffectContext;
 
@@ -33,13 +33,13 @@ void xm_audio_effect_stop(XmEffectContext *ctx);
  */
 int xm_audio_effect_get_progress(XmEffectContext *ctx);
 
-/**
- * @brief get PcmParser
+ /**
+ * @brief get AudioDecoder
  *
  * @param ctx XmEffectContext
- * @return PcmParser*
+ * @return IAudioDecoder*
  */
-PcmParser *xm_audio_effect_get_pcm_parser(XmEffectContext *ctx);
+IAudioDecoder *xm_audio_effect_get_decoder(XmEffectContext *ctx);
 
 /**
  * @brief Get frame data with voice effects

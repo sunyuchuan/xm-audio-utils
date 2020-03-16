@@ -6,7 +6,7 @@
 #include "log.h"
 #include "error_def.h"
 #include "tools/util.h"
-#include "codec/audio_decoder.h"
+#include "audio_decoder_factory.h"
 #include "mixer_effects/fade_in_out.h"
 #include "xm_audio_mixer.h"
 #include "xm_audio_effects.h"
@@ -22,20 +22,20 @@ typedef struct Fade {
 
 struct XmAudioUtils {
     volatile int ref_count;
-    AudioDecoder *bgm_decoder;
-    AudioDecoder *music_decoder;
+    IAudioDecoder *bgm_decoder;
+    IAudioDecoder *music_decoder;
     XmEffectContext *effects_ctx;
     XmMixerContext *mixer_ctx;
     Fade *fade;
     pthread_mutex_t mutex;
 };
 
-static AudioDecoder** get_decoder(XmAudioUtils *self, int decoder_type) {
+static IAudioDecoder** get_decoder(XmAudioUtils *self, int decoder_type) {
     if(NULL == self) {
         return NULL;
     }
 
-    AudioDecoder **decoder = NULL;
+    IAudioDecoder **decoder = NULL;
     switch(decoder_type) {
         case BGM:
             decoder = &(self->bgm_decoder);
@@ -88,10 +88,10 @@ void xm_audio_utils_free(XmAudioUtils *self) {
         self->fade = NULL;
     }
     if (self->bgm_decoder) {
-        xm_audio_decoder_freep(&self->bgm_decoder);
+        IAudioDecoder_freep(&self->bgm_decoder);
     }
     if (self->music_decoder) {
-        xm_audio_decoder_freep(&self->music_decoder);
+        IAudioDecoder_freep(&self->music_decoder);
     }
     if (self->mixer_ctx) {
         xm_audio_mixer_stop(self->mixer_ctx);
@@ -268,13 +268,13 @@ int xm_audio_utils_get_decoded_frame(XmAudioUtils *self,
         return ret;
     }
 
-    AudioDecoder **decoder = get_decoder(self, decoder_type);
+    IAudioDecoder **decoder = get_decoder(self, decoder_type);
     if (!decoder || !*decoder) {
         return ret;
     }
 
-    ret = xm_audio_decoder_get_decoded_frame(*decoder, buffer, buffer_size_in_short, loop);
-    if (ret == AVERROR_EOF) ret = 0;
+    ret = IAudioDecoder_get_pcm_frame(*decoder, buffer, buffer_size_in_short, loop);
+    if (PCM_FILE_EOF == ret) ret = 0;
     return ret;
 }
 
@@ -285,12 +285,12 @@ void xm_audio_utils_decoder_seekTo(XmAudioUtils *self,
         return;
     }
 
-    AudioDecoder **decoder = get_decoder(self, decoder_type);
+    IAudioDecoder **decoder = get_decoder(self, decoder_type);
     if (!decoder || !*decoder) {
         return;
     }
 
-    xm_audio_decoder_seekTo(*decoder, seek_time_ms);
+    IAudioDecoder_seekTo(*decoder, seek_time_ms);
 }
 
 int xm_audio_utils_decoder_create(XmAudioUtils *self,
@@ -301,16 +301,16 @@ int xm_audio_utils_decoder_create(XmAudioUtils *self,
         return -1;
     }
 
-    AudioDecoder **decoder = get_decoder(self, decoder_type);
+    IAudioDecoder **decoder = get_decoder(self, decoder_type);
     if (!decoder) {
         return -1;
     }
-    xm_audio_decoder_freep(decoder);
+    IAudioDecoder_freep(decoder);
 
-    *decoder = xm_audio_decoder_create(in_audio_path,
+    *decoder = audio_decoder_create(in_audio_path, 0, 0,
         out_sample_rate, out_channels);
     if (*decoder == NULL) {
-        LogError("xm_audio_decoder_create failed\n");
+        LogError("audio_decoder_create failed\n");
         return -1;
     }
 

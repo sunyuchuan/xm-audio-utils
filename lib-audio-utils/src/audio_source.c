@@ -9,7 +9,7 @@ void audio_source_free(AudioSource *source) {
                 free(source->file_path);
                 source->file_path = NULL;
             }
-            xm_audio_decoder_freep(&(source->decoder));
+            IAudioDecoder_freep(&(source->decoder));
             memset(source, 0, sizeof(AudioSource));
         }
     }
@@ -25,11 +25,14 @@ void audio_source_freep(AudioSource **source) {
 
 void audio_record_source_free(AudioRecordSource *record) {
     if (record) {
-        if (record->file_path) {
-            free(record->file_path);
-            record->file_path = NULL;
+        if (record->file_path || record->decoder) {
+            if (record->file_path) {
+                free(record->file_path);
+                record->file_path = NULL;
+            }
+            IAudioDecoder_freep(&(record->decoder));
+            memset(record, 0, sizeof(AudioRecordSource));
         }
-        memset(record, 0, sizeof(AudioRecordSource));
     }
 }
 

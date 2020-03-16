@@ -143,9 +143,6 @@ int xm_audio_generator_start(XmAudioGenerator *self,
     self->status = GENERATOR_STATE_STARTED;
     pthread_mutex_unlock(&self->mutex);
 
-    xm_audio_mixer_stop(self->mixer_ctx);
-    xm_audio_mixer_freep(&(self->mixer_ctx));
-
     if ((ret = mixer_mix(self, in_config_path, out_file_path, encode_type)) < 0) {
         LogError("%s mixer_mix failed\n", __func__);
         goto end;

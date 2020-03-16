@@ -4,7 +4,11 @@
 #include "tools/util.h"
 #include <string.h>
 #include <stdlib.h>
-#include "../pcm_parser.h"
+#include "audio_decoder_factory.h"
+#include "codec/ffmpeg_utils.h"
+
+#define DEFAULT_SAMPLE_RATE 44100
+#define DEFAULT_CHANNEL_NUMBER 1
 
 static int parse_audio_record_source(cJSON *root_json, AudioRecordSource *record) {
     int ret = -1;
@@ -54,15 +58,20 @@ static int parse_audio_record_source(cJSON *root_json, AudioRecordSource *record
             goto fail;
         }
         if (record->file_path) free(record->file_path);
+        if (record->decoder) IAudioDecoder_freep(&record->decoder);
         record->file_path = av_strdup(file_path->valuestring);
         record->volume = vol->valuedouble / (float)100;
         record->start_time_ms = start->valuedouble;
         record->end_time_ms  = end->valuedouble;
         record->sample_rate= sample_rate->valuedouble;
         record->nb_channels = nb_channel->valuedouble;
-        if (wav_read_header(record->file_path, &record->wav_ctx) >= 0) {
-            record->sample_rate = record->wav_ctx.header.sample_rate;
-            record->nb_channels = record->wav_ctx.header.nb_channels;
+        record->decoder = audio_decoder_create(record->file_path,
+                record->sample_rate, record->nb_channels,
+                DEFAULT_SAMPLE_RATE, DEFAULT_CHANNEL_NUMBER);
+        if (record->decoder == NULL) {
+            LogError("%s record audio_decoder_create failed.\n", __func__);
+            ret = -1;
+            goto fail;
         }
 
         LogInfo("%s file_path %s\n", __func__, record->file_path);
@@ -71,6 +80,8 @@ static int parse_audio_record_source(cJSON *root_json, AudioRecordSource *record
         LogInfo("%s end time %d\n", __func__, record->end_time_ms );
         LogInfo("%s sample_rate %d\n", __func__, record->sample_rate);
         LogInfo("%s nb_channels %d\n", __func__, record->nb_channels);
+        LogInfo("%s out sample_rate %d\n", __func__, record->decoder->out_sample_rate);
+        LogInfo("%s out nb_channels %d\n", __func__, record->decoder->out_nb_channels);
     }
 
     if (record_childs != NULL) {
@@ -186,20 +197,15 @@ int mixer_parse(MixerEffcets *mixer_effects, const char *json_file_addr) {
         goto fail;
     }
 
-    if ((ret = parse_audio_record_source(root_json, mixer_effects->record)) < 0) {
+    /*if ((ret = parse_audio_record_source(root_json, mixer_effects->record)) < 0) {
         LogError("%s parse_audio_record_source failed\n", __func__);
         goto fail;
     }
-    AudioRecordSource *record = mixer_effects->record;
-    int bits_per_sample = record->wav_ctx.header.bits_per_sample;
-    if (bits_per_sample <= 0) {
-        bits_per_sample = BITS_PER_SAMPLE_16;
-        record->wav_ctx.header.bits_per_sample = bits_per_sample;
+    IAudioDecoder *record_decoder = mixer_effects->record->decoder;
+    if (record_decoder->out_bits_per_sample <= 0) {
+        record_decoder->out_bits_per_sample = BITS_PER_SAMPLE_16;
     }
-    mixer_effects->mix_duration_ms =
-        1000 * ((record->wav_ctx.file_size - record->wav_ctx.pcm_data_offset)
-        / (float)(bits_per_sample / 8) / record->sample_rate
-        / record->nb_channels);
+    mixer_effects->mix_duration_ms = record_decoder->duration_ms;*/
 
     bgms = cJSON_GetObjectItemCaseSensitive(root_json, "bgm");
     if (!bgms)
@@ -309,8 +315,8 @@ int effects_parse(VoiceEffcets *voice_effects, const char *json_file_addr) {
         LogError("%s parse_audio_record_source failed\n", __func__);
         goto fail;
     }
-    voice_effects->dst_sample_rate = voice_effects->record->sample_rate;
-    voice_effects->dst_channels = voice_effects->record->nb_channels;
+    voice_effects->dst_sample_rate = voice_effects->record->decoder->out_sample_rate;
+    voice_effects->dst_channels = voice_effects->record->decoder->out_nb_channels;
 
     effects = cJSON_GetObjectItemCaseSensitive(root_json, "effects");
     if (effects == NULL) {

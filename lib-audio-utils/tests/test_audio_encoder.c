@@ -2,7 +2,7 @@
 #include "codec/audio_muxer.h"
 #include "error_def.h"
 #include "log.h"
-#include "pcm_parser.h"
+#include "audio_decoder_factory.h"
 
 #define DEFAULT_SAMPLE_RATE 44100
 #define DEFAULT_CHANNEL_NUMBER 2
@@ -26,14 +26,8 @@ int main(int argc, char **argv) {
 
     int sample_rate = atoi(argv[2]);
     int nb_channels = atoi(argv[3]);
-    WavContext wav_ctx;
-    if (wav_read_header(argv[1], &wav_ctx) >= 0) {
-        sample_rate = wav_ctx.header.sample_rate;
-        nb_channels = wav_ctx.header.nb_channels;
-    }
-
-    PcmParser *parser = pcm_parser_create(argv[1], sample_rate, nb_channels,
-        sample_rate, nb_channels, &wav_ctx);
+    IAudioDecoder *decoder = audio_decoder_create(argv[1], sample_rate, nb_channels,
+        sample_rate, nb_channels);
 
     buffer = (short *)calloc(sizeof(short), buffer_size_in_short);
     if (!buffer) goto end;
@@ -56,7 +50,7 @@ int main(int argc, char **argv) {
     }
 
     while (1) {
-        ret = pcm_parser_get_pcm_frame(parser, buffer, buffer_size_in_short, false);
+        ret = IAudioDecoder_get_pcm_frame(decoder, buffer, buffer_size_in_short, false);
         if (ret <= 0) {
             LogInfo("ret <= 0, EOF, exit\n");
             break;
@@ -73,8 +67,8 @@ end:
         free(buffer);
         buffer = NULL;
     }
-    if (parser) {
-        pcm_parser_freep(&parser);
+    if (decoder) {
+        IAudioDecoder_freep(&decoder);
     }
     muxer_stop(muxer);
     muxer_freep(&muxer);

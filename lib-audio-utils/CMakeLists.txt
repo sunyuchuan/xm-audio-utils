@@ -96,7 +96,7 @@ endif()
 add_library(${PROJECT_NAME}
 ${MEDIACODEC}
 src/codec/ffmpeg_utils.c
-src/codec/audio_decoder.c
+src/codec/ffmpeg_decoder.c
 src/codec/audio_encoder.c
 src/codec/sw/audio_encoder_sw.c
 src/codec/audio_muxer.c
@@ -139,7 +139,9 @@ src/effects/voice_effect.c
 
 src/audio_source.c
 src/audio_source_queue.c
-src/pcm_parser.c
+src/pcm_decoder.c
+src/idecoder.c
+src/audio_decoder_factory.c
 src/wav_dec.c
 src/xm_wav_utils.c
 src/xm_audio_effects.c

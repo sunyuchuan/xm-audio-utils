@@ -1,8 +1,7 @@
 {
     "effects": [
         { "name":"NoiseSuppression","info":"On"},
-        { "name":"Beautify","info":"Magnetic"},
-        { "name":"VolumeLimiter","info":"On"}
+        { "name":"Beautify","info":"Magnetic"}
     ],
     "record": [
         { "file_path":"../data/side_chain_test.wav","volume":80,"sampleRate":0,"nbChannels":0,"startTimeMs":0,"endTimeMs":150000}

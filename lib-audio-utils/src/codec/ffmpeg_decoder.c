@@ -1,9 +1,45 @@
 #if defined(__ANDROID__) || defined (__linux__)
-#include "audio_decoder.h"
+#include "ffmpeg_decoder.h"
 #include "log.h"
 #include "error_def.h"
+#include "ffmpeg_utils.h"
 
 #define milliseconds_to_fftime(ms) (av_rescale(ms, AV_TIME_BASE, 1000))
+#define fftime_to_milliseconds(ts) (av_rescale(ts, 1000, AV_TIME_BASE))
+#define OUT_SAMPLE_FMT AV_SAMPLE_FMT_S16
+
+typedef struct IAudioDecoder_Opaque {
+    // seek parameters
+    int seek_pos_ms;
+    bool seek_req;
+    int duration_ms;
+
+    // Output parameters
+    int dst_sample_rate_in_Hz;
+    int dst_nb_channels;
+    int dst_bits_per_sample;
+
+    AVAudioFifo* audio_fifo;
+    uint8_t** copy_buffer;
+    int max_nb_copy_samples;
+
+    // Codec parameters
+    AVFormatContext* fmt_ctx;
+    AVCodecContext* dec_ctx;
+    AVFrame* audio_frame;
+    int audio_stream_index;
+    volatile bool flush;
+
+    // Resample parameters
+    struct SwrContext* swr_ctx;
+    int dst_nb_samples;
+    int max_dst_nb_samples;
+    uint8_t** dst_data;
+
+    char* file_addr;
+} IAudioDecoder_Opaque;
+
+static void FFmpegDecoder_free(IAudioDecoder_Opaque *decoder);
 
 static inline void free_input_media_context(AVFormatContext **fmt_ctx,
                                          AVCodecContext **dec_ctx) {
@@ -18,8 +54,8 @@ static inline void free_input_media_context(AVFormatContext **fmt_ctx,
     }
 }
 
-static int get_frame_from_fifo(AudioDecoder *decoder, short *buffer,
-                                    const int buffer_size_in_short) {
+static int get_frame_from_fifo(IAudioDecoder_Opaque *decoder,
+        short *buffer, const int buffer_size_in_short) {
     int ret = -1;
     if (NULL == decoder)
         return ret;
@@ -28,7 +64,7 @@ static int get_frame_from_fifo(AudioDecoder *decoder, short *buffer,
     if (nb_samples > decoder->max_nb_copy_samples) {
         decoder->max_nb_copy_samples = nb_samples;
         ret = AllocateSampleBuffer(&(decoder->copy_buffer), decoder->dst_nb_channels,
-                                   decoder->max_nb_copy_samples, AV_SAMPLE_FMT_S16);
+                                   decoder->max_nb_copy_samples, OUT_SAMPLE_FMT);
         if (ret < 0) goto end;
     }
 
@@ -43,7 +79,7 @@ end:
     return ret;
 }
 
-static int resample_audio(AudioDecoder *decoder) {
+static int resample_audio(IAudioDecoder_Opaque *decoder) {
     int ret = -1;
     if (NULL == decoder)
         return ret;
@@ -52,7 +88,7 @@ static int resample_audio(AudioDecoder *decoder) {
     if (decoder->dst_nb_samples > decoder->max_dst_nb_samples) {
         decoder->max_dst_nb_samples = decoder->dst_nb_samples;
         ret = AllocateSampleBuffer(&(decoder->dst_data), decoder->dst_nb_channels,
-                               decoder->max_dst_nb_samples, AV_SAMPLE_FMT_S16);
+                               decoder->max_dst_nb_samples, OUT_SAMPLE_FMT);
         if (ret < 0) {
             LogError("%s av_samples_alloc error, error code = %d.\n", __func__, ret);
             goto end;
@@ -72,7 +108,8 @@ end:
     return ret < 0 ? ret : 0;
 }
 
-static int read_audio_packet(AudioDecoder *decoder, AVPacket *pkt) {
+static int read_audio_packet(IAudioDecoder_Opaque *decoder,
+        AVPacket *pkt) {
     int ret = -1;
     if (NULL == decoder)
         return ret;
@@ -101,9 +138,7 @@ static int read_audio_packet(AudioDecoder *decoder, AVPacket *pkt) {
     while (1) {
         ret = av_read_frame(decoder->fmt_ctx, pkt);
         if (ret < 0) {
-            if (AVERROR_EOF == ret) {
-                LogWarning("%s Audio file is end of file.\n", __func__);
-            } else {
+            if (AVERROR_EOF != ret) {
                 LogError("%s av_read_frame error, error code = %d.\n", __func__, ret);
             }
             break;
@@ -115,7 +150,7 @@ static int read_audio_packet(AudioDecoder *decoder, AVPacket *pkt) {
     return ret;
 }
 
-static int decode_audio_frame(AudioDecoder *decoder) {
+static int decode_audio_frame(IAudioDecoder_Opaque *decoder) {
     int ret = -1;
     if (NULL == decoder)
         return ret;
@@ -166,7 +201,8 @@ end:
     return ret < 0 ? ret : 0;
 }
 
-static int open_audio_file(AudioDecoder *decoder, const char *file_addr) {
+static int open_audio_file(IAudioDecoder_Opaque *decoder,
+        const char *file_addr) {
     LogInfo("%s\n", __func__);
     int ret = -1;
     AVCodecContext *avctx = NULL;
@@ -187,7 +223,7 @@ static int open_audio_file(AudioDecoder *decoder, const char *file_addr) {
 
     ret = InitResampler(decoder->dec_ctx->channels, decoder->dst_nb_channels,
                         decoder->dec_ctx->sample_rate, decoder->dst_sample_rate_in_Hz,
-                        decoder->dec_ctx->sample_fmt, AV_SAMPLE_FMT_S16,
+                        decoder->dec_ctx->sample_fmt, OUT_SAMPLE_FMT,
                         &(decoder->swr_ctx));
     if (ret < 0) goto end;
 
@@ -198,94 +234,13 @@ end:
     return ret;
 }
 
-static int init_decoder(AudioDecoder *decoder, const int sample_rate_in_Hz,
-        const int nb_channels) {
-    LogInfo("%s\n", __func__);
-    int ret = -1;
-    if (NULL == decoder)
-        return ret;
-
-    ret = CheckSampleRateAndChannels(sample_rate_in_Hz, nb_channels);
-    if (ret < 0) goto end;
-
-    xm_audio_decoder_free(decoder);
-    decoder->dst_sample_rate_in_Hz = sample_rate_in_Hz;
-    decoder->dst_nb_channels = nb_channels;
-    decoder->max_nb_copy_samples = MAX_NB_SAMPLES;
-    decoder->max_dst_nb_samples = MAX_NB_SAMPLES;
-    decoder->dst_nb_samples = MAX_NB_SAMPLES;
-    decoder->audio_stream_index = -1;
-    decoder->seek_pos_ms = 0;
-    decoder->seek_req = false;
-
-    // Allocate sample buffer for resampler
-    ret = AllocateSampleBuffer(&(decoder->dst_data), nb_channels,
-                               decoder->max_dst_nb_samples, AV_SAMPLE_FMT_S16);
-    if (ret < 0) goto end;
-
-    // Allocate sample buffer for copy_buffer
-    ret = AllocateSampleBuffer(&(decoder->copy_buffer), nb_channels,
-                               decoder->max_nb_copy_samples, AV_SAMPLE_FMT_S16);
-    if (ret < 0) goto end;
-
-    // Allocate buffer for audio frame
-    decoder->audio_frame = av_frame_alloc();
-    if (NULL == decoder->audio_frame) {
-        LogError("%s Could not allocate input audio frame\n", __func__);
-        ret = AVERROR(ENOMEM);
-        goto end;
-    }
-
-    // Allocate buffer for audio fifo
-    decoder->audio_fifo = av_audio_fifo_alloc(AV_SAMPLE_FMT_S16, nb_channels, 1);
-    if (NULL == decoder->audio_fifo) {
-        LogError("%s Could not allocate audio FIFO\n", __func__);
-        ret = AVERROR(ENOMEM);
-        goto end;
-    }
-    return 0;
-
-end:
-    xm_audio_decoder_free(decoder);
-    return ret;
-}
-
-static int reset_decoder(AudioDecoder *decoder, const char *file_addr,
-        int sample_rate, int channels) {
-    LogInfo("%s\n", __func__);
-    int ret = -1;
-    char *tmp_file_addr = NULL;
-    if (NULL == decoder || NULL == file_addr)
-        return ret;
-
-    if ((ret = CopyString(file_addr, &tmp_file_addr)) < 0) {
-        LogError("%s CopyString failed\n", __func__);
-        goto end;
-    }
-
-    if ((ret = init_decoder(decoder, sample_rate, channels)) < 0) {
-        LogError("%s init_decoder failed\n", __func__);
-        goto end;
-    }
-
-    if ((ret = open_audio_file(decoder, tmp_file_addr)) < 0) {
-        LogError("%s open_audio_file failed\n", __func__);
-        goto end;
-    }
-
-end:
-    if (tmp_file_addr) {
-        free(tmp_file_addr);
-    }
-    return ret;
-}
-
-static void decoder_flush(AudioDecoder *decoder)
+static void decoder_flush(IAudioDecoder_Opaque *decoder)
 {
     LogInfo("%s.\n", __func__);
     if (NULL == decoder)
         return;
 
+    decoder->flush = true;
     int ret = 0;
     ret = avcodec_send_packet(decoder->dec_ctx, NULL);
     if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF) {
@@ -316,7 +271,87 @@ static void decoder_flush(AudioDecoder *decoder)
     }
 }
 
-void xm_audio_decoder_free(AudioDecoder *decoder) {
+static int init_decoder(IAudioDecoder_Opaque *decoder,
+        const char *file_addr, int sample_rate, int channels) {
+    LogInfo("%s\n", __func__);
+    int ret = -1;
+    char *tmp_file_addr = NULL;
+    if (NULL == decoder || NULL == file_addr)
+        return ret;
+
+    if ((ret = CopyString(file_addr, &tmp_file_addr)) < 0) {
+        LogError("%s CopyString failed\n", __func__);
+        goto end;
+    }
+
+    ret = CheckSampleRateAndChannels(sample_rate, channels);
+    if (ret < 0) goto end;
+
+    FFmpegDecoder_free(decoder);
+    decoder->dst_sample_rate_in_Hz = sample_rate;
+    decoder->dst_nb_channels = channels;
+    decoder->dst_bits_per_sample = BITS_PER_SAMPLE_16;
+    decoder->max_nb_copy_samples = MAX_NB_SAMPLES;
+    decoder->max_dst_nb_samples = MAX_NB_SAMPLES;
+    decoder->dst_nb_samples = MAX_NB_SAMPLES;
+    decoder->audio_stream_index = -1;
+    decoder->seek_pos_ms = 0;
+    decoder->seek_req = false;
+    decoder->flush = false;
+
+    // Allocate sample buffer for resampler
+    ret = AllocateSampleBuffer(&(decoder->dst_data), channels,
+                               decoder->max_dst_nb_samples, OUT_SAMPLE_FMT);
+    if (ret < 0) goto end;
+
+    // Allocate sample buffer for copy_buffer
+    ret = AllocateSampleBuffer(&(decoder->copy_buffer), channels,
+                               decoder->max_nb_copy_samples, OUT_SAMPLE_FMT);
+    if (ret < 0) goto end;
+
+    // Allocate buffer for audio frame
+    decoder->audio_frame = av_frame_alloc();
+    if (NULL == decoder->audio_frame) {
+        LogError("%s Could not allocate input audio frame\n", __func__);
+        ret = AVERROR(ENOMEM);
+        goto end;
+    }
+
+    // Allocate buffer for audio fifo
+    decoder->audio_fifo = av_audio_fifo_alloc(OUT_SAMPLE_FMT, channels, 1);
+    if (NULL == decoder->audio_fifo) {
+        LogError("%s Could not allocate audio FIFO\n", __func__);
+        ret = AVERROR(ENOMEM);
+        goto end;
+    }
+
+    if ((ret = open_audio_file(decoder, tmp_file_addr)) < 0) {
+        LogError("%s open_audio_file failed\n", __func__);
+        goto end;
+    }
+
+    AVStream *audio_stream = decoder->fmt_ctx->streams[decoder->audio_stream_index];
+    if (audio_stream->duration != AV_NOPTS_VALUE) {
+        decoder->duration_ms = av_rescale_q(audio_stream->duration,
+            audio_stream->time_base, AV_TIME_BASE_Q) / 1000;
+    } else {
+        int64_t duration = decoder->fmt_ctx->duration;
+        decoder->duration_ms = fftime_to_milliseconds(duration);
+    }
+
+    if (tmp_file_addr) {
+        free(tmp_file_addr);
+    }
+    return 0;
+end:
+    if (tmp_file_addr) {
+        free(tmp_file_addr);
+    }
+    FFmpegDecoder_free(decoder);
+    return ret;
+}
+
+static void FFmpegDecoder_free(IAudioDecoder_Opaque *decoder) {
     LogInfo("%s\n", __func__);
     if (NULL == decoder)
         return;
@@ -348,32 +383,24 @@ void xm_audio_decoder_free(AudioDecoder *decoder) {
     }
 }
 
-void xm_audio_decoder_freep(AudioDecoder **decoder) {
-    LogInfo("%s\n", __func__);
-    if (NULL == decoder || NULL == *decoder)
-        return;
-
-    xm_audio_decoder_free(*decoder);
-    av_freep(decoder);
-}
-
-int xm_audio_decoder_get_decoded_frame(AudioDecoder *decoder, short *buffer,
-                                   const int buffer_size_in_short, bool loop) {
+static int FFmpegDecoder_get_pcm_frame(
+        IAudioDecoder_Opaque *decoder, short *buffer,
+        const int buffer_size_in_short, bool loop) {
     int ret = -1;
-    if (NULL == decoder)
+    if (!decoder || !buffer)
         return ret;
 
     while (av_audio_fifo_size(decoder->audio_fifo) * decoder->dst_nb_channels <
            buffer_size_in_short) {
         ret = decode_audio_frame(decoder);
         if (ret < 0) {
-            if (ret == AVERROR_EOF) {
+            if (ret == AVERROR_EOF && !decoder->flush) {
                 decoder_flush(decoder);
             }
             if (ret == AVERROR_EOF && loop) {
-                if ((ret = reset_decoder(decoder, decoder->file_addr,
+                if ((ret = init_decoder(decoder, decoder->file_addr,
                         decoder->dst_sample_rate_in_Hz, decoder->dst_nb_channels)) < 0) {
-                    LogError("%s reset_decoder failed\n", __func__);
+                    LogError("%s init_decoder failed\n", __func__);
                     goto end;
                 }
             } else if (ret == AVERROR_EOF && 0 != av_audio_fifo_size(decoder->audio_fifo)) {
@@ -386,21 +413,25 @@ int xm_audio_decoder_get_decoded_frame(AudioDecoder *decoder, short *buffer,
     return get_frame_from_fifo(decoder, buffer, buffer_size_in_short);
 
 end:
+    if (ret == AVERROR_EOF) ret = PCM_FILE_EOF;
     return ret;
 }
 
-void xm_audio_decoder_seekTo(AudioDecoder *decoder, int seek_pos_ms) {
+static int FFmpegDecoder_seekTo(IAudioDecoder_Opaque *decoder,
+        int seek_pos_ms) {
     LogInfo("%s seek_pos_ms %d\n", __func__, seek_pos_ms);
     if (NULL == decoder)
-        return;
+        return -1;
 
     decoder->seek_req = true;
     decoder->seek_pos_ms = seek_pos_ms < 0 ? 0 : seek_pos_ms;
     AudioFifoReset(decoder->audio_fifo);
+    decoder->flush = false;
+    return 0;
 }
 
-AudioDecoder *xm_audio_decoder_create(const char *file_addr,
-        const int sample_rate, const int channels) {
+IAudioDecoder *FFmpegDecoder_create(const char *file_addr,
+    int dst_sample_rate, int dst_channels) {
     LogInfo("%s.\n", __func__);
     int ret = -1;
     if (NULL == file_addr) {
@@ -408,21 +439,30 @@ AudioDecoder *xm_audio_decoder_create(const char *file_addr,
         return NULL;
     }
 
-    AudioDecoder *decoder = (AudioDecoder *)calloc(1, sizeof(AudioDecoder));
+    IAudioDecoder *decoder = IAudioDecoder_create(sizeof(IAudioDecoder_Opaque));
     if (NULL == decoder) {
-        LogError("%s Could not allocate AudioDecoder\n", __func__);
+        LogError("%s Could not allocate IAudioDecoder.\n", __func__);
         goto end;
     }
 
-    if ((ret = reset_decoder(decoder, file_addr, sample_rate, channels)) < 0) {
-        LogError("%s reset_decoder failed\n", __func__);
+    decoder->func_seekTo = FFmpegDecoder_seekTo;
+    decoder->func_get_pcm_frame = FFmpegDecoder_get_pcm_frame;
+    decoder->func_free = FFmpegDecoder_free;
+
+    IAudioDecoder_Opaque *opaque = decoder->opaque;
+    if ((ret = init_decoder(opaque, file_addr, dst_sample_rate, dst_channels)) < 0) {
+        LogError("%s init_decoder failed.\n", __func__);
         goto end;
     }
+    decoder->out_sample_rate = opaque->dst_sample_rate_in_Hz;
+    decoder->out_nb_channels = opaque->dst_nb_channels;
+    decoder->out_bits_per_sample = opaque->dst_bits_per_sample;
+    decoder->duration_ms = opaque->duration_ms;
 
     return decoder;
 end:
     if (decoder) {
-        xm_audio_decoder_freep(&decoder);
+        IAudioDecoder_freep(&decoder);
     }
     return NULL;
 }

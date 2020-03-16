@@ -1,8 +1,9 @@
 #include <sys/time.h>
-#include "codec/audio_decoder.h"
+#include "audio_decoder_factory.h"
 #include "error_def.h"
 #include "file_helper.h"
 #include "log.h"
+#include "codec/ffmpeg_utils.h"
 
 int main(int argc, char **argv) {
     AeSetLogLevel(LOG_LEVEL_TRACE);
@@ -28,15 +29,15 @@ int main(int argc, char **argv) {
 
     // Set Log
     RegisterFFmpeg();
-    AudioDecoder *decoder = xm_audio_decoder_create(argv[1],
+    IAudioDecoder *decoder = audio_decoder_create(argv[1], 0, 0,
         atoi(argv[3]), atoi(argv[4]));
     if (decoder == NULL) {
-        LogError("xm_audio_decoder_create failed\n");
+        LogError("audio_decoder_create failed\n");
         goto end;
     }
 
     while (1) {
-        ret = xm_audio_decoder_get_decoded_frame(decoder, buffer, buffer_size_in_short, false);
+        ret = IAudioDecoder_get_pcm_frame(decoder, buffer, buffer_size_in_short, false);
         if (ret <= 0) break;
         fwrite(buffer, sizeof(short), ret, pcm_writer);
     }
@@ -50,7 +51,7 @@ end:
         fclose(pcm_writer);
         pcm_writer = NULL;
     }
-    xm_audio_decoder_freep(&decoder);
+    IAudioDecoder_freep(&decoder);
 
     gettimeofday(&end, NULL);
     timer = 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
