@@ -39,8 +39,8 @@ int main(int argc, char **argv) {
     }
 
     xm_audio_utils_parser_init(utils, argv[1], atoi(argv[2]), atoi(argv[3]),
-        atoi(argv[4]), atoi(argv[5]), BGM);
-    xm_audio_utils_parser_seekTo(utils, 10000, BGM);
+        atoi(argv[4]), atoi(argv[5]));
+    xm_audio_utils_parser_seekTo(utils, 10000);
     int bgm_start_time_ms = 0;
     int bgm_end_time_ms = 60000;
     int volume = 80;
@@ -51,7 +51,7 @@ int main(int argc, char **argv) {
 
     int64_t cur_size = 0;
     while (1) {
-        ret = xm_audio_utils_get_parser_frame(utils, buffer, buffer_size_in_short, true, BGM);
+        ret = xm_audio_utils_get_parser_frame(utils, buffer, buffer_size_in_short, true);
         if (ret <= 0) break;
         int buffer_start_time = calculation_duration_ms(cur_size*sizeof(short),
             16/8, atoi(argv[5]), atoi(argv[4]));

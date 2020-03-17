@@ -3,12 +3,6 @@
 
 #include <stdbool.h>
 
-enum BgmType {
-    NONE = -1,
-    BGM,
-    MUSIC
-};
-
 typedef struct XmAudioUtils XmAudioUtils;
 
 /**
@@ -126,22 +120,20 @@ int xm_audio_utils_fade_init(XmAudioUtils *self,
  * @param buffer output buffer
  * @param buffer_size_in_short the size of output buffer
  * @param loop true : re-start decoding when the audio file ends
- * @param parser_type BGM or MUSIC
  * @return size of valid buffer obtained.
                   Less than or equal to 0 means failure or end
  */
 int xm_audio_utils_get_parser_frame(XmAudioUtils *self,
-    short *buffer, int buffer_size_in_short, bool loop, int parser_type);
+    short *buffer, int buffer_size_in_short, bool loop);
 
 /**
  * @brief decoder seekTo
  *
  * @param self XmAudioUtils
  * @param seek_time_ms seek target time in ms
- * @param parser_type BGM or MUSIC
  */
 int xm_audio_utils_parser_seekTo(XmAudioUtils *self,
-        int seek_time_ms, int parser_type);
+        int seek_time_ms);
 
 /**
  * @brief create decoder that decode audio to pcm data
@@ -152,12 +144,11 @@ int xm_audio_utils_parser_seekTo(XmAudioUtils *self,
  * @param src_channels input pcm nb_channels
  * @param dst_sample_rate Output pcm sample_rate
  * @param dst_channels Output pcm nb_channels
- * @param parser_type BGM or MUSIC
  * @return Less than 0 means failure
  */
 int xm_audio_utils_parser_init(XmAudioUtils *self,
     const char *in_pcm_path, int src_sample_rate, int src_channels,
-    int dst_sample_rate, int dst_channels, int parser_type);
+    int dst_sample_rate, int dst_channels);
 
 /**
  * @brief create XmAudioUtils

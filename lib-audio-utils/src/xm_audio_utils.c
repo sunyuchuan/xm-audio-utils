@@ -21,34 +21,12 @@ typedef struct Fade {
 } Fade;
 
 struct XmAudioUtils {
-    PcmParser *bgm_parser;
-    PcmParser *music_parser;
+    PcmParser *parser;
     XmEffectContext *effects_ctx;
     XmMixerContext *mixer_ctx;
     Fade *fade;
     pthread_mutex_t mutex;
 };
-
-static PcmParser** get_parser(XmAudioUtils *self, int parser_type) {
-    if(NULL == self) {
-        return NULL;
-    }
-
-    PcmParser **parser = NULL;
-    switch(parser_type) {
-        case BGM:
-            parser = &(self->bgm_parser);
-            break;
-        case MUSIC:
-            parser = &(self->music_parser);
-            break;
-        default:
-            parser = NULL;
-            LogError("%s invalid parser_type.\n", __func__);
-            break;
-    }
-    return parser;
-}
 
 void xm_audio_utils_free(XmAudioUtils *self) {
     LogInfo("%s\n", __func__);
@@ -59,11 +37,8 @@ void xm_audio_utils_free(XmAudioUtils *self) {
         free(self->fade);
         self->fade = NULL;
     }
-    if (self->bgm_parser) {
-        pcm_parser_freep(&self->bgm_parser);
-    }
-    if (self->music_parser) {
-        pcm_parser_freep(&self->music_parser);
+    if (self->parser) {
+        pcm_parser_freep(&self->parser);
     }
     if (self->mixer_ctx) {
         xm_audio_mixer_stop(self->mixer_ctx);
@@ -233,50 +208,35 @@ int xm_audio_utils_fade_init(XmAudioUtils *self,
 }
 
 int xm_audio_utils_get_parser_frame(XmAudioUtils *self,
-    short *buffer, int buffer_size_in_short, bool loop, int parser_type) {
+    short *buffer, int buffer_size_in_short, bool loop) {
     int ret = -1;
     if(!self || !buffer || buffer_size_in_short < 0) {
         return ret;
     }
 
-    PcmParser **parser = get_parser(self, parser_type);
-    if (!parser || !*parser) {
-        return ret;
-    }
-
-    ret = pcm_parser_get_pcm_frame(*parser, buffer, buffer_size_in_short, loop);
+    ret = pcm_parser_get_pcm_frame(self->parser, buffer, buffer_size_in_short, loop);
     return ret;
 }
 
 int xm_audio_utils_parser_seekTo(XmAudioUtils *self,
-        int seek_time_ms, int parser_type) {
+        int seek_time_ms) {
     LogInfo("%s seek_time_ms %d\n", __func__, seek_time_ms);
     if(NULL == self) {
         return -1;
     }
 
-    PcmParser **parser = get_parser(self, parser_type);
-    if (!parser || !*parser) {
-        return -1;
-    }
-
-    return pcm_parser_seekTo(*parser, seek_time_ms);
+    return pcm_parser_seekTo(self->parser, seek_time_ms);
 }
 
 int xm_audio_utils_parser_init(XmAudioUtils *self,
     const char *in_pcm_path, int src_sample_rate, int src_channels,
-    int dst_sample_rate, int dst_channels, int parser_type) {
+    int dst_sample_rate, int dst_channels) {
     LogInfo("%s\n", __func__);
     if (NULL == self || NULL == in_pcm_path) {
         return -1;
     }
 
-    PcmParser **parser = get_parser(self, parser_type);
-    if (!parser) {
-        return -1;
-    }
-    pcm_parser_freep(parser);
-
+    pcm_parser_freep(&self->parser);
     WavContext wav_ctx;
     if (wav_read_header(in_pcm_path, &wav_ctx) >= 0) {
         src_sample_rate = wav_ctx.header.sample_rate;
@@ -288,9 +248,9 @@ int xm_audio_utils_parser_init(XmAudioUtils *self,
         dst_channels = wav_ctx.header.nb_channels;
     }
 
-    *parser = pcm_parser_create(in_pcm_path, src_sample_rate,
+    self->parser = pcm_parser_create(in_pcm_path, src_sample_rate,
         src_channels, dst_sample_rate, dst_channels, &wav_ctx);
-    if (*parser == NULL) {
+    if (self->parser == NULL) {
         LogError("pcm_parser_create failed\n");
         return -1;
     }
