@@ -17,14 +17,6 @@ public class XmAudioUtils {
     public static final int ENCODER_FFMPEG = 0;
     // 编码器类型:硬件编码
     public static final int ENCODER_MEDIA_CODEC = 1;
-    /**
-     * 为了支持同时解码背景音和音效两种文件类型,
-     * native XmAudioUtils类中有两个解码器实例:BGM和MUSIC
-     */
-    // BGM背景音解码器
-    public static final int DECODER_BGM = 0;
-    // MUSIC音效解码器
-    public static final int DECODER_MUSIC = 1;
     // 添加特效
     private static final int ADD_EFFECTS = 0;
     // 混音
@@ -282,17 +274,16 @@ public class XmAudioUtils {
      * @param inAudioPath 解码文件路径
      * @param outSampleRate 解码器输出的pcm数据采样率,建议和人声pcm数据的采样率一致
      * @param outChannels 解码输出的pcm数据声道数,建议双声道
-     * @param decoderType 解码器类型:BGM或MUSIC
      * @return 小于0表示失败
      */
-    public int decoder_create(String inAudioPath, int outSampleRate, int outChannels, int decoderType) {
+    public int decoder_create(String inAudioPath, int outSampleRate, int outChannels) {
         int ret = -1;
         if (inAudioPath == null) {
             return ret;
         }
 
         try {
-            ret = native_decoder_create(inAudioPath, outSampleRate, outChannels, decoderType);
+            ret = native_decoder_create(inAudioPath, outSampleRate, outChannels);
         } catch (IllegalStateException e) {
             e.printStackTrace();
         }
@@ -303,11 +294,10 @@ public class XmAudioUtils {
     /**
      * 快进快退到解码文件的指定位置
      * @param seekTimeMs 目标时间,单位毫秒
-     * @param decoderType 解码器类型:BGM或MUSIC
      */
-    public void decoder_seekTo(int seekTimeMs, int decoderType) {
+    public void decoder_seekTo(int seekTimeMs) {
         try {
-            native_decoder_seekTo(seekTimeMs, decoderType);
+            native_decoder_seekTo(seekTimeMs);
         } catch (IllegalStateException e) {
             e.printStackTrace();
         }
@@ -318,17 +308,16 @@ public class XmAudioUtils {
      * @param buffer 目标buffer
      * @param bufferSize 目标buffer大小
      * @param loop 当音频文件解码到文件末尾时,是否从文件头开始重新解码
-     * @param decoderType 解码器类型:BGM或MUSIC
      * @return 有效pcm数据的长度
      */
-    public int get_decoded_frame(short[] buffer, int bufferSize, boolean loop, int decoderType) {
+    public int get_decoded_frame(short[] buffer, int bufferSize, boolean loop) {
         int ret = -1;
         if (buffer == null) {
             return ret;
         }
 
         try {
-            ret = native_get_decoded_frame(buffer, bufferSize, loop, decoderType);
+            ret = native_get_decoded_frame(buffer, bufferSize, loop);
         } catch (IllegalStateException e) {
             e.printStackTrace();
         }
@@ -351,9 +340,9 @@ public class XmAudioUtils {
     private native void native_close_log_file();
     private native void native_setup();
 
-    private native int native_decoder_create(String inAudioPath, int outSampleRate, int outChannels, int decoderType);
-    private native void native_decoder_seekTo(int seekTimeMs, int decoderType);
-    private native int native_get_decoded_frame(short[] buffer, int bufferSize, boolean loop, int decoderType);
+    private native int native_decoder_create(String inAudioPath, int outSampleRate, int outChannels);
+    private native void native_decoder_seekTo(int seekTimeMs);
+    private native int native_get_decoded_frame(short[] buffer, int bufferSize, boolean loop);
 
     private native int native_fade_init(int pcmSampleRate, int pcmNbChannels, int audioStartTimeMs,
                            int audioEndTimeMs, int volume, int fadeInTimeMs, int fadeOutTimeMs);

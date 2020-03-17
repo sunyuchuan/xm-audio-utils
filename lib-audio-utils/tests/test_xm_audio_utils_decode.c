@@ -41,13 +41,13 @@ int main(int argc, char **argv) {
         goto end;
     }
 
-    xm_audio_utils_decoder_create(utils, argv[1], atoi(argv[3]), atoi(argv[4]), BGM);
-    xm_audio_utils_decoder_seekTo(utils, 1000, BGM);
+    xm_audio_utils_decoder_create(utils, argv[1], atoi(argv[3]), atoi(argv[4]));
+    xm_audio_utils_decoder_seekTo(utils, 1000);
     xm_audio_utils_fade_init(utils, atoi(argv[3]), atoi(argv[4]), 0, 60000, 80, 5000, 5000);
 
     int64_t cur_size = 0;
     while (1) {
-        ret = xm_audio_utils_get_decoded_frame(utils, buffer, buffer_size_in_short, false, BGM);
+        ret = xm_audio_utils_get_decoded_frame(utils, buffer, buffer_size_in_short, false);
         if (ret <= 0) break;
         int buffer_start_time = calculation_duration_ms(cur_size*sizeof(short),
             16/8, atoi(argv[4]), atoi(argv[3]));

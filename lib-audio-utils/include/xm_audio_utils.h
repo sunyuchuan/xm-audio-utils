@@ -5,12 +5,6 @@
 
 #include <stdbool.h>
 
-enum BgmType {
-    NONE = -1,
-    BGM,
-    MUSIC
-};
-
 enum ActionType {
     AC_NONE = -1,
     ADD_EFFECTS,
@@ -155,22 +149,20 @@ int xm_audio_utils_fade_init(XmAudioUtils *self,
  * @param buffer output buffer
  * @param buffer_size_in_short the size of output buffer
  * @param loop true : re-start decoding when the audio file ends
- * @param decoder_type BGM or MUSIC
  * @return size of valid buffer obtained.
                   Less than or equal to 0 means failure or end
  */
 int xm_audio_utils_get_decoded_frame(XmAudioUtils *self,
-    short *buffer, int buffer_size_in_short, bool loop, int decoder_type);
+    short *buffer, int buffer_size_in_short, bool loop);
 
 /**
  * @brief decoder seekTo
  *
  * @param self XmAudioUtils
  * @param seek_time_ms seek target time in ms
- * @param decoder_type BGM or MUSIC
  */
 void xm_audio_utils_decoder_seekTo(XmAudioUtils *self,
-    int seek_time_ms, int decoder_type);
+    int seek_time_ms);
 
 /**
  * @brief create decoder that decode audio to pcm data
@@ -179,11 +171,10 @@ void xm_audio_utils_decoder_seekTo(XmAudioUtils *self,
  * @param in_audio_path Input audio file path
  * @param out_sample_rate Output audio sample_rate
  * @param out_channels Output audio nb_channels
- * @param decoder_type BGM or MUSIC
  * @return Less than 0 means failure
  */
 int xm_audio_utils_decoder_create(XmAudioUtils *self,
-    const char *in_audio_path, int out_sample_rate, int out_channels, int decoder_type);
+    const char *in_audio_path, int out_sample_rate, int out_channels);
 
 /**
  * @brief create XmAudioUtils

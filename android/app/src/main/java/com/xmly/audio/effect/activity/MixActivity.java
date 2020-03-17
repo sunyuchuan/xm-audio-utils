@@ -323,13 +323,13 @@ public class MixActivity extends AppCompatActivity implements View.OnClickListen
                     e.printStackTrace();
                 }
 
-                mAudioUtils.decoder_create(decodeRawAudio, 44100, 2, XmAudioUtils.DECODER_BGM);
-                mAudioUtils.decoder_seekTo(10000, XmAudioUtils.DECODER_BGM);
+                mAudioUtils.decoder_create(decodeRawAudio, 44100, 2);
+                mAudioUtils.decoder_seekTo(10000);
                 mAudioUtils.fadeInit(44100, 2, 0, 60000, 80, 5000, 5000);
                 long curSize = 0;
                 abortFade = false;
                 while (!abortFade) {
-                    int ret = mAudioUtils.get_decoded_frame(buffer, bufferSize, false, XmAudioUtils.DECODER_BGM);
+                    int ret = mAudioUtils.get_decoded_frame(buffer, bufferSize, false);
                     if (ret <= 0) {
                         mPlayer.stopPlayer();
                         break;
