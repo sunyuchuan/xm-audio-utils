@@ -152,6 +152,7 @@ end:
     pthread_mutex_lock(&self->mutex);
     self->status = GENERATOR_STATE_COMPLETED;
     pthread_mutex_unlock(&self->mutex);
+    LogInfo("%s completed, ret = %d.\n", __func__, ret);
     return ret;
 }
 
