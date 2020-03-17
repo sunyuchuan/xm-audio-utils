@@ -19,7 +19,8 @@
 #define DEFAULT_CHANNEL_NUMBER 2
 
 enum MiddleBuffersType {
-    VoicePcm = 0,
+    EffectsPcm = 0,
+    VoicePcm,
     Decoder,
     MixBgm,
     MixMusic,
@@ -144,6 +145,37 @@ static int mixer_effects_init(MixerEffcets *mixer) {
         goto fail;
     }
     mixer->musicQueue = source_queue_create();
+
+    ret = 0;
+fail:
+    return ret;
+}
+
+static int audio_effects_init(XmMixerContext *ctx,
+        const char *in_config_path) {
+    LogInfo("%s\n", __func__);
+    int ret = -1;
+    if (!ctx) return -1;
+
+    ctx->effects_ctx = xm_audio_effect_create();
+    if (!ctx->effects_ctx) {
+        LogError("%s xm_audio_effect_create failed\n", __func__);
+        goto fail;
+    }
+
+    if ((ret = xm_audio_effect_init(ctx->effects_ctx, in_config_path)) < 0) {
+        LogError("Error: xm_audio_effect_init failed\n");
+        goto fail;
+    }
+
+    PcmParser *parser = xm_audio_effect_get_pcm_parser(ctx->effects_ctx);
+    if (!parser) {
+        LogError("%s xm_audio_effect_get_pcm_parser failed\n", __func__);
+        goto fail;
+    }
+    ctx->pcm_sample_rate = parser->dst_sample_rate_in_Hz;
+    ctx->pcm_channels = parser->dst_nb_channels;
+    ctx->dst_sample_rate = parser->dst_sample_rate_in_Hz;
 
     ret = 0;
 fail:
@@ -419,7 +451,7 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
         return ret;
     }
 
-    short buffer[MAX_NB_SAMPLES];
+    short *in_mixer_buffer = NULL;
     int buffer_len = 0;
     if (parser->dst_nb_channels == 1) {
         buffer_len = MAX_NB_SAMPLES >> 1;
@@ -434,7 +466,8 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
         goto end;
     }
 
-    int read_len = xm_audio_effect_get_frame(ctx->effects_ctx, buffer, buffer_len);
+    int read_len = xm_audio_effect_get_frame(ctx->effects_ctx,
+        ctx->middle_buffer[EffectsPcm], buffer_len);
     if (read_len <= 0) {
         if (buffer_start_ms >= ctx->mixer_effects.mix_duration_ms) {
             ret = read_len;
@@ -442,27 +475,28 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
         } else {
             // If the recording ends, but the mix does not end,
             // zeros are added at the end of the recording.
-            memset(buffer, 0, buffer_len * sizeof(*buffer));
+            memset(ctx->middle_buffer[EffectsPcm], 0, buffer_len * sizeof(*ctx->middle_buffer[EffectsPcm]));
             read_len = buffer_len;
         }
     }
 
     if (parser->dst_nb_channels == 1) {
-        MonoToStereoS16(ctx->middle_buffer[VoicePcm], buffer, read_len);
+        MonoToStereoS16(ctx->middle_buffer[VoicePcm], ctx->middle_buffer[EffectsPcm], read_len);
         read_len = read_len << 1;
+        in_mixer_buffer = ctx->middle_buffer[VoicePcm];
     } else if(parser->dst_nb_channels == 2) {
-        memcpy(ctx->middle_buffer[VoicePcm], buffer, read_len);
+        in_mixer_buffer = ctx->middle_buffer[EffectsPcm];
     }
-    int duration = calculation_duration_ms(read_len*sizeof(*buffer),
+    int duration = calculation_duration_ms(read_len*sizeof(*ctx->middle_buffer[EffectsPcm]),
         parser->bits_per_sample/8, ctx->dst_channels, ctx->dst_sample_rate);
-    ctx->cur_size += (read_len * sizeof(*buffer));
+    ctx->cur_size += (read_len * sizeof(*ctx->middle_buffer[EffectsPcm]));
 
     if ((!ctx->mixer_effects.bgm->parser) &&
             (source_queue_size(ctx->mixer_effects.bgmQueue) > 0)) {
         update_audio_source(ctx->mixer_effects.bgmQueue,
             ctx->mixer_effects.bgm, ctx->dst_sample_rate, ctx->dst_channels);
     }
-    short *voice_bgm_buffer = mixer_combine(ctx, ctx->middle_buffer[VoicePcm],
+    short *voice_bgm_buffer = mixer_combine(ctx, in_mixer_buffer,
         read_len, buffer_start_ms, duration, ctx->mixer_effects.bgm,
         ctx->middle_buffer[Decoder], ctx->middle_buffer[MixBgm]);
     if (voice_bgm_buffer == NULL) {
@@ -712,14 +746,8 @@ int xm_audio_mixer_init(XmMixerContext *ctx,
     ctx->seek_time_ms = 0;
     ctx->in_config_path = av_strdup(in_config_path);
 
-    ctx->effects_ctx = xm_audio_effect_create();
-    if (!ctx->effects_ctx) {
-        LogError("%s xm_audio_effect_create failed\n", __func__);
-        goto fail;
-    }
-
-    if ((ret = xm_audio_effect_init(ctx->effects_ctx, in_config_path)) < 0) {
-        LogError("Error: xm_audio_effect_init failed\n");
+    if ((ret = audio_effects_init(ctx, in_config_path)) < 0) {
+        LogError("%s audio_effects_init failed\n", __func__);
         goto fail;
     }
 
@@ -732,15 +760,6 @@ int xm_audio_mixer_init(XmMixerContext *ctx,
         LogError("%s mixer_parse %s failed\n", __func__, in_config_path);
         goto fail;
     }
-
-    PcmParser *parser = xm_audio_effect_get_pcm_parser(ctx->effects_ctx);
-    if (!parser) {
-        LogError("%s xm_audio_effect_get_pcm_parser failed\n", __func__);
-        goto fail;
-    }
-    ctx->pcm_sample_rate = parser->dst_sample_rate_in_Hz;
-    ctx->pcm_channels = parser->dst_nb_channels;
-    ctx->dst_sample_rate = parser->dst_sample_rate_in_Hz;
 
     for (int i = 0; i < NB_MIDDLE_BUFFERS; i++) {
         ctx->middle_buffer[i] = (short *)calloc(sizeof(short), MAX_NB_SAMPLES);
