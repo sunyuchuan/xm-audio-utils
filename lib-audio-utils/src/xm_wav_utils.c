@@ -5,6 +5,10 @@
 
 #define NB_SAMPLES 1024
 
+inline static uint32_t align(uint32_t x, int align) {
+    return ((( x ) + (align) - 1) / (align) * (align));
+}
+
 bool xm_wav_utils_concat(char * const *in_wav_path,
     int nb_in_wav, const char *out_wav_path)
 {
@@ -100,9 +104,10 @@ bool xm_wav_utils_crop(const char *in_wav_path,
 	goto fail;
     }
 
-    uint32_t offset = (crop_start_ms /(float) 1000) *
+    int block_align = wav_ctx.header.nb_channels * (wav_ctx.header.bits_per_sample / 8);
+    uint32_t offset = align((crop_start_ms /(float) 1000) *
         wav_ctx.header.sample_rate * wav_ctx.header.nb_channels *
-        (wav_ctx.header.bits_per_sample / 8) + wav_ctx.pcm_data_offset;
+        (wav_ctx.header.bits_per_sample / 8), block_align) + wav_ctx.pcm_data_offset;
     if (fseek(reader, offset, SEEK_SET) < 0) {
         LogError("%s seek to 0x%x failed\n", __func__, offset);
         goto fail;
@@ -121,9 +126,9 @@ bool xm_wav_utils_crop(const char *in_wav_path,
 
     short buffer[NB_SAMPLES];
     volatile uint32_t data_size = 0;
-    uint32_t copy_size = ((crop_end_ms - crop_start_ms) /(float) 1000) *
+    uint32_t copy_size = align(((crop_end_ms - crop_start_ms) /(float) 1000) *
         wav_ctx.header.sample_rate * wav_ctx.header.nb_channels *
-        (wav_ctx.header.bits_per_sample / 8);
+        (wav_ctx.header.bits_per_sample / 8), block_align);
     while(data_size < copy_size) {
         if (feof(reader) || ferror(reader)) {
             break;
