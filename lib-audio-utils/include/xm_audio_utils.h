@@ -171,10 +171,12 @@ void xm_audio_utils_decoder_seekTo(XmAudioUtils *self,
  * @param in_audio_path Input audio file path
  * @param out_sample_rate Output audio sample_rate
  * @param out_channels Output audio nb_channels
+ * @param isPcm true:pcm file, false:mp3\wav\mp4 etc.
  * @return Less than 0 means failure
  */
 int xm_audio_utils_decoder_create(XmAudioUtils *self,
-    const char *in_audio_path, int out_sample_rate, int out_channels);
+    const char *in_audio_path, int out_sample_rate, int out_channels,
+    bool isPcm);
 
 /**
  * @brief create XmAudioUtils

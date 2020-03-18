@@ -26,7 +26,7 @@ public class JsonUtils {
     private static final String TAG = "JsonUtils";
     private static final String EFFECT_NAME = "name";
     private static final String EFFECT_INFO = "info";
-    private static final String raw = "/sdcard/audio_effect_test/side_chain_test.pcm";
+    private static final String raw = "/sdcard/audio_effect_test/side_chain_test.wav";
     //private static final String raw = "/sdcard/audio_effect_test/pcm_mono_44kHz_0035.pcm";
     private static final String bgm1 = "/sdcard/audio_effect_test/bgm1.mp3";
     private static final String bgm2 = "/sdcard/audio_effect_test/bgm2.mp4";
@@ -50,6 +50,8 @@ public class JsonUtils {
         JSONObject json = new JSONObject();
         try {
             json.put("file_path", raw);
+            json.put("isPcm", "false");
+            json.put("volume", 80);
             json.put("sampleRate", 44100);
             json.put("nbChannels", 1);
             json.put("startTimeMs", 0);
@@ -59,76 +61,12 @@ public class JsonUtils {
         }
         recordArray.put(json);
 
-        JSONArray bgmArray = new JSONArray();
-        json = new JSONObject();
-        try {
-            json.put("url", bgm2);
-            json.put("volume", 80);
-            json.put("startTimeMs", 5000);
-            json.put("endTimeMs", 17000);
-            json.put("fadeInTimeMs", 3000);
-            json.put("fadeOutTimeMs", 3000);
-            json.put("sideChain", "On");
-            json.put("makeUpGain", 50);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        bgmArray.put(json);
-
-        json = new JSONObject();
-        try {
-            json.put("url", bgm2);
-            json.put("volume", 80);
-            json.put("startTimeMs", 20000);
-            json.put("endTimeMs", 35000);
-            json.put("fadeInTimeMs", 3000);
-            json.put("fadeOutTimeMs", 3000);
-            json.put("sideChain", "off");
-            json.put("makeUpGain", 50);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        bgmArray.put(json);
-
-        JSONArray audioEffectsArray = new JSONArray();
-        json = new JSONObject();
-        try {
-            json.put("url", music1);
-            json.put("volume", 80);
-            json.put("startTimeMs", 1000);
-            json.put("endTimeMs", 15000);
-            json.put("fadeInTimeMs", 2000);
-            json.put("fadeOutTimeMs", 3000);
-            json.put("sideChain", "off");
-            json.put("makeUpGain", 50);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        audioEffectsArray.put(json);
-
-        json = new JSONObject();
-        try {
-            json.put("url", music2);
-            json.put("volume", 80);
-            json.put("startTimeMs", 12000);
-            json.put("endTimeMs", 25000);
-            json.put("fadeInTimeMs", 2000);
-            json.put("fadeOutTimeMs", 2000);
-            json.put("sideChain", "off");
-            json.put("makeUpGain", 50);
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-        audioEffectsArray.put(json);
-
         try {
             FileOutputStream fileOutputStream = new FileOutputStream(jsonPath);
             JsonWriter jsonWriter = new JsonWriter(new OutputStreamWriter(fileOutputStream, "UTF-8"));
             jsonWriter.beginObject();
             jsonWriter.name("effects").value(jArray.toString());
             jsonWriter.name("record").value(recordArray.toString());
-            jsonWriter.name("bgm").value(bgmArray.toString());
-            jsonWriter.name("music").value(audioEffectsArray.toString());
             jsonWriter.endObject();
             jsonWriter.close();
         } catch (IOException e) {

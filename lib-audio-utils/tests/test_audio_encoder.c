@@ -27,7 +27,7 @@ int main(int argc, char **argv) {
     int sample_rate = atoi(argv[2]);
     int nb_channels = atoi(argv[3]);
     IAudioDecoder *decoder = audio_decoder_create(argv[1], sample_rate, nb_channels,
-        sample_rate, nb_channels);
+        sample_rate, nb_channels, DECODER_PCM);
 
     buffer = (short *)calloc(sizeof(short), buffer_size_in_short);
     if (!buffer) goto end;

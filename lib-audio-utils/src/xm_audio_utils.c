@@ -259,15 +259,22 @@ void xm_audio_utils_decoder_seekTo(XmAudioUtils *self,
 }
 
 int xm_audio_utils_decoder_create(XmAudioUtils *self,
-    const char *in_audio_path, int out_sample_rate, int out_channels) {
+    const char *in_audio_path, int out_sample_rate, int out_channels,
+    bool isPcm) {
     LogInfo("%s\n", __func__);
     if (NULL == self || NULL == in_audio_path) {
         return -1;
     }
 
     IAudioDecoder_freep(&self->decoder);
+    enum DecoderType type;
+    if(isPcm) {
+        type = DECODER_PCM;
+    } else {
+        type = DECODER_FFMPEG;
+    }
     self->decoder = audio_decoder_create(in_audio_path, 0, 0,
-        out_sample_rate, out_channels);
+        out_sample_rate, out_channels, type);
     if (self->decoder == NULL) {
         LogError("audio_decoder_create failed\n");
         return -1;

@@ -2,6 +2,7 @@
 #define _AUDIO_SOURCE_H_
 #include "mixer_effects/fade_in_out.h"
 #include "idecoder.h"
+#include "audio_decoder_factory.h"
 
 typedef struct AudioSource {
     int start_time_ms;
@@ -14,6 +15,7 @@ typedef struct AudioSource {
     bool side_chain_enable;
     char *file_path;
     IAudioDecoder *decoder;
+    enum DecoderType decoder_type;
     FadeInOut fade_io;
 } AudioSource;
 
@@ -25,6 +27,7 @@ typedef struct AudioRecordSource {
     float volume;
     char *file_path;
     IAudioDecoder *decoder;
+    enum DecoderType decoder_type;
 } AudioRecordSource;
 
 void audio_source_free(AudioSource *source);

@@ -189,7 +189,7 @@ static IAudioDecoder *open_source_decoder(AudioSource *source,
 
     IAudioDecoder_freep(&(source->decoder));
     decoder = audio_decoder_create(source->file_path, 0, 0,
-        dst_sample_rate, dst_channels);
+        dst_sample_rate, dst_channels, DECODER_FFMPEG);
     if (!decoder)
     {
         LogError("%s malloc bgm_music decoder failed.\n", __func__);

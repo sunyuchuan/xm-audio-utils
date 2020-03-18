@@ -46,12 +46,13 @@ static int parse_audio_record_source(cJSON *root_json, AudioRecordSource *record
         cJSON *vol = cJSON_GetObjectItemCaseSensitive(sub, "volume");
         cJSON *start = cJSON_GetObjectItemCaseSensitive(sub, "startTimeMs");
         cJSON *end = cJSON_GetObjectItemCaseSensitive(sub, "endTimeMs");
+        cJSON *is_pcm = cJSON_GetObjectItemCaseSensitive(sub, "isPcm");
         cJSON *sample_rate = cJSON_GetObjectItemCaseSensitive(sub, "sampleRate");
         cJSON *nb_channel = cJSON_GetObjectItemCaseSensitive(sub, "nbChannels");
         if (!cJSON_IsString(file_path) || !cJSON_IsNumber(vol)
             || !cJSON_IsNumber(start) || !cJSON_IsNumber(end)
             || !file_path->valuestring || !cJSON_IsNumber(sample_rate)
-            || !cJSON_IsNumber(nb_channel))
+            || !cJSON_IsNumber(nb_channel) || !cJSON_IsString(is_pcm))
         {
             LogError("%s failed\n", __func__);
             ret = -1;
@@ -65,9 +66,13 @@ static int parse_audio_record_source(cJSON *root_json, AudioRecordSource *record
         record->end_time_ms  = end->valuedouble;
         record->sample_rate= sample_rate->valuedouble;
         record->nb_channels = nb_channel->valuedouble;
+        if (0 == strcasecmp(is_pcm->valuestring, "True"))
+            record->decoder_type = DECODER_PCM;
+        else
+            record->decoder_type = DECODER_FFMPEG;
         record->decoder = audio_decoder_create(record->file_path,
                 record->sample_rate, record->nb_channels,
-                DEFAULT_SAMPLE_RATE, DEFAULT_CHANNEL_NUMBER);
+                DEFAULT_SAMPLE_RATE, DEFAULT_CHANNEL_NUMBER, record->decoder_type);
         if (record->decoder == NULL) {
             LogError("%s record audio_decoder_create failed.\n", __func__);
             ret = -1;
@@ -80,6 +85,7 @@ static int parse_audio_record_source(cJSON *root_json, AudioRecordSource *record
         LogInfo("%s end time %d\n", __func__, record->end_time_ms );
         LogInfo("%s sample_rate %d\n", __func__, record->sample_rate);
         LogInfo("%s nb_channels %d\n", __func__, record->nb_channels);
+        LogInfo("%s decoder_type %d\n", __func__, record->decoder_type);
         LogInfo("%s out sample_rate %d\n", __func__, record->decoder->out_sample_rate);
         LogInfo("%s out nb_channels %d\n", __func__, record->decoder->out_nb_channels);
     }

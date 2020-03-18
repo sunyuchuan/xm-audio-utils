@@ -274,16 +274,18 @@ public class XmAudioUtils {
      * @param inAudioPath 解码文件路径
      * @param outSampleRate 解码器输出的pcm数据采样率,建议和人声pcm数据的采样率一致
      * @param outChannels 解码输出的pcm数据声道数,建议双声道
+     * @param isPcm 是否是PCM文件
      * @return 小于0表示失败
      */
-    public int decoder_create(String inAudioPath, int outSampleRate, int outChannels) {
+    public int decoder_create(String inAudioPath, int outSampleRate, int outChannels,
+                              boolean isPcm) {
         int ret = -1;
         if (inAudioPath == null) {
             return ret;
         }
 
         try {
-            ret = native_decoder_create(inAudioPath, outSampleRate, outChannels);
+            ret = native_decoder_create(inAudioPath, outSampleRate, outChannels, isPcm);
         } catch (IllegalStateException e) {
             e.printStackTrace();
         }
@@ -340,7 +342,7 @@ public class XmAudioUtils {
     private native void native_close_log_file();
     private native void native_setup();
 
-    private native int native_decoder_create(String inAudioPath, int outSampleRate, int outChannels);
+    private native int native_decoder_create(String inAudioPath, int outSampleRate, int outChannels, boolean isPcm);
     private native void native_decoder_seekTo(int seekTimeMs);
     private native int native_get_decoded_frame(short[] buffer, int bufferSize, boolean loop);
 
