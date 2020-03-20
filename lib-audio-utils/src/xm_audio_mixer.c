@@ -50,11 +50,6 @@ struct XmMixerContext_T {
     MixerEffcets mixer_effects;
 };
 
-static inline int calculation_duration_ms(int64_t size,
-    float bytes_per_sample, int nb_channles, int sample_rate) {
-    return 1000 * (size / bytes_per_sample / nb_channles / sample_rate);
-}
-
 static void reverb_free(XmMixerContext *ctx) {
     LogInfo("%s\n", __func__);
     if (!ctx) return;

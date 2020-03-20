@@ -5,10 +5,22 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "wav_dec.h"
+#include<math.h>
 
 #define BITS_PER_SAMPLE_16 16
 #define BITS_PER_SAMPLE_8 8
 #define PCM_FILE_EOF -1000
+#define FLOAT_EPS 1e-6
+#define DOUBLE_EPS 1e-15
+
+static inline int calculation_duration_ms(int64_t size,
+    float bytes_per_sample, int nb_channles, int sample_rate) {
+    if (fabs(bytes_per_sample) <= FLOAT_EPS || nb_channles == 0
+            || sample_rate == 0) {
+        return 0;
+    }
+    return 1000 * (size / bytes_per_sample / nb_channles / sample_rate);
+}
 
 typedef struct PcmParser {
     // seek parameters
