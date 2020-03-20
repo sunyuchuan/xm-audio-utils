@@ -271,6 +271,17 @@ static void decoder_flush(IAudioDecoder_Opaque *decoder)
     }
 }
 
+static int get_duration_l(IAudioDecoder_Opaque *decoder) {
+    AVStream *audio_stream = decoder->fmt_ctx->streams[decoder->audio_stream_index];
+    if (audio_stream->duration != AV_NOPTS_VALUE) {
+        decoder->duration_ms = av_rescale_q(audio_stream->duration,
+            audio_stream->time_base, AV_TIME_BASE_Q) / 1000;
+    } else {
+        decoder->duration_ms = fftime_to_milliseconds(decoder->fmt_ctx->duration);
+    }
+    return decoder->duration_ms;
+}
+
 static int init_decoder(IAudioDecoder_Opaque *decoder,
         const char *file_addr, int sample_rate, int channels) {
     LogInfo("%s\n", __func__);
@@ -298,6 +309,7 @@ static int init_decoder(IAudioDecoder_Opaque *decoder,
     decoder->seek_pos_ms = 0;
     decoder->seek_req = false;
     decoder->flush = false;
+    decoder->duration_ms = 0;
 
     // Allocate sample buffer for resampler
     ret = AllocateSampleBuffer(&(decoder->dst_data), channels,
@@ -329,15 +341,7 @@ static int init_decoder(IAudioDecoder_Opaque *decoder,
         LogError("%s open_audio_file failed\n", __func__);
         goto end;
     }
-
-    AVStream *audio_stream = decoder->fmt_ctx->streams[decoder->audio_stream_index];
-    if (audio_stream->duration != AV_NOPTS_VALUE) {
-        decoder->duration_ms = av_rescale_q(audio_stream->duration,
-            audio_stream->time_base, AV_TIME_BASE_Q) / 1000;
-    } else {
-        int64_t duration = decoder->fmt_ctx->duration;
-        decoder->duration_ms = fftime_to_milliseconds(duration);
-    }
+    decoder->duration_ms = get_duration_l(decoder);
 
     if (tmp_file_addr) {
         free(tmp_file_addr);
@@ -425,6 +429,12 @@ static int FFmpegDecoder_seekTo(IAudioDecoder_Opaque *decoder,
 
     decoder->seek_req = true;
     decoder->seek_pos_ms = seek_pos_ms < 0 ? 0 : seek_pos_ms;
+    if (decoder->duration_ms > 0) {
+        decoder->seek_pos_ms = decoder->seek_pos_ms % decoder->duration_ms;
+    }
+    LogInfo("%s decoder->seek_pos_ms %d, duration %d\n", __func__,
+        decoder->seek_pos_ms, decoder->duration_ms);
+
     AudioFifoReset(decoder->audio_fifo);
     decoder->flush = false;
     return 0;
