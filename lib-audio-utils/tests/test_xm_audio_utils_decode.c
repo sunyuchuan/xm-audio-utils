@@ -41,9 +41,9 @@ int main(int argc, char **argv) {
         goto end;
     }
 
-    xm_audio_utils_decoder_create(utils, argv[1], atoi(argv[3]), atoi(argv[4]), false);
+    xm_audio_utils_decoder_create(utils, argv[1], atoi(argv[3]), atoi(argv[4]), false, 100);
     xm_audio_utils_decoder_seekTo(utils, 1000);
-    xm_audio_utils_fade_init(utils, atoi(argv[3]), atoi(argv[4]), 0, 60000, 80, 5000, 5000);
+    xm_audio_utils_fade_init(utils, atoi(argv[3]), atoi(argv[4]), 0, 60000, 5000, 5000);
 
     int64_t cur_size = 0;
     while (1) {

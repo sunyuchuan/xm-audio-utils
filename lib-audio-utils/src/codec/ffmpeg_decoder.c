@@ -14,6 +14,10 @@ typedef struct IAudioDecoder_Opaque {
     bool seek_req;
     int duration_ms;
 
+    // play-out volume.
+    short volume_fix;
+    float volume_flp;
+
     // Output parameters
     int dst_sample_rate_in_Hz;
     int dst_nb_channels;
@@ -74,6 +78,7 @@ static int get_frame_from_fifo(IAudioDecoder_Opaque *decoder,
 
     ret = ret * decoder->dst_nb_channels;
     memcpy(buffer, decoder->copy_buffer[0], sizeof(short) * ret);
+    set_gain(buffer, ret, decoder->volume_fix);
 
 end:
     return ret;
@@ -108,6 +113,28 @@ end:
     return ret < 0 ? ret : 0;
 }
 
+static int seekTo_l(IAudioDecoder_Opaque *decoder) {
+    int ret = 0;
+    int64_t start_time = decoder->fmt_ctx->start_time;
+    int64_t start_pos = (start_time != AV_NOPTS_VALUE ? start_time : 0);
+    int64_t seek_pos = start_pos + milliseconds_to_fftime(decoder->seek_pos_ms);
+
+    ret = avformat_seek_file(decoder->fmt_ctx, -1, INT64_MIN, seek_pos,
+        INT64_MAX, AVSEEK_FLAG_BACKWARD);
+    if (ret < 0) {
+        LogError("%s: error while seeking.\n", __func__);
+        goto end;
+    } else {
+        LogInfo("%s: avformat_seek_file success.\n", __func__);
+        AudioFifoReset(decoder->audio_fifo);
+    }
+
+end:
+    decoder->seek_pos_ms = 0;
+    decoder->seek_req = false;
+    return ret;
+}
+
 static int read_audio_packet(IAudioDecoder_Opaque *decoder,
         AVPacket *pkt) {
     int ret = -1;
@@ -116,25 +143,7 @@ static int read_audio_packet(IAudioDecoder_Opaque *decoder,
 
     InitPacket(pkt);
 
-    if (decoder->seek_req) {
-        AVStream *audio_stream = decoder->fmt_ctx->streams[decoder->audio_stream_index];
-        int64_t stream_start_pos = (audio_stream->start_time != AV_NOPTS_VALUE ? audio_stream->start_time : 0);
-        int64_t seek_pos = milliseconds_to_fftime(decoder->seek_pos_ms);
-        ret = avformat_seek_file(decoder->fmt_ctx, -1, INT64_MIN,
-            seek_pos + stream_start_pos, INT64_MAX, AVSEEK_FLAG_BACKWARD);
-        if (ret < 0) {
-            LogError("%s: error while seeking.\n", __func__);
-            decoder->seek_pos_ms = 0;
-            decoder->seek_req = false;
-            return ret;
-        } else {
-            LogInfo("%s: avformat_seek_file success.\n", __func__);
-            AudioFifoReset(decoder->audio_fifo);
-        }
-        decoder->seek_pos_ms = 0;
-        decoder->seek_req = false;
-    }
-
+    if (decoder->seek_req) seekTo_l(decoder);
     while (1) {
         ret = av_read_frame(decoder->fmt_ctx, pkt);
         if (ret < 0) {
@@ -283,7 +292,7 @@ static int get_duration_l(IAudioDecoder_Opaque *decoder) {
 }
 
 static int init_decoder(IAudioDecoder_Opaque *decoder,
-        const char *file_addr, int sample_rate, int channels) {
+        const char *file_addr, int sample_rate, int channels, float volume_flp) {
     LogInfo("%s\n", __func__);
     int ret = -1;
     char *tmp_file_addr = NULL;
@@ -310,6 +319,8 @@ static int init_decoder(IAudioDecoder_Opaque *decoder,
     decoder->seek_req = false;
     decoder->flush = false;
     decoder->duration_ms = 0;
+    decoder->volume_flp = volume_flp;
+    decoder->volume_fix = (short)(32767 * decoder->volume_flp);
 
     // Allocate sample buffer for resampler
     ret = AllocateSampleBuffer(&(decoder->dst_data), channels,
@@ -403,7 +414,8 @@ static int FFmpegDecoder_get_pcm_frame(
             }
             if (ret == AVERROR_EOF && loop) {
                 if ((ret = init_decoder(decoder, decoder->file_addr,
-                        decoder->dst_sample_rate_in_Hz, decoder->dst_nb_channels)) < 0) {
+                        decoder->dst_sample_rate_in_Hz, decoder->dst_nb_channels,
+                        decoder->volume_flp)) < 0) {
                     LogError("%s init_decoder failed\n", __func__);
                     goto end;
                 }
@@ -441,7 +453,7 @@ static int FFmpegDecoder_seekTo(IAudioDecoder_Opaque *decoder,
 }
 
 IAudioDecoder *FFmpegDecoder_create(const char *file_addr,
-    int dst_sample_rate, int dst_channels) {
+    int dst_sample_rate, int dst_channels, float volume_flp) {
     LogInfo("%s.\n", __func__);
     int ret = -1;
     if (NULL == file_addr) {
@@ -460,7 +472,8 @@ IAudioDecoder *FFmpegDecoder_create(const char *file_addr,
     decoder->func_free = FFmpegDecoder_free;
 
     IAudioDecoder_Opaque *opaque = decoder->opaque;
-    if ((ret = init_decoder(opaque, file_addr, dst_sample_rate, dst_channels)) < 0) {
+    if ((ret = init_decoder(opaque, file_addr, dst_sample_rate,
+            dst_channels, volume_flp)) < 0) {
         LogError("%s init_decoder failed.\n", __func__);
         goto end;
     }

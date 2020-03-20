@@ -16,7 +16,6 @@ typedef struct Fade {
     int bgm_end_time_ms;
     int pcm_sample_rate;
     int pcm_nb_channels;
-    float volume;
     FadeInOut fade_io;
 } Fade;
 
@@ -197,13 +196,13 @@ int xm_audio_utils_fade(XmAudioUtils *self, short *buffer,
     check_fade_in_out(&fade->fade_io, buffer_start_time, buffer_duration_ms,
         fade->pcm_sample_rate, fade->bgm_start_time_ms, fade->bgm_end_time_ms);
     scale_with_ramp(&fade->fade_io, buffer,
-        buffer_size / fade->pcm_nb_channels, fade->pcm_nb_channels, fade->volume);
+        buffer_size / fade->pcm_nb_channels, fade->pcm_nb_channels);
     return 0;
 }
 
 int xm_audio_utils_fade_init(XmAudioUtils *self,
         int pcm_sample_rate, int pcm_nb_channels,
-        int bgm_start_time_ms, int bgm_end_time_ms, int volume,
+        int bgm_start_time_ms, int bgm_end_time_ms,
         int fade_in_time_ms, int fade_out_time_ms) {
     if (!self)
         return -1;
@@ -222,7 +221,6 @@ int xm_audio_utils_fade_init(XmAudioUtils *self,
     Fade *fade = self->fade;
     fade->bgm_start_time_ms = bgm_start_time_ms;
     fade->bgm_end_time_ms = bgm_end_time_ms;
-    fade->volume = volume / (float)100;
     fade->pcm_sample_rate = pcm_sample_rate;
     fade->pcm_nb_channels = pcm_nb_channels;
     fade->fade_io.fade_in_time_ms = fade_in_time_ms;
@@ -260,12 +258,13 @@ void xm_audio_utils_decoder_seekTo(XmAudioUtils *self,
 
 int xm_audio_utils_decoder_create(XmAudioUtils *self,
     const char *in_audio_path, int out_sample_rate, int out_channels,
-    bool isPcm) {
+    bool isPcm, int volume_fix) {
     LogInfo("%s\n", __func__);
     if (NULL == self || NULL == in_audio_path) {
         return -1;
     }
 
+    float volume_flp = volume_fix / (float)100;
     IAudioDecoder_freep(&self->decoder);
     enum DecoderType type;
     if(isPcm) {
@@ -274,7 +273,8 @@ int xm_audio_utils_decoder_create(XmAudioUtils *self,
         type = DECODER_FFMPEG;
     }
     self->decoder = audio_decoder_create(in_audio_path, 0, 0,
-        out_sample_rate, out_channels, type);
+        out_sample_rate, out_channels, volume_flp, type);
+
     if (self->decoder == NULL) {
         LogError("audio_decoder_create failed\n");
         return -1;

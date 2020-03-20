@@ -32,7 +32,7 @@ void check_fade_in_out(FadeInOut *fade_io,
 }
 
 void scale_with_ramp(FadeInOut *fade_io, short *data,
-        int nb_samples, int nb_channels, float volume) {
+        int nb_samples, int nb_channels) {
     if (!fade_io || !data) {
         return;
     }
@@ -46,9 +46,9 @@ void scale_with_ramp(FadeInOut *fade_io, short *data,
             rate = (float)self->fade_in_samples_count / (float)self->fade_in_nb_samples;
         }
         for (int i = 0; i < nb_samples; ++i) {
-            data[i] *= (volume * rate);
+            data[i] *= (rate);
             if (nb_channels == 2) {
-                data[nb_samples + i] *= (volume * rate);
+                data[nb_samples + i] *= (rate);
             }
             self->fade_in_samples_count ++;
             if (self->fade_in_samples_count > self->fade_in_nb_samples) {
@@ -64,22 +64,15 @@ void scale_with_ramp(FadeInOut *fade_io, short *data,
             rate = (1.0f - (float)self->fade_out_samples_count / (float)self->fade_out_nb_samples);
         }
         for (int i = 0; i < nb_samples; ++i) {
-            data[i] *= (volume * rate);
+            data[i] *= (rate);
             if (nb_channels == 2) {
-                data[nb_samples + i] *= (volume * rate);
+                data[nb_samples + i] *= (rate);
             }
             if (i >= self->fade_out_start_index) self->fade_out_samples_count++;
             if (self->fade_out_samples_count > self->fade_out_nb_samples) {
                 rate = 0.0f;
             } else {
                 rate = (1.0f - (float)self->fade_out_samples_count / (float)self->fade_out_nb_samples);
-            }
-        }
-    } else {
-        for (int i = 0; i < nb_samples; ++i) {
-            data[i] *= (volume);
-            if (nb_channels == 2) {
-                data[nb_samples + i] *= (volume);
             }
         }
     }

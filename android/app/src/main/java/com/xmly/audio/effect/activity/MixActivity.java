@@ -323,9 +323,9 @@ public class MixActivity extends AppCompatActivity implements View.OnClickListen
                     e.printStackTrace();
                 }
 
-                mAudioUtils.decoder_create(decodeRawAudio, 44100, 2, false);
+                mAudioUtils.decoder_create(decodeRawAudio, 44100, 2, false, 100);
                 mAudioUtils.decoder_seekTo(10000);
-                mAudioUtils.fadeInit(44100, 2, 0, 60000, 80, 5000, 5000);
+                mAudioUtils.fadeInit(44100, 2, 0, 60000, 5000, 5000);
                 long curSize = 0;
                 abortFade = false;
                 while (!abortFade) {

@@ -70,9 +70,11 @@ static int parse_audio_record_source(cJSON *root_json, AudioRecordSource *record
             record->decoder_type = DECODER_PCM;
         else
             record->decoder_type = DECODER_FFMPEG;
+
         record->decoder = audio_decoder_create(record->file_path,
                 record->sample_rate, record->nb_channels,
-                DEFAULT_SAMPLE_RATE, DEFAULT_CHANNEL_NUMBER, record->decoder_type);
+                DEFAULT_SAMPLE_RATE, DEFAULT_CHANNEL_NUMBER,
+                record->volume, record->decoder_type);
         if (record->decoder == NULL) {
             LogError("%s record audio_decoder_create failed.\n", __func__);
             ret = -1;

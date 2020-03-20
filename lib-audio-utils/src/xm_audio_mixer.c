@@ -189,7 +189,7 @@ static IAudioDecoder *open_source_decoder(AudioSource *source,
 
     IAudioDecoder_freep(&(source->decoder));
     decoder = audio_decoder_create(source->file_path, 0, 0,
-        dst_sample_rate, dst_channels, DECODER_FFMPEG);
+        dst_sample_rate, dst_channels, source->volume, DECODER_FFMPEG);
     if (!decoder)
     {
         LogError("%s malloc bgm_music decoder failed.\n", __func__);
@@ -267,7 +267,7 @@ static void fade_in_out(AudioSource *source, int sample_rate,
     check_fade_in_out(&(source->fade_io), pcm_start_time, pcm_duration,
         sample_rate, source->start_time_ms, source->end_time_ms);
     scale_with_ramp(&(source->fade_io), dst_buffer,
-        dst_buffer_size / channels, channels, source->volume);
+        dst_buffer_size / channels, channels);
 }
 
 static AudioMuxer *open_muxer(int dst_sample_rate, int dst_channels,

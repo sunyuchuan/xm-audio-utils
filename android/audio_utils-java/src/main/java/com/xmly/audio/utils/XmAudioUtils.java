@@ -228,18 +228,17 @@ public class XmAudioUtils {
      * @param pcmNbChannels 背景音pcm数据的声道数
      * @param audioStartTimeMs 背景音在人声pcm文件中的起始时间,单位毫秒
      * @param audioEndTimeMs 背景音在人声pcm文件中的结束时间,单位毫秒
-     * @param volume 背景音音量大小,范围0到100
      * @param fadeInTimeMs 背景音淡入时间长度
      * @param fadeOutTimeMs 背景音淡出时间长度
      * @return 小于0表示初始化失败
      */
     public int fadeInit(int pcmSampleRate, int pcmNbChannels, int audioStartTimeMs,
-                    int audioEndTimeMs, int volume, int fadeInTimeMs, int fadeOutTimeMs) {
+                    int audioEndTimeMs, int fadeInTimeMs, int fadeOutTimeMs) {
         int ret = -1;
 
         try {
             ret = native_fade_init(pcmSampleRate, pcmNbChannels, audioStartTimeMs,
-                    audioEndTimeMs, volume,fadeInTimeMs, fadeOutTimeMs);
+                    audioEndTimeMs, fadeInTimeMs, fadeOutTimeMs);
         } catch (IllegalStateException e) {
             e.printStackTrace();
         }
@@ -275,17 +274,18 @@ public class XmAudioUtils {
      * @param outSampleRate 解码器输出的pcm数据采样率,建议和人声pcm数据的采样率一致
      * @param outChannels 解码输出的pcm数据声道数,建议双声道
      * @param isPcm 是否是PCM文件
+     * @param volume 背景音音量大小,范围0到100
      * @return 小于0表示失败
      */
     public int decoder_create(String inAudioPath, int outSampleRate, int outChannels,
-                              boolean isPcm) {
+                              boolean isPcm, int volume) {
         int ret = -1;
         if (inAudioPath == null) {
             return ret;
         }
 
         try {
-            ret = native_decoder_create(inAudioPath, outSampleRate, outChannels, isPcm);
+            ret = native_decoder_create(inAudioPath, outSampleRate, outChannels, isPcm, volume);
         } catch (IllegalStateException e) {
             e.printStackTrace();
         }
@@ -342,12 +342,12 @@ public class XmAudioUtils {
     private native void native_close_log_file();
     private native void native_setup();
 
-    private native int native_decoder_create(String inAudioPath, int outSampleRate, int outChannels, boolean isPcm);
+    private native int native_decoder_create(String inAudioPath, int outSampleRate, int outChannels, boolean isPcm, int volume);
     private native void native_decoder_seekTo(int seekTimeMs);
     private native int native_get_decoded_frame(short[] buffer, int bufferSize, boolean loop);
 
     private native int native_fade_init(int pcmSampleRate, int pcmNbChannels, int audioStartTimeMs,
-                           int audioEndTimeMs, int volume, int fadeInTimeMs, int fadeOutTimeMs);
+                           int audioEndTimeMs, int fadeInTimeMs, int fadeOutTimeMs);
     private native int native_fade(short[] buffer, int bufferSize, int bufferStartTimeMs);
 
     private native int native_effects_init(String inConfigFilePath, int actionType);

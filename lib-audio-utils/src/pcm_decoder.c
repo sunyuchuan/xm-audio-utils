@@ -14,6 +14,10 @@ typedef struct IAudioDecoder_Opaque {
     // seek parameters
     int seek_pos_ms;
 
+    // play-out volume.
+    short volume_fix;
+    float volume_flp;
+
     // Input parameters
     int src_sample_rate_in_Hz;
     int src_nb_channels;
@@ -58,6 +62,7 @@ static int write_fifo(IAudioDecoder_Opaque *decoder) {
         ret = PCM_FILE_EOF;
         goto end;
     }
+    set_gain(decoder->src_buffer, read_len, decoder->volume_fix);
 
     if (decoder->src_nb_channels != decoder->dst_nb_channels) {
         int write_size = 0;
@@ -86,7 +91,7 @@ end:
 
 static int init_decoder(IAudioDecoder_Opaque *decoder,
         const char *file_addr, int src_sample_rate, int src_nb_channels,
-        int dst_sample_rate, int dst_nb_channels) {
+        int dst_sample_rate, int dst_nb_channels, float volume_flp) {
     LogInfo("%s\n", __func__);
     int ret = -1;
     if (!decoder || !file_addr)
@@ -106,6 +111,8 @@ static int init_decoder(IAudioDecoder_Opaque *decoder,
     decoder->pcm_start_pos = 0x0;
     decoder->dst_sample_rate_in_Hz = dst_sample_rate;
     decoder->dst_nb_channels = dst_nb_channels;
+    decoder->volume_flp = volume_flp;
+    decoder->volume_fix = (short)(32767 * decoder->volume_flp);
 
     // Allocate buffer for audio fifo
     decoder->pcm_fifo = fifo_create(sizeof(short));
@@ -205,7 +212,7 @@ static int PcmDecoder_get_pcm_frame(IAudioDecoder_Opaque *decoder,
 	    if (loop && ret == PCM_FILE_EOF) {
 	        init_decoder(decoder, decoder->file_addr, decoder->src_sample_rate_in_Hz,
 	            decoder->src_nb_channels, decoder->dst_sample_rate_in_Hz,
-	            decoder->dst_nb_channels);
+	            decoder->dst_nb_channels, decoder->volume_flp);
 	    } else if (0 < fifo_occupancy(decoder->pcm_fifo)) {
 	        break;
 	    } else {
@@ -248,7 +255,7 @@ static int PcmDecoder_seekTo(IAudioDecoder_Opaque *decoder,
 
 IAudioDecoder *PcmDecoder_create(const char *file_addr,
         int src_sample_rate, int src_nb_channels, int dst_sample_rate,
-        int dst_nb_channels) {
+        int dst_nb_channels, float volume_flp) {
     LogInfo("%s.\n", __func__);
     int ret = -1;
     if (!file_addr) {
@@ -273,7 +280,7 @@ IAudioDecoder *PcmDecoder_create(const char *file_addr,
 
     IAudioDecoder_Opaque *opaque = decoder->opaque;
     if ((ret = init_decoder(opaque, file_addr, src_sample_rate, src_nb_channels,
-        dst_sample_rate, dst_nb_channels)) < 0) {
+        dst_sample_rate, dst_nb_channels, volume_flp)) < 0) {
         LogError("%s init_decoder failed\n", __func__);
         goto end;
     }

@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
     // Set Log
     RegisterFFmpeg();
     IAudioDecoder *decoder = audio_decoder_create(argv[1], 0, 0,
-        atoi(argv[3]), atoi(argv[4]), DECODER_FFMPEG);
+        atoi(argv[3]), atoi(argv[4]), 1.0f, DECODER_FFMPEG);
     if (decoder == NULL) {
         LogError("audio_decoder_create failed\n");
         goto end;

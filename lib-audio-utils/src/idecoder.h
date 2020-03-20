@@ -12,6 +12,16 @@
 #define FLOAT_EPS 1e-6
 #define DOUBLE_EPS 1e-15
 
+static inline void set_gain(short *buffer, int buffer_len, short volume_fix) {
+    if (!buffer || buffer_len <= 0) {
+        return;
+    }
+
+    for (int i = 0; i < buffer_len; ++i) {
+        buffer[i] = buffer[i] * volume_fix >> 15;
+    }
+}
+
 static inline int calculation_duration_ms(int64_t size,
     float bytes_per_sample, int nb_channles, int sample_rate) {
     if (fabs(bytes_per_sample) <= FLOAT_EPS || nb_channles == 0
