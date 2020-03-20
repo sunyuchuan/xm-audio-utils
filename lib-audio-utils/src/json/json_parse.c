@@ -149,7 +149,6 @@ static int parse_audio_source(cJSON *json, AudioSourceQueue *queue) {
                 goto fail;
             }
             source.makeup_gain = makeup_g->valuedouble / (float)100;
-            source.volume = 1.0f;
         } else {
             source.side_chain_enable = false;
             source.makeup_gain = 0.0f;
