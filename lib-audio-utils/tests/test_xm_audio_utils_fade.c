@@ -39,15 +39,14 @@ int main(int argc, char **argv) {
     }
 
     xm_audio_utils_parser_init(utils, argv[1], atoi(argv[2]), atoi(argv[3]),
-        atoi(argv[4]), atoi(argv[5]));
+        atoi(argv[4]), atoi(argv[5]), 100);
     xm_audio_utils_parser_seekTo(utils, 10000);
     int bgm_start_time_ms = 0;
     int bgm_end_time_ms = 60000;
-    int volume = 80;
     int fade_in_time_ms = 3000;
     int fade_out_time_ms = 3000;
     xm_audio_utils_fade_init(utils, atoi(argv[4]), atoi(argv[5]), bgm_start_time_ms,
-        bgm_end_time_ms, volume, fade_in_time_ms, fade_out_time_ms);
+        bgm_end_time_ms, fade_in_time_ms, fade_out_time_ms);
 
     int64_t cur_size = 0;
     while (1) {

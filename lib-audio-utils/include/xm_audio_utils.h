@@ -103,14 +103,13 @@ int xm_audio_utils_fade(XmAudioUtils *self, short *buffer,
  * @param pcm_nb_channels input pcm nb_channels
  * @param bgm_start_time_ms when the bgm starts playing
  * @param bgm_end_time_ms when the bgm ends playing
- * @param volume bgm volume value
  * @param fade_in_time_ms bgm fade in time
  * @param fade_out_time_ms bgm fade out time
  * @return Less than 0 means error
  */
 int xm_audio_utils_fade_init(XmAudioUtils *self,
     int pcm_sample_rate, int pcm_nb_channels,
-    int bgm_start_time_ms, int bgm_end_time_ms, int volume,
+    int bgm_start_time_ms, int bgm_end_time_ms,
     int fade_in_time_ms, int fade_out_time_ms);
 
 /**
@@ -144,11 +143,12 @@ int xm_audio_utils_parser_seekTo(XmAudioUtils *self,
  * @param src_channels input pcm nb_channels
  * @param dst_sample_rate Output pcm sample_rate
  * @param dst_channels Output pcm nb_channels
+ * @param volume_fix Output pcm volume value range 0 to 100
  * @return Less than 0 means failure
  */
 int xm_audio_utils_parser_init(XmAudioUtils *self,
     const char *in_pcm_path, int src_sample_rate, int src_channels,
-    int dst_sample_rate, int dst_channels);
+    int dst_sample_rate, int dst_channels, int volume_fix);
 
 /**
  * @brief create XmAudioUtils

@@ -188,8 +188,8 @@ static PcmParser *open_source_parser(AudioSource *source,
     }
 
     if ((source->parser = pcm_parser_create(source->file_path,
-            source->sample_rate, source->nb_channels,
-            dst_sample_rate, dst_channels, &(source->wav_ctx))) == NULL) {
+            source->sample_rate, source->nb_channels, dst_sample_rate,
+            dst_channels, source->volume, &(source->wav_ctx))) == NULL) {
 	LogError("%s open source pcm parser failed, file addr %s.\n", __func__, source->file_path);
 	return NULL;
     }
@@ -264,7 +264,7 @@ static void fade_in_out(AudioSource *source, int sample_rate,
     check_fade_in_out(&(source->fade_io), pcm_start_time, pcm_duration,
         sample_rate, source->start_time_ms, source->end_time_ms);
     scale_with_ramp(&(source->fade_io), dst_buffer,
-        dst_buffer_size / channels, channels, source->volume);
+        dst_buffer_size / channels, channels);
 }
 
 static int mixer_chk_st_l(int mix_state)

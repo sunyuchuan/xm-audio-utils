@@ -11,6 +11,16 @@ inline static int64_t align(int64_t x, int align) {
     return ((( x ) + (align) - 1) / (align) * (align));
 }
 
+static void set_gain(short *buffer, int buffer_len, short volume_fix) {
+    if (!buffer || buffer_len <= 0) {
+        return;
+    }
+
+    for (int i = 0; i < buffer_len; ++i) {
+        buffer[i] = buffer[i] * volume_fix >> 15;
+    }
+}
+
 static int write_fifo(PcmParser *parser) {
     int ret = -1;
     if (!parser || !parser->reader)
@@ -27,6 +37,7 @@ static int write_fifo(PcmParser *parser) {
         ret = PCM_FILE_EOF;
         goto end;
     }
+    set_gain(parser->src_buffer, read_len, parser->volume_fix);
 
     if (parser->src_nb_channels != parser->dst_nb_channels) {
         int write_size = 0;
@@ -54,8 +65,8 @@ end:
 }
 
 static int init_parser(PcmParser *parser, const char *file_addr,
-        int src_sample_rate, int src_nb_channels,
-        int dst_sample_rate, int dst_nb_channels, WavContext *wav_ctx) {
+        int src_sample_rate, int src_nb_channels, int dst_sample_rate,
+        int dst_nb_channels, float volume_flp, WavContext *wav_ctx) {
     LogInfo("%s\n", __func__);
     int ret = -1;
     if (!parser || !file_addr || !wav_ctx)
@@ -76,6 +87,8 @@ static int init_parser(PcmParser *parser, const char *file_addr,
     parser->dst_sample_rate_in_Hz = dst_sample_rate;
     parser->dst_nb_channels = dst_nb_channels;
     parser->wav_ctx = *wav_ctx;
+    parser->volume_flp = volume_flp;
+    parser->volume_fix = (short)(32767 * parser->volume_flp);
 
     // Determine if it is in wav format
     if (wav_ctx->is_wav) {
@@ -196,7 +209,7 @@ int pcm_parser_get_pcm_frame(PcmParser *parser,
 	    if (loop && ret == PCM_FILE_EOF) {
 	        init_parser(parser, parser->file_addr, parser->src_sample_rate_in_Hz,
 	            parser->src_nb_channels, parser->dst_sample_rate_in_Hz,
-	            parser->dst_nb_channels, &parser->wav_ctx);
+	            parser->dst_nb_channels, parser->volume_flp, &parser->wav_ctx);
 	    } else if (0 < fifo_occupancy(parser->pcm_fifo)) {
 	        break;
 	    } else {
@@ -235,8 +248,9 @@ int pcm_parser_seekTo(PcmParser *parser, int seek_pos_ms) {
     return ret;
 }
 
-PcmParser *pcm_parser_create(const char *file_addr, int src_sample_rate,
-    int src_nb_channels, int dst_sample_rate, int dst_nb_channels, WavContext *wav_ctx) {
+PcmParser *pcm_parser_create(const char *file_addr,
+    int src_sample_rate, int src_nb_channels, int dst_sample_rate,
+    int dst_nb_channels, float volume_flp, WavContext *wav_ctx) {
     LogInfo("%s.\n", __func__);
     int ret = -1;
     if (!file_addr || !wav_ctx) {
@@ -256,7 +270,7 @@ PcmParser *pcm_parser_create(const char *file_addr, int src_sample_rate,
     }
 
     if ((ret = init_parser(parser, file_addr, src_sample_rate, src_nb_channels,
-        dst_sample_rate, dst_nb_channels, wav_ctx)) < 0) {
+        dst_sample_rate, dst_nb_channels, volume_flp, wav_ctx)) < 0) {
         LogError("%s init_parser failed\n", __func__);
         goto end;
     }

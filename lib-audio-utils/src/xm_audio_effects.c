@@ -148,17 +148,6 @@ end:
     return;
 }
 
-static void scale_with_volume(short *buffer, int buffer_len, float volume) {
-    if (!buffer || buffer_len <= 0
-            || (volume < 0.0f || volume > 1.0f)) {
-        return;
-    }
-
-    for (int i = 0; i < buffer_len; ++i) {
-        buffer[i] *= (volume);
-    }
-}
-
 static int add_effects_and_write_fifo(XmEffectContext *ctx) {
     int ret = -1;
     if (!ctx)
@@ -177,7 +166,6 @@ static int add_effects_and_write_fifo(XmEffectContext *ctx) {
         ret = read_len;
         goto end;
     }
-    scale_with_volume(ctx->buffer, read_len, ctx->voice_effects.record->volume);
     ctx->cur_size += (read_len * sizeof(*ctx->buffer));
 
     VoiceEffcets *voice_effects = &ctx->voice_effects;
@@ -442,6 +430,7 @@ int xm_audio_effect_init(XmEffectContext *ctx,
     char *in_pcm_path = ctx->voice_effects.record->file_path;
     if ((ctx->parser = pcm_parser_create(in_pcm_path, src_sample_rate,
             src_channels, dst_sample_rate, dst_channels,
+            ctx->voice_effects.record->volume,
             &(ctx->voice_effects.record->wav_ctx))) == NULL) {
         LogError("%s open pcm parser failed, file addr %s.\n", __func__, in_pcm_path);
         goto fail;
