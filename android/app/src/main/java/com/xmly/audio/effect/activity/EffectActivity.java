@@ -14,7 +14,9 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.RadioGroup;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -23,6 +25,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 
 import com.xmly.audio.effect.JsonUtils;
+import com.xmly.audio.effect.PcmToWav;
 import com.xmly.audio.effect.R;
 import com.xmly.audio.effect.Utils;
 import com.xmly.audio.effect.audio.AudioCapturer;
@@ -36,12 +39,15 @@ public class EffectActivity extends AppCompatActivity implements View.OnClickLis
     private static final String config = "/sdcard/audio_effect_test/config.txt";
     private static final String effect = "/sdcard/audio_effect_test/effect.pcm";
     private static final String speech = "/sdcard/speech.pcm";
+    private static final String rawPcm = "/sdcard/audio_effect_test/side_chain_test.pcm";
+    private static final String outWavFilePath = "/sdcard/audio_effect_test/pcmtowav.wav";
 
     private OutputStream mOsSpeech;
 
     private Button mBtnNsSwitch;
     private Button mBtnLimitSwitch;
 
+    private Button mBtnPcmToWav;
     private Button mBtnRecord;
     private Button mBtnAudition;
     private XmAudioUtils mAudioUtils;
@@ -83,6 +89,9 @@ public class EffectActivity extends AppCompatActivity implements View.OnClickLis
         mBtnRecord = findViewById(R.id.btn_record);
         mBtnRecord.setOnClickListener(this);
 
+        mBtnPcmToWav = findViewById(R.id.btn_pcmtowav);
+        mBtnPcmToWav.setOnClickListener(this);
+
         mCapturer = new AudioCapturer();
         mCapturer.setOnAudioFrameCapturedListener(EffectActivity.this);
 
@@ -116,12 +125,14 @@ public class EffectActivity extends AppCompatActivity implements View.OnClickLis
     protected void onStop() {
         stopRecord();
         stopAudition();
+        stopPcmToWav();
         super.onStop();
     }
 
     @Override
     protected void onDestroy() {
         stopRecord();
+        stopPcmToWav();
         mAudioUtils.release();
         super.onDestroy();
     }
@@ -130,6 +141,7 @@ public class EffectActivity extends AppCompatActivity implements View.OnClickLis
         JsonUtils.generateJsonFile(config, mEffectsInfoMap);
         JsonUtils.readJsonFile(config);
         mBtnAudition.setText("停止试听");
+
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
@@ -175,13 +187,13 @@ public class EffectActivity extends AppCompatActivity implements View.OnClickLis
                             mPlayer.play(buffer, 0, ret);
                         }
                         byte[] data = Utils.getByteArrayInLittleOrder(buffer);
-                        osEffectPcm.write(data, 0, 2*ret);
+                        osEffectPcm.write(data, 0, 2 * ret);
                         osEffectPcm.flush();
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
                     cur_size += ret;
-                    if (1000 * (cur_size / (float)44100 / 1) > 33000) {
+                    if (1000 * (cur_size / (float) 44100 / 1) > 33000) {
                         break;
                     }
                 }
@@ -203,14 +215,14 @@ public class EffectActivity extends AppCompatActivity implements View.OnClickLis
                             mPlayer.play(buffer, 0, ret);
                         }
                         byte[] data = Utils.getByteArrayInLittleOrder(buffer);
-                        osEffectPcm.write(data, 0, 2*ret);
+                        osEffectPcm.write(data, 0, 2 * ret);
                         osEffectPcm.flush();
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
                 }
                 long endTime = System.currentTimeMillis();
-                Log.i(TAG, "cost time "+(float)(endTime - startTime)/(float)1000);
+                Log.i(TAG, "cost time " + (float) (endTime - startTime) / (float) 1000);
                 mPlayer.stopPlayer();
                 mHandler.sendMessage(mHandler.obtainMessage(MSG_COMPLETED));
             }
@@ -274,6 +286,45 @@ public class EffectActivity extends AppCompatActivity implements View.OnClickLis
         }
     }
 
+    private void startPcmToWav() {
+        mBtnPcmToWav.setText("停止");
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                long startTime = System.currentTimeMillis();
+                File rawPcmFile = new File(rawPcm);
+                BufferedInputStream isRawPcm = null;
+                try {
+                    isRawPcm = new BufferedInputStream(new FileInputStream(rawPcmFile));
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+
+                PcmToWav pcmToWav = new PcmToWav();
+                pcmToWav.init(44100, 1, outWavFilePath);
+
+                byte[] temp = new byte[1024];
+                int length = 0;
+                try {
+                    while ((length = isRawPcm.read(temp)) > 0) {
+                        pcmToWav.writePcmData(temp, length);
+                    }
+                    pcmToWav.writeWavHeader();
+                    isRawPcm.close();
+                    isRawPcm = null;
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                pcmToWav.release();
+                long endTime = System.currentTimeMillis();
+                Log.i(TAG, "cost time " + (float) (endTime - startTime) / (float) 1000);
+            }
+        };
+        new Thread(runnable).start();
+    }
+
+    private void stopPcmToWav() { mBtnPcmToWav.setText("开始");}
+
     @Override
     public void onClick(View v) {
         int id = v.getId();
@@ -306,6 +357,14 @@ public class EffectActivity extends AppCompatActivity implements View.OnClickLis
             } else if (mBtnRecord.getText().toString().contentEquals("停止录音")) {
                 stopRecord();
                 mBtnRecord.setText("开始录音");
+            }
+        } else if (id == R.id.btn_pcmtowav) {
+            if (mBtnPcmToWav.getText().toString().contentEquals("开始")) {
+                startPcmToWav();
+                mBtnPcmToWav.setText("停止");
+            } else if (mBtnPcmToWav.getText().toString().contentEquals("停止")) {
+                stopPcmToWav();
+                mBtnPcmToWav.setText("开始");
             }
         }
     }
