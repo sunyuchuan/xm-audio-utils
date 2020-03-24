@@ -300,7 +300,46 @@ LABEL_RETURN:
     xmau_dec_ref_p(&ctx);
 }
 
+static int
+XMAudioUtils_StereoToMonoS16(JNIEnv *env, jobject thiz,
+    jshortArray dstBuffer, jshortArray srcBuffer, jint nbSamples, jint indexChannels) {
+    int ret = 0;
+    jshort *dst_buffer_ = (*env)->GetShortArrayElements(env, dstBuffer, NULL);
+    jshort *src_buffer_ = (*env)->GetShortArrayElements(env, srcBuffer, NULL);
+    if(dst_buffer_ == NULL || src_buffer_ == NULL) {
+        ret = 0;
+        goto fail;
+    }
+
+    short *p = src_buffer_;
+    short *q = dst_buffer_;
+    int n = nbSamples;
+    int index = indexChannels;
+    while (n >= 4) {
+        q[0] = p[0 + index];
+        q[1] = p[2 + index];
+        q[2] = p[4 + index];
+        q[3] = p[6 + index];
+        q += 4;
+        p += 8;
+        n -= 4;
+    }
+    while (n > 0) {
+        q[0] = p[0 + index];
+        q++;
+        p += 2;
+        n--;
+    }
+    ret = nbSamples;
+
+fail:
+    if (dst_buffer_) (*env)->ReleaseShortArrayElements(env, dstBuffer, dst_buffer_, 0);
+    if (src_buffer_) (*env)->ReleaseShortArrayElements(env, srcBuffer, src_buffer_, 0);
+    return ret;
+}
+
 static JNINativeMethod g_methods[] = {
+    { "native_StereoToMonoS16", "([S[SII)I", (void *) XMAudioUtils_StereoToMonoS16 },
     { "native_setup", "()V", (void *) XMAudioUtils_setup },
     { "native_set_log", "(IILjava/lang/String;)V", (void *) XMAudioUtils_set_log },
     { "native_close_log_file", "()V", (void *) XMAudioUtils_close_log_file },

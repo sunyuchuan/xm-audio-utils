@@ -45,6 +45,23 @@ public class XmAudioUtils {
     //本地XmAudioUtils对象实例
     private long mNativeXmAudioUtils = 0;
 
+    /**
+     * 取出双声道中的某一个声道值，把pcm数据从双声道变成单声道
+     * @param dstBuffer 目标buffer，大小可以是srcBuffer大小的一半
+     * @param srcBuffer 原始buffer，双声道pcm数据buffer
+     * @param srcBufferLength srcBuffer中有效pcm数据的长度，单位是short双字节
+     * @param indexChannel 取双声道中的哪一个通道, 0:第一个声道, 1:第二个声道
+     * @return dstBuffer中有效pcm数据的长度，单位是short双字节
+     */
+    public static int stereoToMonoS16(short[] dstBuffer, short[] srcBuffer,
+                                      int srcBufferLength, int indexChannel) {
+        if (dstBuffer == null || srcBuffer == null || srcBufferLength <= 0) return 0;
+        if (indexChannel != 0 && indexChannel != 1) return 0;
+
+        int nbSamples = srcBufferLength / 2;
+        return native_StereoToMonoS16(dstBuffer, srcBuffer, nbSamples, indexChannel);
+    }
+
     private static final LibLoader sLocalLibLoader = new LibLoader() {
         @Override
         public void loadLibrary(String libName) throws UnsatisfiedLinkError, SecurityException {
@@ -338,6 +355,7 @@ public class XmAudioUtils {
         }
     }
 
+    private static native int native_StereoToMonoS16(short[] dstBuffer, short[] srcBuffer, int nbSamples, int indexChannel);
     private native void native_set_log(int logMode, int logLevel, String outLogPath);
     private native void native_close_log_file();
     private native void native_setup();
