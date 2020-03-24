@@ -153,6 +153,10 @@ static int init_parser(PcmParser *parser, const char *file_addr,
     }
     fseek(parser->reader, parser->pcm_start_pos, SEEK_SET);
 
+    parser->duration_ms = calculation_duration_ms(parser->file_size,
+        parser->bits_per_sample/8, parser->src_nb_channels,
+        parser->src_sample_rate_in_Hz);
+
     if (tmp_file_addr) {
         av_freep(&tmp_file_addr);
     }
@@ -229,9 +233,10 @@ int pcm_parser_seekTo(PcmParser *parser, int seek_pos_ms) {
         return -1;
 
     parser->seek_pos_ms = seek_pos_ms < 0 ? 0 : seek_pos_ms;
-    int duration = calculation_duration_ms(parser->file_size, parser->bits_per_sample/8,
-        parser->src_nb_channels, parser->src_sample_rate_in_Hz);
-    if (duration > 0) parser->seek_pos_ms = parser->seek_pos_ms % duration;
+    int duration = parser->duration_ms;
+    if (duration > 0 && parser->seek_pos_ms != duration) {
+        parser->seek_pos_ms = parser->seek_pos_ms % duration;
+    }
     LogInfo("%s parser->seek_pos_ms %d, duration %d\n", __func__,
         parser->seek_pos_ms, duration);
 

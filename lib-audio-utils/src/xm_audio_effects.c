@@ -294,6 +294,9 @@ int xm_audio_effect_seekTo(XmEffectContext *ctx,
     ctx->seek_time_ms = seek_time_ms > 0 ? seek_time_ms : 0;
     ctx->cur_size = 0;
 
+    int file_duration = ctx->parser->duration_ms;
+    ctx->seek_time_ms = ctx->seek_time_ms > file_duration ? file_duration : ctx->seek_time_ms;
+
     flush(ctx);
     if (ctx->audio_fifo) fifo_clear(ctx->audio_fifo);
     ctx->flush = false;
@@ -323,9 +326,7 @@ static int xm_audio_effect_add_effects_l(XmEffectContext *ctx,
     ctx->cur_size = 0;
     ctx->flush = false;
     uint32_t data_size_byte = 0;
-    int file_duration = calculation_duration_ms(ctx->parser->file_size,
-        ctx->parser->bits_per_sample/8, ctx->parser->src_nb_channels,
-        ctx->parser->src_sample_rate_in_Hz);
+    int file_duration = ctx->parser->duration_ms;
     if (file_duration > MAX_DURATION_MIX_IN_MS) file_duration = MAX_DURATION_MIX_IN_MS;
     while (!ctx->abort) {
         int cur_position = ctx->seek_time_ms + calculation_duration_ms(ctx->cur_size,

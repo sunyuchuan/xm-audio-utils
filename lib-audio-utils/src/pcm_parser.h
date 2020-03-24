@@ -28,6 +28,7 @@ typedef struct PcmParser {
     // play-out volume.
     short volume_fix;
     float volume_flp;
+    int duration_ms;
 
     // Input parameters
     int src_sample_rate_in_Hz;
