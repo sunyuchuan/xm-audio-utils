@@ -233,12 +233,12 @@ static int PcmDecoder_seekTo(IAudioDecoder_Opaque *decoder,
         return -1;
 
     decoder->seek_pos_ms = seek_pos_ms < 0 ? 0 : seek_pos_ms;
-    int duration = calculation_duration_ms(decoder->file_size,
-        decoder->bits_per_sample/8, decoder->src_nb_channels,
-        decoder->src_sample_rate_in_Hz);
-    if (duration > 0) decoder->seek_pos_ms = decoder->seek_pos_ms % duration;
-    LogInfo("%s decoder->seek_pos_ms %d, duration %d\n", __func__,
-        decoder->seek_pos_ms, duration);
+    int file_duration = decoder->duration_ms;
+    if (file_duration > 0 && decoder->seek_pos_ms != file_duration) {
+        decoder->seek_pos_ms = decoder->seek_pos_ms % file_duration;
+    }
+    LogInfo("%s decoder->seek_pos_ms %d, file_duration %d\n", __func__,
+        decoder->seek_pos_ms, file_duration);
 
     if (decoder->pcm_fifo) fifo_clear(decoder->pcm_fifo);
 

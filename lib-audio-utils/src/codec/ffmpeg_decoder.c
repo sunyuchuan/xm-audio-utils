@@ -441,11 +441,12 @@ static int FFmpegDecoder_seekTo(IAudioDecoder_Opaque *decoder,
 
     decoder->seek_req = true;
     decoder->seek_pos_ms = seek_pos_ms < 0 ? 0 : seek_pos_ms;
-    if (decoder->duration_ms > 0) {
-        decoder->seek_pos_ms = decoder->seek_pos_ms % decoder->duration_ms;
+    int file_duration = decoder->duration_ms;
+    if (file_duration > 0 && decoder->seek_pos_ms != file_duration) {
+        decoder->seek_pos_ms = decoder->seek_pos_ms % file_duration;
     }
-    LogInfo("%s decoder->seek_pos_ms %d, duration %d\n", __func__,
-        decoder->seek_pos_ms, decoder->duration_ms);
+    LogInfo("%s decoder->seek_pos_ms %d, file_duration %d\n", __func__,
+        decoder->seek_pos_ms, file_duration);
 
     AudioFifoReset(decoder->audio_fifo);
     decoder->flush = false;

@@ -299,6 +299,9 @@ int xm_audio_effect_seekTo(XmEffectContext *ctx,
     ctx->seek_time_ms = seek_time_ms > 0 ? seek_time_ms : 0;
     ctx->cur_size = 0;
 
+    int file_duration = decoder->duration_ms;
+    ctx->seek_time_ms = ctx->seek_time_ms > file_duration ? file_duration : ctx->seek_time_ms;
+
     flush(ctx);
     if (ctx->audio_fifo) fifo_clear(ctx->audio_fifo);
     ctx->flush = false;
