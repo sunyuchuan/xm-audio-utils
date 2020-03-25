@@ -349,6 +349,9 @@ int FindAndOpenAudioEncoder(AVCodecContext** enc_ctx,
                 av_err2str(ret), ret);
         goto end;
     }
+    if (codec->capabilities & AV_CODEC_CAP_VARIABLE_FRAME_SIZE) {
+        (*enc_ctx)->frame_size = FRAME_SIZE;
+    }
 
 end:
     if (ret < 0 && *enc_ctx) avcodec_free_context(enc_ctx);

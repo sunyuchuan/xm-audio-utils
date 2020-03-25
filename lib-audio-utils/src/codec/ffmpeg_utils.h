@@ -9,6 +9,7 @@
 #include "libswresample/swresample.h"
 
 #define MAX_NB_SAMPLES 1024
+#define FRAME_SIZE 1024
 
 extern void SetFFmpegLogLevel(int log_level);
 

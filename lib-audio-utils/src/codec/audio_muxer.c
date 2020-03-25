@@ -48,6 +48,8 @@ static void release(AudioMuxer *am) {
 
     if(am->config.mime)
         av_free(am->config.mime);
+    if(am->config.muxer_name)
+        av_free(am->config.muxer_name);
     if(am->config.output_filename)
         av_free(am->config.output_filename);
     memset(&(am->config), 0, sizeof(MuxerConfig));
@@ -250,7 +252,7 @@ static int create_audio_encoder(AudioMuxer *am) {
         LogError("%s unsupport encoder_type %d.\n", __func__, am->config.encoder_type);
     }
 
-    av_dict_set(&audio_opt, "mime", MIME_AUDIO_AAC, 0);
+    av_dict_set(&audio_opt, "mime", am->config.mime, 0);
     av_dict_set_int(&audio_opt, "bit_rate", am->config.dst_bit_rate, 0);
     av_dict_set_int(&audio_opt, "sample_rate", am->config.dst_sample_rate_in_Hz, 0);
     av_dict_set_int(&audio_opt, "channels", am->config.dst_nb_channels, 0);
@@ -282,8 +284,8 @@ static int open_output_file(AudioMuxer *am)
     int ret = 0;
     MuxerConfig *config = &am->config;
     AVCodecContext *avctx = NULL;
-    if ((ret = avformat_alloc_output_context2(&am->ofmt_ctx, NULL, "mp4",
-        config->output_filename)) < 0)
+    if ((ret = avformat_alloc_output_context2(&am->ofmt_ctx, NULL,
+        config->muxer_name, config->output_filename)) < 0)
     {
         LogError("%s avformat_alloc_output_context2 failed, file addr: %s.\n", __func__, config->output_filename);
         goto end;
@@ -341,6 +343,7 @@ static int init_encoder_muxer(AudioMuxer *am, MuxerConfig *config)
     release(am);
     am->config = *config;
     am->config.mime = av_strdup(config->mime);
+    am->config.muxer_name= av_strdup(config->muxer_name);
     am->config.output_filename = av_strdup(config->output_filename);
     am->config.dst_bit_rate = config->dst_nb_channels >= 2 ? STEREO_BIT_RATE : MONO_BIT_RATE;
     am->max_nb_copy_samples = MAX_NB_SAMPLES;

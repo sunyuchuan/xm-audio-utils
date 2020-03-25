@@ -6,7 +6,6 @@
 
 #define DEFAULT_SAMPLE_RATE 44100
 #define DEFAULT_CHANNEL_NUMBER 2
-#define MIME_AUDIO_AAC "audio/aac"
 
 extern void RegisterFFmpeg();
 
@@ -42,10 +41,11 @@ int main(int argc, char **argv) {
     config.src_nb_channels = atoi(argv[3]);
     config.dst_sample_rate_in_Hz = DEFAULT_SAMPLE_RATE;
     config.dst_nb_channels = DEFAULT_CHANNEL_NUMBER;
-    config.mime = MIME_AUDIO_AAC;
+    config.mime = MIME_AUDIO_WAV;
+    config.muxer_name = MUXER_AUDIO_WAV;
     config.output_filename = argv[4];
     config.src_sample_fmt = AV_SAMPLE_FMT_S16;
-    config.codec_id = AV_CODEC_ID_AAC;
+    config.codec_id = AV_CODEC_ID_PCM_S16LE;
     config.encoder_type = ENCODER_FFMPEG;
     AudioMuxer *muxer = muxer_create(&config);
     if (muxer == NULL) {

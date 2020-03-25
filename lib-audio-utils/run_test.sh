@@ -31,7 +31,7 @@ echo -e "\033[1;43;30m\ntest_audio_decoder...\033[0m"
 ./tests/test_audio_decoder ../data/side_chain_test.wav side_chain_test.pcm 44100 1
 
 echo -e "\033[1;43;30m\ntest_audio_encoder...\033[0m"
-./tests/test_audio_encoder ../data/pcm_mono_44kHz_0035.pcm 44100 1 mono_0035_encoder.mp4
+./tests/test_audio_encoder ../data/pcm_mono_44kHz_0035.pcm 44100 1 mono_0035_encoder.wav
 
 echo -e "\033[1;43;30m\ntest_wav_dec...\033[0m"
 ./tests/test_wav_dec ../data/1582626292130.wav

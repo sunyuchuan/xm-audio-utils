@@ -13,6 +13,7 @@ typedef struct MuxerConfig {
     int dst_sample_rate_in_Hz;
     int dst_nb_channels;
     int dst_bit_rate;
+    char *muxer_name;
     char *mime;
     char *output_filename;
     enum AVSampleFormat src_sample_fmt;

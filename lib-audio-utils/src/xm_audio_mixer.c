@@ -282,6 +282,7 @@ static AudioMuxer *open_muxer(int dst_sample_rate, int dst_channels,
     config.src_nb_channels = dst_channels;
     config.dst_sample_rate_in_Hz = dst_sample_rate;
     config.dst_nb_channels = dst_channels;
+    config.muxer_name = MUXER_AUDIO_MP4;
     config.mime = MIME_AUDIO_AAC;
     config.output_filename = av_strdup(out_file_path);
     switch (bytes_per_sample) {
