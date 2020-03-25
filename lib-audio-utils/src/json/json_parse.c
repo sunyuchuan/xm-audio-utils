@@ -4,8 +4,11 @@
 #include "tools/util.h"
 #include <string.h>
 #include <stdlib.h>
-#include "../tools/mem.h"
-#include "../pcm_parser.h"
+#include "audio_decoder_factory.h"
+#include "codec/ffmpeg_utils.h"
+
+#define DEFAULT_SAMPLE_RATE 44100
+#define DEFAULT_CHANNEL_NUMBER 1
 
 static int parse_audio_record_source(cJSON *root_json, AudioRecordSource *record) {
     int ret = -1;
@@ -43,27 +46,39 @@ static int parse_audio_record_source(cJSON *root_json, AudioRecordSource *record
         cJSON *vol = cJSON_GetObjectItemCaseSensitive(sub, "volume");
         cJSON *start = cJSON_GetObjectItemCaseSensitive(sub, "startTimeMs");
         cJSON *end = cJSON_GetObjectItemCaseSensitive(sub, "endTimeMs");
+        cJSON *is_pcm = cJSON_GetObjectItemCaseSensitive(sub, "isPcm");
         cJSON *sample_rate = cJSON_GetObjectItemCaseSensitive(sub, "sampleRate");
         cJSON *nb_channel = cJSON_GetObjectItemCaseSensitive(sub, "nbChannels");
         if (!cJSON_IsString(file_path) || !cJSON_IsNumber(vol)
             || !cJSON_IsNumber(start) || !cJSON_IsNumber(end)
             || !file_path->valuestring || !cJSON_IsNumber(sample_rate)
-            || !cJSON_IsNumber(nb_channel))
+            || !cJSON_IsNumber(nb_channel) || !cJSON_IsString(is_pcm))
         {
             LogError("%s failed\n", __func__);
             ret = -1;
             goto fail;
         }
         if (record->file_path) free(record->file_path);
+        if (record->decoder) IAudioDecoder_freep(&record->decoder);
         record->file_path = av_strdup(file_path->valuestring);
         record->volume = vol->valuedouble / (float)100;
         record->start_time_ms = start->valuedouble;
         record->end_time_ms  = end->valuedouble;
         record->sample_rate= sample_rate->valuedouble;
         record->nb_channels = nb_channel->valuedouble;
-        if (wav_read_header(record->file_path, &record->wav_ctx) >= 0) {
-            record->sample_rate = record->wav_ctx.header.sample_rate;
-            record->nb_channels = record->wav_ctx.header.nb_channels;
+        if (0 == strcasecmp(is_pcm->valuestring, "True"))
+            record->decoder_type = DECODER_PCM;
+        else
+            record->decoder_type = DECODER_FFMPEG;
+
+        record->decoder = audio_decoder_create(record->file_path,
+                record->sample_rate, record->nb_channels,
+                DEFAULT_SAMPLE_RATE, DEFAULT_CHANNEL_NUMBER,
+                record->volume, record->decoder_type);
+        if (record->decoder == NULL) {
+            LogError("%s record audio_decoder_create failed.\n", __func__);
+            ret = -1;
+            goto fail;
         }
 
         LogInfo("%s file_path %s\n", __func__, record->file_path);
@@ -72,6 +87,9 @@ static int parse_audio_record_source(cJSON *root_json, AudioRecordSource *record
         LogInfo("%s end time %d\n", __func__, record->end_time_ms );
         LogInfo("%s sample_rate %d\n", __func__, record->sample_rate);
         LogInfo("%s nb_channels %d\n", __func__, record->nb_channels);
+        LogInfo("%s decoder_type %d\n", __func__, record->decoder_type);
+        LogInfo("%s out sample_rate %d\n", __func__, record->decoder->out_sample_rate);
+        LogInfo("%s out nb_channels %d\n", __func__, record->decoder->out_nb_channels);
     }
 
     if (record_childs != NULL) {
@@ -97,8 +115,6 @@ static int parse_audio_source(cJSON *json, AudioSourceQueue *queue) {
     cJSON_ArrayForEach(sub, json)
     {
         cJSON *file_path = cJSON_GetObjectItemCaseSensitive(sub, "file_path");
-        cJSON *sample_rate = cJSON_GetObjectItemCaseSensitive(sub, "sampleRate");
-        cJSON *nb_channels = cJSON_GetObjectItemCaseSensitive(sub, "nbChannels");
         cJSON *start = cJSON_GetObjectItemCaseSensitive(sub, "startTimeMs");
         cJSON *end = cJSON_GetObjectItemCaseSensitive(sub, "endTimeMs");
         cJSON *vol = cJSON_GetObjectItemCaseSensitive(sub, "volume");
@@ -106,9 +122,8 @@ static int parse_audio_source(cJSON *json, AudioSourceQueue *queue) {
         cJSON *fade_out_time = cJSON_GetObjectItemCaseSensitive(sub, "fadeOutTimeMs");
         cJSON *side_chain = cJSON_GetObjectItemCaseSensitive(sub, "sideChain");
 
-        if (!cJSON_IsString(file_path) || !cJSON_IsNumber(sample_rate)
-            || !cJSON_IsNumber(nb_channels) || !cJSON_IsNumber(start)
-            || !cJSON_IsNumber(end) || file_path->valuestring == NULL
+        if (!cJSON_IsString(file_path) || !cJSON_IsNumber(start)
+            || !cJSON_IsNumber(end) || !file_path->valuestring
             || !cJSON_IsNumber(fade_in_time) || !cJSON_IsNumber(fade_out_time)
             || !cJSON_IsNumber(vol) || !cJSON_IsString(side_chain))
         {
@@ -119,8 +134,6 @@ static int parse_audio_source(cJSON *json, AudioSourceQueue *queue) {
 
         memset(&source, 0, sizeof(AudioSource));
         source.file_path = av_strdup(file_path->valuestring);
-        source.sample_rate = sample_rate->valuedouble;
-        source.nb_channels = nb_channels->valuedouble;
         source.start_time_ms = start->valuedouble;
         source.end_time_ms  = end->valuedouble;
         source.volume = vol->valuedouble / (float)100;
@@ -128,7 +141,6 @@ static int parse_audio_source(cJSON *json, AudioSourceQueue *queue) {
         source.fade_io.fade_out_time_ms = fade_out_time->valuedouble;
         source.left_factor = 1.0f;
         source.right_factor = 1.0f;
-
         if (0 == strcasecmp(side_chain->valuestring, "On")) {
             source.side_chain_enable = true;
             cJSON *makeup_g = cJSON_GetObjectItemCaseSensitive(sub, "makeUpGain");
@@ -143,15 +155,9 @@ static int parse_audio_source(cJSON *json, AudioSourceQueue *queue) {
             source.side_chain_enable = false;
             source.makeup_gain = 0.0f;
         }
-        if (wav_read_header(source.file_path, &source.wav_ctx) >= 0) {
-            source.sample_rate = source.wav_ctx.header.sample_rate;
-            source.nb_channels = source.wav_ctx.header.nb_channels;
-        }
         source_queue_put(queue, &source);
 
         LogInfo("%s file_path %s\n", __func__, source.file_path);
-        LogInfo("%s sample_rate %d\n", __func__, source.sample_rate);
-        LogInfo("%s nb_channels %d\n", __func__, source.nb_channels);
         LogInfo("%s start time  %d\n", __func__, source.start_time_ms );
         LogInfo("%s end time %d\n", __func__, source.end_time_ms );
         LogInfo("%s volume %f\n", __func__, source.volume);
@@ -170,7 +176,7 @@ fail:
 
 int mixer_parse(MixerEffcets *mixer_effects, const char *json_file_addr) {
     int ret = -1;
-    if (!json_file_addr || !mixer_effects) {
+    if (NULL == json_file_addr || NULL == mixer_effects) {
         return ret;
     }
     if (!mixer_effects->bgmQueue || !mixer_effects->musicQueue) {
@@ -198,20 +204,15 @@ int mixer_parse(MixerEffcets *mixer_effects, const char *json_file_addr) {
         goto fail;
     }
 
-    if ((ret = parse_audio_record_source(root_json, mixer_effects->record)) < 0) {
+    /*if ((ret = parse_audio_record_source(root_json, mixer_effects->record)) < 0) {
         LogError("%s parse_audio_record_source failed\n", __func__);
         goto fail;
     }
-    AudioRecordSource *record = mixer_effects->record;
-    int bits_per_sample = record->wav_ctx.header.bits_per_sample;
-    if (bits_per_sample <= 0) {
-        bits_per_sample = BITS_PER_SAMPLE_16;
-        record->wav_ctx.header.bits_per_sample = bits_per_sample;
+    IAudioDecoder *record_decoder = mixer_effects->record->decoder;
+    if (record_decoder->out_bits_per_sample <= 0) {
+        record_decoder->out_bits_per_sample = BITS_PER_SAMPLE_16;
     }
-    mixer_effects->mix_duration_ms =
-        1000 * ((record->wav_ctx.file_size - record->wav_ctx.pcm_data_offset)
-        / (float)(bits_per_sample / 8) / record->sample_rate
-        / record->nb_channels);
+    mixer_effects->mix_duration_ms = record_decoder->duration_ms;*/
 
     bgms = cJSON_GetObjectItemCaseSensitive(root_json, "bgm");
     if (!bgms)
@@ -295,7 +296,7 @@ fail:
 
 int effects_parse(VoiceEffcets *voice_effects, const char *json_file_addr) {
     int ret = -1;
-    if (!json_file_addr || !voice_effects) {
+    if (NULL == json_file_addr || NULL == voice_effects) {
         return ret;
     }
 
@@ -321,8 +322,8 @@ int effects_parse(VoiceEffcets *voice_effects, const char *json_file_addr) {
         LogError("%s parse_audio_record_source failed\n", __func__);
         goto fail;
     }
-    voice_effects->dst_sample_rate = voice_effects->record->sample_rate;
-    voice_effects->dst_channels = voice_effects->record->nb_channels;
+    voice_effects->dst_sample_rate = voice_effects->record->decoder->out_sample_rate;
+    voice_effects->dst_channels = voice_effects->record->decoder->out_nb_channels;
 
     effects = cJSON_GetObjectItemCaseSensitive(root_json, "effects");
     if (effects == NULL) {

@@ -11,12 +11,6 @@ extern int ae_strcasecmp(const char *s1, const char *st);
 extern int ae_strncasecmp(char const *s1, char const *s2, size_t n);
 extern int ae_open_file(FILE **fp, const char *file_name, const int is_write);
 extern char *ae_read_file_to_string(const char *filename);
-extern int CopyString(const char* src, char** dst);
-extern void MixBufferS16(const short* src_buffer1, const short* src_buffer2,
-                  const int nb_mix_samples, const int nb_channels,
-                  short* dst_buffer, float* left_factor, float* right_factor);
-extern void StereoToMonoS16(short* dst, short* src, const int nb_samples);
-extern void MonoToStereoS16(short* dst, short* src, const int nb_samples);
 
 #ifndef HAVE_STRCASECMP
 #define strcasecmp(s1, s2) ae_strcasecmp((s1), (s2))

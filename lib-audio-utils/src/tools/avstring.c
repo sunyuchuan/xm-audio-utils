@@ -6,7 +6,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
-#include "mem.h"
+#include "libavutil/mem.h"
 
 size_t av_strlcat(char *dst, const char *src, size_t size) {
     size_t len = strlen(dst);

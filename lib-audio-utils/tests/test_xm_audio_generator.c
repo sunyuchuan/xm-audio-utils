@@ -7,6 +7,7 @@
 #include "error_def.h"
 #include "log.h"
 
+#define ENCODER_FFMPEG 0
 static volatile bool abort_request = false;
 
 void *get_progress(void *arg) {
@@ -46,7 +47,7 @@ int main(int argc, char **argv) {
     }
 
     int ret = xm_audio_generator_start(generator, argv[1],
-	argv[2]);
+	argv[2], ENCODER_FFMPEG);
     if (ret < 0) {
 	LogError("%s xm_audio_generator_start failed\n", __func__);
 	goto end;

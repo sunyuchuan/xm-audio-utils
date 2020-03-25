@@ -43,10 +43,11 @@ int xm_audio_generator_get_progress(XmAudioGenerator *self);
  * @param self XmAudioGenerator
  * @param in_config_path Config file about audio mix parameter
  * @param out_file_path Output audio file path
+ * @param encode_type 0:ffmpeg encoder
  * @return Less than 0 means failure
  */
 int xm_audio_generator_start(XmAudioGenerator *self,
-       const char *in_config_path, const char *out_file_path);
+    const char *in_config_path, const char *out_file_path, int encode_type);
 
 /**
  * @brief create XmAudioGenerator

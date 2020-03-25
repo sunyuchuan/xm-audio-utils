@@ -8,7 +8,7 @@
 #include <time.h>
 #include "avstring.h"
 #include "error_def.h"
-#include "mem.h"
+#include "libavutil/mem.h"
 
 struct AVDictionary {
     int count;

@@ -17,3 +17,4 @@ android/lib-audio-utils/src/main/obj
 android/lib-audio-utils/src/main/jni/effect-android-lib
 
 xmly-audio-utils.*
+ios-dev.*

@@ -9,6 +9,8 @@
 #include "error_def.h"
 #include "tools/util.h"
 
+extern void RegisterFFmpeg();
+
 struct XmAudioGenerator {
     volatile int status;
     XmMixerContext *mixer_ctx;
@@ -28,8 +30,8 @@ static int chk_st_l(int state)
     return -1;
 }
 
-static int mixer_mix(XmAudioGenerator *self,
-        const char *in_config_path, const char *out_file_path) {
+static int mixer_mix(XmAudioGenerator *self, const char *in_config_path,
+        const char *out_file_path, int encode_type) {
     LogInfo("%s\n", __func__);
     int ret = -1;
     if(!self || !in_config_path || !out_file_path) {
@@ -52,7 +54,7 @@ static int mixer_mix(XmAudioGenerator *self,
         goto end;
     }
 
-    ret = xm_audio_mixer_mix(self->mixer_ctx, out_file_path);
+    ret = xm_audio_mixer_mix(self->mixer_ctx, out_file_path, encode_type);
     if (ret < 0) {
 	LogError("%s xm_audio_mixer_mix failed\n", __func__);
 	goto end;
@@ -101,7 +103,7 @@ int xm_audio_generator_get_progress(XmAudioGenerator *self) {
 }
 
 int xm_audio_generator_start(XmAudioGenerator *self,
-        const char *in_config_path, const char *out_file_path) {
+        const char *in_config_path, const char *out_file_path, int encode_type) {
     LogInfo("%s\n", __func__);
     int ret = -1;
     if (!self || !in_config_path || !out_file_path) {
@@ -115,10 +117,7 @@ int xm_audio_generator_start(XmAudioGenerator *self,
     self->status = GENERATOR_STATE_STARTED;
     pthread_mutex_unlock(&self->mutex);
 
-    xm_audio_mixer_stop(self->mixer_ctx);
-    xm_audio_mixer_freep(&(self->mixer_ctx));
-
-    if ((ret = mixer_mix(self, in_config_path, out_file_path)) < 0) {
+    if ((ret = mixer_mix(self, in_config_path, out_file_path, encode_type)) < 0) {
         LogError("%s mixer_mix failed\n", __func__);
         goto end;
     }
@@ -140,6 +139,7 @@ XmAudioGenerator *xm_audio_generator_create() {
 
     pthread_mutex_init(&self->mutex, NULL);
     self->status = GENERATOR_STATE_INITIALIZED;
+    RegisterFFmpeg();
     return self;
 }
 

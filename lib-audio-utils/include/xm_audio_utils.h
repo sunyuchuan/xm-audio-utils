@@ -49,7 +49,7 @@ int xm_audio_utils_effect_seekTo(XmAudioUtils *self,
  * @return Less than 0 means failure
  */
 int xm_audio_utils_effect_init(XmAudioUtils *self,
-        const char *in_config_path);
+    const char *in_config_path);
 
 /**
  * @brief get mixed frame
@@ -81,7 +81,7 @@ int xm_audio_utils_mixer_seekTo(XmAudioUtils *self,
  * @return Less than 0 means failure
  */
 int xm_audio_utils_mixer_init(XmAudioUtils *self,
-       const char *in_config_path);
+        const char *in_config_path);
 
 /**
  * @brief start fade bgm pcm data
@@ -122,7 +122,7 @@ int xm_audio_utils_fade_init(XmAudioUtils *self,
  * @return size of valid buffer obtained.
                   Less than or equal to 0 means failure or end
  */
-int xm_audio_utils_get_parser_frame(XmAudioUtils *self,
+int xm_audio_utils_get_decoded_frame(XmAudioUtils *self,
     short *buffer, int buffer_size_in_short, bool loop);
 
 /**
@@ -130,25 +130,25 @@ int xm_audio_utils_get_parser_frame(XmAudioUtils *self,
  *
  * @param self XmAudioUtils
  * @param seek_time_ms seek target time in ms
+ * @return Less than 0 means failure
  */
-int xm_audio_utils_parser_seekTo(XmAudioUtils *self,
-        int seek_time_ms);
+int xm_audio_utils_decoder_seekTo(XmAudioUtils *self,
+    int seek_time_ms);
 
 /**
  * @brief create decoder that decode audio to pcm data
  *
  * @param self XmAudioUtils
- * @param in_pcm_path Input pcm file path
- * @param src_sample_rate input pcm sample_rate
- * @param src_channels input pcm nb_channels
- * @param dst_sample_rate Output pcm sample_rate
- * @param dst_channels Output pcm nb_channels
+ * @param in_audio_path Input audio file path
+ * @param out_sample_rate Output audio sample_rate
+ * @param out_channels Output audio nb_channels
+ * @param isPcm true:pcm file, false:mp3\wav\mp4 etc.
  * @param volume_fix Output pcm volume value range 0 to 100
  * @return Less than 0 means failure
  */
-int xm_audio_utils_parser_init(XmAudioUtils *self,
-    const char *in_pcm_path, int src_sample_rate, int src_channels,
-    int dst_sample_rate, int dst_channels, int volume_fix);
+int xm_audio_utils_decoder_create(XmAudioUtils *self,
+    const char *in_audio_path, int out_sample_rate, int out_channels,
+    bool isPcm, int volume_fix);
 
 /**
  * @brief create XmAudioUtils

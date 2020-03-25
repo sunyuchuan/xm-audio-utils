@@ -10,6 +10,8 @@
 #include "log.h"
 #include <stdlib.h>
 
+extern void RegisterFFmpeg();
+
 #define ENCODER_FFMPEG 0
 #define ENCODER_MEDIA_CODEC 1
 static volatile bool abort_request = false;
@@ -43,6 +45,7 @@ int main(int argc, char **argv) {
         return 0;
     }
 
+    RegisterFFmpeg();
     XmMixerContext *mixer = xm_audio_mixer_create();
     if (!mixer) {
         LogError("%s xm_audio_mixer_create failed\n", __func__);
@@ -61,10 +64,10 @@ int main(int argc, char **argv) {
         goto end;
     }
 
-    ret = xm_audio_mixer_mix(mixer, argv[2]);
+    ret = xm_audio_mixer_mix(mixer, argv[2], ENCODER_FFMPEG);
     if (ret < 0) {
-       LogError("%s xm_audio_mixer_mix failed\n", __func__);
-       goto end;
+	LogError("%s xm_audio_mixer_mix failed\n", __func__);
+	goto end;
     }
 
 end:

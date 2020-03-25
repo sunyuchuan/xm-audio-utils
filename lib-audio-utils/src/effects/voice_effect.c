@@ -6,7 +6,7 @@
 #include <string.h>
 #include "voice_effect.h"
 #include "error_def.h"
-#include "tools/mem.h"
+#include "libavutil/mem.h"
 #include "tools/util.h"
 
 #define EFFECT(f) extern const EffectHandler *effect_##f##_fn(void);

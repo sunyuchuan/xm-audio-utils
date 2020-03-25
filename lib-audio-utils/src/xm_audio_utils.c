@@ -6,10 +6,12 @@
 #include "log.h"
 #include "error_def.h"
 #include "tools/util.h"
-#include "pcm_parser.h"
+#include "audio_decoder_factory.h"
 #include "mixer_effects/fade_in_out.h"
 #include "xm_audio_mixer.h"
 #include "xm_audio_effects.h"
+
+extern void RegisterFFmpeg();
 
 typedef struct Fade {
     int bgm_start_time_ms;
@@ -20,7 +22,7 @@ typedef struct Fade {
 } Fade;
 
 struct XmAudioUtils {
-    PcmParser *parser;
+    IAudioDecoder *decoder;
     XmEffectContext *effects_ctx;
     XmMixerContext *mixer_ctx;
     Fade *fade;
@@ -36,8 +38,8 @@ void xm_audio_utils_free(XmAudioUtils *self) {
         free(self->fade);
         self->fade = NULL;
     }
-    if (self->parser) {
-        pcm_parser_freep(&self->parser);
+    if (self->decoder) {
+        IAudioDecoder_freep(&self->decoder);
     }
     if (self->mixer_ctx) {
         xm_audio_mixer_stop(self->mixer_ctx);
@@ -63,7 +65,7 @@ void xm_audio_utils_freep(XmAudioUtils **au) {
 
 int xm_audio_utils_effect_get_frame(XmAudioUtils *self,
     short *buffer, int buffer_size_in_short) {
-    if (!self || !buffer || buffer_size_in_short < 0) {
+    if (!self || !buffer || buffer_size_in_short <= 0) {
         return -1;
     }
 
@@ -111,7 +113,7 @@ end:
 
 int xm_audio_utils_mixer_get_frame(XmAudioUtils *self,
     short *buffer, int buffer_size_in_short) {
-    if (!self || !buffer || buffer_size_in_short < 0) {
+    if (!self || !buffer || buffer_size_in_short <= 0) {
         return -1;
     }
 
@@ -205,52 +207,50 @@ int xm_audio_utils_fade_init(XmAudioUtils *self,
     return 0;
 }
 
-int xm_audio_utils_get_parser_frame(XmAudioUtils *self,
+int xm_audio_utils_get_decoded_frame(XmAudioUtils *self,
     short *buffer, int buffer_size_in_short, bool loop) {
     int ret = -1;
-    if(!self || !buffer || buffer_size_in_short < 0) {
+    if(NULL == self || NULL == buffer
+        || buffer_size_in_short <= 0) {
         return ret;
     }
 
-    ret = pcm_parser_get_pcm_frame(self->parser, buffer, buffer_size_in_short, loop);
+    ret = IAudioDecoder_get_pcm_frame(self->decoder, buffer, buffer_size_in_short, loop);
+    if (PCM_FILE_EOF == ret) ret = 0;
     return ret;
 }
 
-int xm_audio_utils_parser_seekTo(XmAudioUtils *self,
+int xm_audio_utils_decoder_seekTo(XmAudioUtils *self,
         int seek_time_ms) {
     LogInfo("%s seek_time_ms %d\n", __func__, seek_time_ms);
     if(NULL == self) {
         return -1;
     }
 
-    return pcm_parser_seekTo(self->parser, seek_time_ms);
+    return IAudioDecoder_seekTo(self->decoder, seek_time_ms);
 }
 
-int xm_audio_utils_parser_init(XmAudioUtils *self,
-    const char *in_pcm_path, int src_sample_rate, int src_channels,
-    int dst_sample_rate, int dst_channels, int volume_fix) {
+int xm_audio_utils_decoder_create(XmAudioUtils *self,
+    const char *in_audio_path, int out_sample_rate, int out_channels,
+    bool isPcm, int volume_fix) {
     LogInfo("%s\n", __func__);
-    if (NULL == self || NULL == in_pcm_path) {
+    if (NULL == self || NULL == in_audio_path) {
         return -1;
     }
 
-    pcm_parser_freep(&self->parser);
-    WavContext wav_ctx;
-    if (wav_read_header(in_pcm_path, &wav_ctx) >= 0) {
-        src_sample_rate = wav_ctx.header.sample_rate;
-        src_channels = wav_ctx.header.nb_channels;
-        dst_sample_rate = wav_ctx.header.sample_rate;
-    }
-    if (dst_channels != 1 && dst_channels != 2) {
-        LogWarning("dst_channels %d invalid.\n", dst_channels);
-        dst_channels = wav_ctx.header.nb_channels;
-    }
-
     float volume_flp = volume_fix / (float)100;
-    self->parser = pcm_parser_create(in_pcm_path, src_sample_rate,
-        src_channels, dst_sample_rate, dst_channels, volume_flp, &wav_ctx);
-    if (self->parser == NULL) {
-        LogError("pcm_parser_create failed\n");
+    IAudioDecoder_freep(&self->decoder);
+    enum DecoderType type;
+    if(isPcm) {
+        type = DECODER_PCM;
+    } else {
+        type = DECODER_FFMPEG;
+    }
+    self->decoder = audio_decoder_create(in_audio_path, 0, 0,
+        out_sample_rate, out_channels, volume_flp, type);
+
+    if (self->decoder == NULL) {
+        LogError("audio_decoder_create failed\n");
         return -1;
     }
 
@@ -265,6 +265,7 @@ XmAudioUtils *xm_audio_utils_create() {
     }
 
     pthread_mutex_init(&self->mutex, NULL);
+    RegisterFFmpeg();
     return self;
 }
 

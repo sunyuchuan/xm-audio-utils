@@ -1,3 +1,5 @@
+#include "xm_audio_effects.h"
+#include "log.h"
 #include <pthread.h>
 #include <stdint.h>
 #include <string.h>
@@ -6,9 +8,9 @@
 #include <termios.h>
 #include <unistd.h>
 #include <stdio.h>
-#include "log.h"
-#include "xm_audio_effects.h"
 #include <stdlib.h>
+
+extern void RegisterFFmpeg();
 
 static volatile bool abort_request = false;
 
@@ -41,6 +43,7 @@ int main(int argc, char **argv) {
         return 0;
     }
 
+    RegisterFFmpeg();
     XmEffectContext *ctx = xm_audio_effect_create();
     if (!ctx) {
         LogError("%s xm_audio_effect_create failed\n", __func__);

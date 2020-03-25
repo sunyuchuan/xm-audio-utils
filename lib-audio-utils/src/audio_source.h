@@ -1,12 +1,10 @@
 #ifndef _AUDIO_SOURCE_H_
 #define _AUDIO_SOURCE_H_
 #include "mixer_effects/fade_in_out.h"
-#include "pcm_parser.h"
-#include "wav_dec.h"
+#include "idecoder.h"
+#include "audio_decoder_factory.h"
 
 typedef struct AudioSource {
-    int sample_rate;
-    int nb_channels;
     int start_time_ms;
     int end_time_ms;
     float volume;
@@ -16,9 +14,9 @@ typedef struct AudioSource {
     float makeup_gain;
     bool side_chain_enable;
     char *file_path;
-    PcmParser *parser;
+    IAudioDecoder *decoder;
+    enum DecoderType decoder_type;
     FadeInOut fade_io;
-    WavContext wav_ctx;
 } AudioSource;
 
 typedef struct AudioRecordSource {
@@ -28,7 +26,8 @@ typedef struct AudioRecordSource {
     int nb_channels;
     float volume;
     char *file_path;
-    WavContext wav_ctx;
+    IAudioDecoder *decoder;
+    enum DecoderType decoder_type;
 } AudioRecordSource;
 
 void audio_source_free(AudioSource *source);

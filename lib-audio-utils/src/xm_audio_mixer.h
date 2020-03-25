@@ -56,11 +56,12 @@ int xm_audio_mixer_seekTo(XmMixerContext *ctx,
  * @brief mix bgm\music and output m4a
  *
  * @param ctx XmMixerContext
- * @param out_file_path output pcm file path
+ * @param out_file_path output file path
+ * @param encoder_type Support ffmpeg
  * @return Less than 0 means failure
  */
 int xm_audio_mixer_mix(XmMixerContext *ctx,
-    const char *out_file_path);
+    const char *out_file_path, int encoder_type);
 
 /**
  * @brief mixer init
