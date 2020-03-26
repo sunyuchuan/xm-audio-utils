@@ -36,7 +36,7 @@ typedef struct SignalInfoT {
 
 struct EffectContext_T {
     EffectHandler handler;
-    AVDictionary *options;
+    AEDictionary *options;
     atomic_bool return_max_nb_samples;
     SignalInfo in_signal;
     void *priv;

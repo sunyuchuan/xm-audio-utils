@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <strings.h>
 #include "audio_encoder_sw.h"
 #include "libavutil/frame.h"
 #include "libavutil/opt.h"
@@ -11,7 +12,7 @@ typedef struct Encoder_Opaque {
     AVCodecContext *codec_ctx;
     AVCodec *codec;
     int frame_byte_size;
-    FF_AVMediaType type;
+    FF_FFAVMediaType type;
     AVFrame *frame;
 } Encoder_Opaque;
 

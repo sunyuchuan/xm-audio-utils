@@ -27,7 +27,7 @@
 #elif defined(__arm__)
 
 #   if   defined(__ARM_ARCH_7S__)
-#       include "armv7s/avconfig.h"
+#       include "armv7/avconfig.h"
 #   elif defined(__ARM_ARCH)
 #       if __ARM_ARCH == 7
 #           include "armv7/avconfig.h"

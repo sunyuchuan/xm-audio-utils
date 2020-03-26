@@ -36,16 +36,16 @@ typedef struct AEDictionaryEntry {
     char *value;
 } AEDictionaryEntry;
 
-typedef struct AVDictionary AVDictionary;
+typedef struct AEDictionary AEDictionary;
 
-AEDictionaryEntry *ae_dict_get(const AVDictionary *m, const char *key,
+AEDictionaryEntry *ae_dict_get(const AEDictionary *m, const char *key,
                                const AEDictionaryEntry *prev, int flags);
-int ae_dict_count(const AVDictionary *m);
-int ae_dict_set(AVDictionary **pm, const char *key, const char *value,
+int ae_dict_count(const AEDictionary *m);
+int ae_dict_set(AEDictionary **pm, const char *key, const char *value,
                 int flags);
-int ae_dict_set_int(AVDictionary **pm, const char *key, int64_t value,
+int ae_dict_set_int(AEDictionary **pm, const char *key, int64_t value,
                     int flags);
-int ae_dict_copy(AVDictionary **dst, const AVDictionary *src, int flags);
-void ae_dict_free(AVDictionary **m);
+int ae_dict_copy(AEDictionary **dst, const AEDictionary *src, int flags);
+void ae_dict_free(AEDictionary **m);
 
 #endif  // AUDIO_EFFECT_DICT_H
