@@ -282,8 +282,8 @@ static AudioMuxer *open_muxer(int dst_sample_rate, int dst_channels,
     config.src_nb_channels = dst_channels;
     config.dst_sample_rate_in_Hz = dst_sample_rate;
     config.dst_nb_channels = dst_channels;
-    config.muxer_name = MUXER_AUDIO_MP4;
-    config.mime = MIME_AUDIO_AAC;
+    config.muxer_name = MUXER_AUDIO_WAV;
+    config.mime = MIME_AUDIO_WAV;
     config.output_filename = av_strdup(out_file_path);
     switch (bytes_per_sample) {
         case 1:
@@ -299,7 +299,7 @@ static AudioMuxer *open_muxer(int dst_sample_rate, int dst_channels,
             LogError("%s bytes_per_sample %d is invalid.\n", __func__, bytes_per_sample);
             return NULL;
     }
-    config.codec_id = AV_CODEC_ID_AAC;
+    config.codec_id = AV_CODEC_ID_PCM_S16LE;
     switch (encoder_type) {
         case ENCODER_FFMPEG:
             config.encoder_type = ENCODER_FFMPEG;

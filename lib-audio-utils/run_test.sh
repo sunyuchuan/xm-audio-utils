@@ -31,7 +31,7 @@ echo -e "\033[1;43;30m\ntest_audio_decoder...\033[0m"
 ./tests/test_audio_decoder ../data/side_chain_test.wav side_chain_test.pcm 44100 1
 
 echo -e "\033[1;43;30m\ntest_audio_encoder...\033[0m"
-./tests/test_audio_encoder ../data/pcm_mono_44kHz_0035.pcm 44100 1 mono_0035_encoder.wav
+./tests/test_audio_encoder ../data/pcm_mono_44kHz_0035.pcm 44100 1 mono_0035_encoder.mp4
 
 echo -e "\033[1;43;30m\ntest_wav_dec...\033[0m"
 ./tests/test_wav_dec ../data/1582626292130.wav
@@ -43,10 +43,10 @@ echo -e "\033[1;43;30m\ntest_wav_concat...\033[0m"
 ./tests/test_wav_concat ../data/1582626292130.wav 1582626292130_concat.wav
 
 echo -e "\033[1;43;30m\ntest_xm_audio_effects...\033[0m"
-./tests/test_xm_audio_effects ../data/effect_config.txt test_xm_audio_effects.pcm
+./tests/test_xm_audio_effects ../data/effect_config.txt test_xm_audio_effects.wav
 
 echo -e "\033[1;43;30m\ntest_xm_audio_mixer...\033[0m"
-./tests/test_xm_audio_mixer ../data/effect_config.txt test_xm_audio_mixer.mp4
+./tests/test_xm_audio_mixer ../data/effect_config.txt test_xm_audio_mixer.wav
 
 echo -e "\033[1;43;30m\ntest_xm_audio_utils_decode...\033[0m"
 ./tests/test_xm_audio_utils_decode ../data/side_chain_music_test.wav side_chain_music_test.pcm 44100 2
@@ -58,4 +58,4 @@ echo -e "\033[1;43;30m\ntest_xm_audio_utils_effects...\033[0m"
 ./tests/test_xm_audio_utils_effects ../data/effect_config.txt 44100 1 utils_effect_mono_44kHz_0035.pcm
 
 echo -e "\033[1;43;30m\ntest_xm_audio_generator...\033[0m"
-./tests/test_xm_audio_generator ../data/effect_config.txt generator_pcm_mono_44kHz_0035.m4a
+./tests/test_xm_audio_generator ../data/effect_config.txt generator_pcm_mono_44kHz_0035.wav

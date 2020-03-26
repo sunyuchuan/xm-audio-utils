@@ -151,7 +151,7 @@ static int sw_encoder_config(Encoder *encoder, AVDictionary *opt) {
             opaque->frame->nb_samples = FRAME_SIZE;
             opaque->frame_byte_size = FRAME_SIZE * ctx->channels * av_get_bytes_per_sample(AV_SAMPLE_FMT_S16);
         } else {
-            opaque->frame->nb_samples     = ctx->frame_size;
+            opaque->frame->nb_samples = ctx->frame_size;
         }
         opaque->frame->format         = ctx->sample_fmt;
         opaque->frame->channel_layout = ctx->channel_layout;
