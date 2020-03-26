@@ -18,7 +18,7 @@
 typedef struct Encoder_Opaque {
     SDL_AMediaFormat  *input_aformat;
     SDL_AMediaCodec   *acodec;
-    FF_AVMediaType    type;
+    FF_FFAVMediaType    type;
     int               width;
     int               height;
     int               pix_fmt;

@@ -14,14 +14,14 @@
 #include "mem.h"
 #endif
 
-struct AVDictionary {
+struct AEDictionary {
     int count;
     AEDictionaryEntry *elems;
 };
 
-int ae_dict_count(const AVDictionary *m) { return m ? m->count : 0; }
+int ae_dict_count(const AEDictionary *m) { return m ? m->count : 0; }
 
-AEDictionaryEntry *ae_dict_get(const AVDictionary *m, const char *key,
+AEDictionaryEntry *ae_dict_get(const AEDictionary *m, const char *key,
                                const AEDictionaryEntry *prev, int flags) {
     int i, j;
 
@@ -47,9 +47,9 @@ AEDictionaryEntry *ae_dict_get(const AVDictionary *m, const char *key,
     return NULL;
 }
 
-int ae_dict_set(AVDictionary **pm, const char *key, const char *value,
+int ae_dict_set(AEDictionary **pm, const char *key, const char *value,
                 int flags) {
-    AVDictionary *m = *pm;
+    AEDictionary *m = *pm;
     AEDictionaryEntry *tag = NULL;
     char *oldval = NULL, *copy_key = NULL, *copy_value = NULL;
 
@@ -119,7 +119,7 @@ err_out:
     return AEERROR_NOMEM;
 }
 
-int ae_dict_set_int(AVDictionary **pm, const char *key, int64_t value,
+int ae_dict_set_int(AEDictionary **pm, const char *key, int64_t value,
                     int flags) {
     char valuestr[22];
     snprintf(valuestr, sizeof(valuestr), "%" PRId64, value);
@@ -127,7 +127,7 @@ int ae_dict_set_int(AVDictionary **pm, const char *key, int64_t value,
     return ae_dict_set(pm, key, valuestr, flags);
 }
 
-__attribute__((unused)) static int parse_key_value_pair(AVDictionary **pm,
+__attribute__((unused)) static int parse_key_value_pair(AEDictionary **pm,
                                                         const char **buf,
                                                         const char *key_val_sep,
                                                         const char *pairs_sep,
@@ -152,8 +152,8 @@ __attribute__((unused)) static int parse_key_value_pair(AVDictionary **pm,
     return ret;
 }
 
-void ae_dict_free(AVDictionary **pm) {
-    AVDictionary *m = *pm;
+void ae_dict_free(AEDictionary **pm) {
+    AEDictionary *m = *pm;
 
     if (m) {
         while (m->count--) {
@@ -165,7 +165,7 @@ void ae_dict_free(AVDictionary **pm) {
     av_freep(pm);
 }
 
-int ae_dict_copy(AVDictionary **dst, const AVDictionary *src, int flags) {
+int ae_dict_copy(AEDictionary **dst, const AEDictionary *src, int flags) {
     AEDictionaryEntry *t = NULL;
 
     while ((t = ae_dict_get(src, "", t, AV_DICT_IGNORE_SUFFIX))) {
@@ -176,7 +176,7 @@ int ae_dict_copy(AVDictionary **dst, const AVDictionary *src, int flags) {
     return 0;
 }
 
-int avpriv_dict_set_timestamp(AVDictionary **dict, const char *key,
+int avpriv_dict_set_timestamp(AEDictionary **dict, const char *key,
                               int64_t timestamp) {
     time_t seconds = timestamp / 1000000;
     struct tm *ptm, tmbuf;

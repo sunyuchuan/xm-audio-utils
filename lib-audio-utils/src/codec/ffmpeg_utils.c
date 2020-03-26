@@ -126,7 +126,11 @@ end:
     return ret;
 }
 
+#if defined(__ANDROID__) || defined (__linux__)
 int FindFirstStream(AVFormatContext* fmt_ctx, enum AVMediaType type) {
+#else
+int FindFirstStream(AVFormatContext* fmt_ctx, enum FF_AVMediaType type) {
+#endif
     int stream_index = -1;
 
     for (unsigned int i = 0; i < fmt_ctx->nb_streams; ++i) {
@@ -144,7 +148,11 @@ int FindFirstStream(AVFormatContext* fmt_ctx, enum AVMediaType type) {
     return stream_index;
 }
 
+#if defined(__ANDROID__) || defined (__linux__)
 int FindBestStream(AVFormatContext* fmt_ctx, enum AVMediaType type) {
+#else
+int FindBestStream(AVFormatContext* fmt_ctx, enum FF_AVMediaType type) {
+#endif
     int stream_index = -1;
 
     stream_index = av_find_best_stream(fmt_ctx, type, -1, -1, NULL, 0);

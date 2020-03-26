@@ -25,9 +25,15 @@ extern int CheckSampleRateAndChannels(const int sample_rate_in_Hz,
 
 extern int OpenInputMediaFile(AVFormatContext** fmt_ctx, const char* filename);
 
+#if defined(__ANDROID__) || defined (__linux__)
 extern int FindFirstStream(AVFormatContext* fmt_ctx, enum AVMediaType type);
 
 extern int FindBestStream(AVFormatContext* fmt_ctx, enum AVMediaType type);
+#else
+extern int FindFirstStream(AVFormatContext* fmt_ctx, enum FF_AVMediaType type);
+
+extern int FindBestStream(AVFormatContext* fmt_ctx, enum FF_AVMediaType type);
+#endif
 
 extern int AllocDecodeFrame(AVFrame** decode_frame);
 
