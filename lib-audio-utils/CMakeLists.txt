@@ -106,7 +106,7 @@ src/tools/conversion.c
 src/tools/dict.c
 src/tools/fifo.c
 src/tools/log.c
-src/tools/mem.c
+#src/tools/mem.c
 src/tools/sdl_mutex.c
 src/tools/util.c
 

@@ -261,12 +261,12 @@ static int create_audio_encoder(AudioMuxer *am) {
 #endif
     }
 
-    av_dict_set(&audio_opt, "mime", MIME_AUDIO_AAC, 0);
+    av_dict_set(&audio_opt, "mime", am->config.mime, 0);
     av_dict_set_int(&audio_opt, "bit_rate", am->config.dst_bit_rate, 0);
     av_dict_set_int(&audio_opt, "sample_rate", am->config.dst_sample_rate_in_Hz, 0);
     av_dict_set_int(&audio_opt, "channels", am->config.dst_nb_channels, 0);
     av_dict_set_int(&audio_opt, "channel_layout",
-            av_get_default_channel_layout(am->config.dst_nb_channels), 0);
+    av_get_default_channel_layout(am->config.dst_nb_channels), 0);
 
     ret = ff_encoder_config(am->audio_encoder, audio_opt);
     if (ret < 0) goto end;
