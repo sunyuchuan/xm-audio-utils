@@ -345,6 +345,52 @@ public class XmAudioUtils {
     }
 
     /**
+     * pcm重采样器初始化
+     * @param inPcmPath pcm文件路径
+     * @param srcSampleRate pcm的采样率
+     * @param srcChannels pcm的声道数
+     * @param dstSampleRate 输出采样率
+     * @param dstChannels 输出声道数
+     * @return false 失败，true 成功
+     */
+    public boolean resampler_init(String inPcmPath, int srcSampleRate, int srcChannels,
+                              double dstSampleRate, int dstChannels) {
+        boolean ret = false;
+        if (inPcmPath == null) {
+            return ret;
+        }
+
+        try {
+            ret = native_resampler_init(inPcmPath, srcSampleRate, srcChannels, dstSampleRate, dstChannels);
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+        }
+
+        return ret;
+    }
+
+    /**
+     * 获取重采样后的pcm数据
+     * @param buffer 输出buffer
+     * @param bufferSize 输出buffer大小，想要获取的pcm数据大小，单位是short
+     * @return 返回真实获取到的pcm数据大小，单位是short
+     */
+    public int get_resampler_frame(short[] buffer, int bufferSize) {
+        int ret = -1;
+        if (buffer == null) {
+            return ret;
+        }
+
+        try {
+            ret = native_resampler_resample(buffer, bufferSize);
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+        }
+
+        return ret;
+    }
+
+    /**
      * 释放native占用的内存
      */
     public void release() {
@@ -359,6 +405,10 @@ public class XmAudioUtils {
     private native void native_set_log(int logMode, int logLevel, String outLogPath);
     private native void native_close_log_file();
     private native void native_setup();
+
+    private native boolean native_resampler_init(String inPcmPath, int srcSampleRate, int srcChannels,
+                                             double dstSampleRate, int dstChannels);
+    private native int native_resampler_resample(short[] buffer, int bufferSize);
 
     private native int native_decoder_create(String inAudioPath, int outSampleRate, int outChannels, boolean isPcm, int volume);
     private native void native_decoder_seekTo(int seekTimeMs);

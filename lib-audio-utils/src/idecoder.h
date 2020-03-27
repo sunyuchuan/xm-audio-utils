@@ -13,7 +13,7 @@
 #define DOUBLE_EPS 1e-15
 
 static inline void set_gain(short *buffer, int buffer_len, short volume_fix) {
-    if (!buffer || buffer_len <= 0) {
+    if (!buffer || buffer_len <= 0 || volume_fix == 32767) {
         return;
     }
 

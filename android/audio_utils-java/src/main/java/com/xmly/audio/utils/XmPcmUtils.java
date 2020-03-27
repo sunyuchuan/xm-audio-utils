@@ -7,12 +7,126 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 
 public class XmPcmUtils {
     private static final String TAG = "XmPcmUtils";
     private static final int SAMPLE_RATE = 44100;
     private static final int NB_CHANNELS = 2;
+    private static final int BYTES_PER_SAMPLE = 2;
+    private String mInPcmPath = null;
+    private int mSrcSampleRate = 0;
+    private int mSrcNbChannels = 0;
+    private int mDstSampleRate = 0;
+    private int mDstNbChannels = 0;
+    File mInFile = null;
+    BufferedInputStream mBis = null;
+    private long mCurSamplePosition = 0;
+
+    private short[] getShortArrayInLittleOrder(byte[] b) {
+        if (b == null || b.length % 2 != 0)
+            throw new IllegalArgumentException("无法转换数组，输入参数错误：b == null or b.length % 2 != 0");
+
+        short[] s = new short[b.length >> 1];
+        ByteBuffer.wrap(b).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().get(s);
+        return s;
+    }
+
+    public XmPcmUtils() {}
+
+    /**
+     * init XmPcmUtils
+     * @param inPcmPath pcm文件路径
+     * @param srcSampleRate pcm原始采样率
+     * @param srcNbChannels pcm声道数
+     * @param dstSampleRate 目标采样率
+     * @param dstNbChannels 目标声道数
+     * @return false|true false:失败 true:成功
+     */
+    public synchronized boolean init(String inPcmPath, int srcSampleRate, int srcNbChannels,
+                                     int dstSampleRate, int dstNbChannels) {
+        if (null == inPcmPath || (srcNbChannels != 1 && srcNbChannels != 2)) return false;
+        if (dstSampleRate <= 0 || (dstNbChannels != 1 && dstNbChannels != 2)) return false;
+
+        mInPcmPath = inPcmPath;
+        mSrcSampleRate = srcSampleRate;
+        mSrcNbChannels = srcNbChannels;
+        mDstSampleRate = dstSampleRate;
+        mDstNbChannels = dstNbChannels;
+        mCurSamplePosition = 0;
+        try {
+            mInFile = new File(mInPcmPath);
+            if (mBis != null) {
+                mBis.close();
+                mBis = null;
+            }
+            mBis = new BufferedInputStream(new FileInputStream(mInFile));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * 得到采样后的数据
+     * @param buffer 目标buffer
+     * @return 获取到的有效pcm数据长度
+     */
+    public synchronized int resample(short[] buffer) {
+        if (null == buffer || null == mBis) return -1;
+
+        int interval = (int) Math.ceil(mSrcSampleRate / (double) mDstSampleRate);
+        int curNbSample = 0;
+        int dstNbSample = buffer.length / mDstNbChannels;
+
+        try {
+            int blockSize = BYTES_PER_SAMPLE * mSrcNbChannels;
+            int nbSamples = 512;
+            byte[] temp = new byte[nbSamples * blockSize];
+            int length = 0;
+            while (interval * (dstNbSample - curNbSample) >= nbSamples) {
+                if (mBis == null || (length = mBis.read(temp)) <= 0) {
+                    if (mBis != null) {
+                        mBis.close();
+                        mBis = null;
+                    }
+                    break;
+                }
+                int lengthInShort = length >> 1;
+                short[] tempShort = getShortArrayInLittleOrder(temp);
+
+                for (int i = 0; i < lengthInShort; i += mSrcNbChannels) {
+                    if (((mCurSamplePosition + (i / mSrcNbChannels)) % interval) == 0) {
+                        if (mDstNbChannels == 1) {
+                            if (mSrcNbChannels == 1) {
+                                buffer[curNbSample] = tempShort[i];
+                            } else {
+                                buffer[curNbSample] = (short) ((tempShort[i] + tempShort[i + 1]) / 2);
+                            }
+                        } else {
+                            if (mSrcNbChannels == 1) {
+                                buffer[2 * curNbSample] = tempShort[i];
+                                buffer[2 * curNbSample + 1] = tempShort[i];
+                            } else {
+                                buffer[2 * curNbSample] = tempShort[i];
+                                buffer[2 * curNbSample + 1] = tempShort[i + 1];
+                            }
+                        }
+                        curNbSample ++;
+                    }
+                }
+
+                mCurSamplePosition += lengthInShort / mSrcNbChannels;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return -1;
+        }
+        return curNbSample * mDstNbChannels;
+    }
 
     /**
      * 获取pcm文件的时长

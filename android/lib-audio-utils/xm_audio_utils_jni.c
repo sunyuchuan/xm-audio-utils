@@ -259,6 +259,48 @@ LABEL_RETURN:
     return ret;
 }
 
+static int
+XMAudioUtils_resampler_resample(JNIEnv *env, jobject thiz,
+    jshortArray buffer, jint buffer_size_in_short)
+{
+    int ret = -1;
+    XmAudioUtils *ctx = jni_get_xm_audio_utils(env, thiz);
+    JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: resampler_resample: null ctx", LABEL_RETURN);
+
+    jshort *buffer_ = (*env)->GetShortArrayElements(env, buffer, NULL);
+    ret = xm_audio_utils_pcm_resampler_resample(ctx, buffer_,
+        buffer_size_in_short);
+    (*env)->ReleaseShortArrayElements(env, buffer, buffer_, 0);
+
+LABEL_RETURN:
+    xmau_dec_ref_p(&ctx);
+    return ret;
+}
+
+static bool
+XMAudioUtils_resampler_init(JNIEnv *env, jobject thiz,
+    jstring inPcmPath, jint srcSampleRate, jint srcChannels,
+    jdouble dstSampleRate, jint dstChannels)
+{
+    LOGI("%s\n", __func__);
+    int ret = -1;
+    XmAudioUtils *ctx = jni_get_xm_audio_utils(env, thiz);
+    JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: resampler_init: null ctx", LABEL_RETURN);
+
+    const char *in_pcm_path = NULL;
+    if (inPcmPath)
+        in_pcm_path = (*env)->GetStringUTFChars(env, inPcmPath, 0);
+
+    ret = xm_audio_utils_pcm_resampler_init(ctx, in_pcm_path,
+        srcSampleRate, srcChannels, dstSampleRate, dstChannels);
+
+    if (in_pcm_path)
+        (*env)->ReleaseStringUTFChars(env, inPcmPath, in_pcm_path);
+LABEL_RETURN:
+    xmau_dec_ref_p(&ctx);
+    return ret;
+}
+
 static void
 XMAudioUtils_close_log_file(JNIEnv *env, jobject thiz)
 {
@@ -341,6 +383,8 @@ fail:
 static JNINativeMethod g_methods[] = {
     { "native_StereoToMonoS16", "([S[SII)I", (void *) XMAudioUtils_StereoToMonoS16 },
     { "native_setup", "()V", (void *) XMAudioUtils_setup },
+    { "native_resampler_init", "(Ljava/lang/String;IIDI)Z", (void *) XMAudioUtils_resampler_init },
+    { "native_resampler_resample", "([SI)I", (void *) XMAudioUtils_resampler_resample },
     { "native_set_log", "(IILjava/lang/String;)V", (void *) XMAudioUtils_set_log },
     { "native_close_log_file", "()V", (void *) XMAudioUtils_close_log_file },
     { "native_decoder_create", "(Ljava/lang/String;IIZI)I", (void *) XMAudioUtils_decoder_create },
