@@ -26,6 +26,9 @@ valgrind --leak-check=full --log-file=valgrind_log/test_wav_crop.log ./tests/tes
 echo -e "\033[1;43;30m\ntest_wav_concat...\033[0m"
 valgrind --leak-check=full --log-file=valgrind_log/test_wav_concat.log ./tests/test_wav_concat ../data/1582626292130.wav 1582626292130_concat.wav
 
+echo -e "\033[1;43;30m\ntest_xm_audio_utils_resampler...\033[0m"
+valgrind --leak-check=full --log-file=valgrind_log/test_xm_audio_utils_resampler.log ./tests/test_xm_audio_utils_resampler ../data/side_chain_test.wav test_xm_audio_utils_resampler.pcm
+
 echo -e "\033[1;43;30m\ntest_audio_decoder_1...\033[0m"
 valgrind --leak-check=full --log-file=valgrind_log/test_audio_decoder_1.log ./tests/test_audio_decoder ../data/bgm1.mp3 bgm1.pcm 44100 2
 echo -e "\033[1;43;30m\ntest_audio_decoder_2...\033[0m"
@@ -70,6 +73,9 @@ echo -e "\n"
 cat valgrind_log/test_audio_decoder_2.log
 echo -e "\n"
 cat valgrind_log/test_audio_encoder.log
+
+echo -e "\n"
+cat valgrind_log/test_xm_audio_utils_resampler.log
 
 echo -e "\n"
 cat valgrind_log/test_xm_audio_effects.log

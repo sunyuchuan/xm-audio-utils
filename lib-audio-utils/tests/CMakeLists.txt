@@ -52,3 +52,6 @@ target_link_libraries(test_xm_audio_utils_effects ${PROJECT_NAME} m pthread)
 
 add_executable(test_xm_audio_generator test_xm_audio_generator.c)
 target_link_libraries(test_xm_audio_generator ${PROJECT_NAME} m pthread)
+
+add_executable(test_xm_audio_utils_resampler test_xm_audio_utils_resampler.c)
+target_link_libraries(test_xm_audio_utils_resampler ${PROJECT_NAME} m pthread)
