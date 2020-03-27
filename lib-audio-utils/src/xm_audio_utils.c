@@ -13,6 +13,18 @@
 
 extern void RegisterFFmpeg();
 
+typedef struct PcmResampler {
+    int src_sample_rate;
+    int src_nb_channels;
+    double dst_sample_rate;
+    int dst_nb_channels;
+    long cur_samples_pos;
+    short *buffer;
+    int buffer_nb_samples;
+    int sample_interval;
+    PcmParser *parser;
+} PcmResampler;
+
 typedef struct Fade {
     int bgm_start_time_ms;
     int bgm_end_time_ms;
@@ -26,14 +38,34 @@ struct XmAudioUtils {
     XmEffectContext *effects_ctx;
     XmMixerContext *mixer_ctx;
     Fade *fade;
+    PcmResampler *pcm_resampler;
     pthread_mutex_t mutex;
 };
+
+static void pcm_resampler_release(PcmResampler **swr)
+{
+    if (!swr || !*swr)
+        return;
+
+    if ((*swr)->parser) {
+        pcm_parser_freep(&(*swr)->parser);
+    }
+    if ((*swr)->buffer) {
+        free((*swr)->buffer);
+        (*swr)->buffer = NULL;
+    }
+    free(*swr);
+    *swr = NULL;
+}
 
 void xm_audio_utils_free(XmAudioUtils *self) {
     LogInfo("%s\n", __func__);
     if (NULL == self)
         return;
 
+    if (self->pcm_resampler) {
+        pcm_resampler_release(&self->pcm_resampler);
+    }
     if (self->fade) {
         free(self->fade);
         self->fade = NULL;
@@ -255,6 +287,101 @@ int xm_audio_utils_decoder_create(XmAudioUtils *self,
     }
 
     return 0;
+}
+
+int xm_audio_utils_pcm_resampler_resample(
+    XmAudioUtils *self, short *buffer, int buffer_size_in_short) {
+    if (!self || !buffer || !self->pcm_resampler) return -1;
+
+    PcmResampler *swr = self->pcm_resampler;
+    if (!swr->parser) return -1;
+
+    int cur_nb_samples = 0;
+    int dst_nb_samples = buffer_size_in_short / swr->dst_nb_channels;
+    while (swr->sample_interval * (dst_nb_samples - cur_nb_samples)
+            >= swr->buffer_nb_samples) {
+        int read_len = pcm_parser_get_pcm_frame(swr->parser, swr->buffer,
+            swr->buffer_nb_samples * swr->src_nb_channels, false);
+        if (read_len <= 0) {
+            break;
+        }
+
+        for (int i = 0; i < read_len; i += swr->src_nb_channels) {
+            if (((swr->cur_samples_pos + (i/swr->src_nb_channels))
+                % swr->sample_interval) == 0) {
+                if (swr->dst_nb_channels == 1) {
+                    if (swr->src_nb_channels == 1) {
+                        buffer[cur_nb_samples] = swr->buffer[i];
+                    } else {
+                        buffer[cur_nb_samples] = (short) ((swr->buffer[i] + swr->buffer[i + 1]) >> 1);
+                    }
+                } else {
+                    if (swr->src_nb_channels == 1) {
+                        buffer[2 * cur_nb_samples] = swr->buffer[i];
+                        buffer[2 * cur_nb_samples + 1] = swr->buffer[i];
+                    } else {
+                        buffer[2 * cur_nb_samples] = swr->buffer[i];
+                        buffer[2 * cur_nb_samples + 1] = swr->buffer[i + 1];
+                    }
+                }
+                cur_nb_samples ++;
+            }
+        }
+        swr->cur_samples_pos += read_len / swr->src_nb_channels;
+    }
+
+    return cur_nb_samples * swr->dst_nb_channels;
+}
+
+bool xm_audio_utils_pcm_resampler_init(
+    XmAudioUtils *self, char *in_pcm_path, int src_sample_rate,
+    int src_nb_channels, double dst_sample_rate, int dst_nb_channels) {
+    LogInfo("%s\n", __func__);
+    if (!self || !in_pcm_path
+            || (src_nb_channels != 1 && src_nb_channels != 2)) return false;
+    if (dst_sample_rate <= 0
+            || (dst_nb_channels != 1 && dst_nb_channels != 2)) return false;
+
+    pcm_resampler_release(&self->pcm_resampler);
+    self->pcm_resampler = (PcmResampler *)calloc(1, sizeof(PcmResampler));
+    if (!self->pcm_resampler) {
+        LogError("%s calloc PcmResampler failed.\n", __func__);
+        goto fail;
+    }
+
+    PcmResampler *swr = self->pcm_resampler;
+    WavContext wav_ctx;
+    if (wav_read_header(in_pcm_path, &wav_ctx) >= 0) {
+        src_sample_rate = wav_ctx.header.sample_rate;
+        src_nb_channels = wav_ctx.header.nb_channels;
+    }
+    int out_sample_rate= src_sample_rate;
+    int out_channels = 1;
+    swr->parser = pcm_parser_create(in_pcm_path, src_sample_rate,
+        src_nb_channels, out_sample_rate, out_channels, 1.0f, &wav_ctx);
+    if (!swr->parser) {
+        LogError("%s pcm_parser_create failed.\n", __func__);
+        goto fail;
+    }
+
+    swr->src_sample_rate = out_sample_rate;
+    swr->src_nb_channels = out_channels;
+    swr->dst_sample_rate = dst_sample_rate;
+    swr->dst_nb_channels = dst_nb_channels;
+    swr->cur_samples_pos = 0;
+    swr->sample_interval = swr->src_sample_rate / swr->dst_sample_rate;
+
+    swr->buffer_nb_samples = 512;
+    swr->buffer = (short *)calloc(sizeof(short), swr->buffer_nb_samples * src_nb_channels);
+    if (!swr->buffer) {
+        LogError("%s calloc swr->buffer failed.\n", __func__);
+        goto fail;
+    }
+
+    return true;
+fail:
+    pcm_resampler_release(&self->pcm_resampler);
+    return false;
 }
 
 XmAudioUtils *xm_audio_utils_create() {

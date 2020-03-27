@@ -151,6 +151,33 @@ int xm_audio_utils_decoder_create(XmAudioUtils *self,
     bool isPcm, int volume_fix);
 
 /**
+ * @brief get pcm resampler out samples
+ *
+ * @param self XmAudioUtils
+ * @param buffer output buffer
+ * @param buffer_size_in_short the size of output buffer
+ * @return size of valid buffer obtained.
+        Less than or equal to 0 means failure or end
+ */
+int xm_audio_utils_pcm_resampler_resample(
+    XmAudioUtils *self, short *buffer, int buffer_size_in_short);
+
+/**
+ * @brief pcm resampler init
+ *
+ * @param self XmAudioUtils
+ * @param in_pcm_path Input pcm file path
+ * @param src_sample_rate pcm sample_rate
+ * @param src_nb_channels pcm nb_channels
+ * @param dst_sample_rate out sample_rate
+ * @param dst_nb_channels out nb_channels
+ * @return false:fail, true:success
+ */
+bool xm_audio_utils_pcm_resampler_init(
+    XmAudioUtils *self, char *in_pcm_path, int src_sample_rate,
+    int src_nb_channels, double dst_sample_rate, int dst_nb_channels);
+
+/**
  * @brief create XmAudioUtils
  *
  * @return XmAudioUtils*
