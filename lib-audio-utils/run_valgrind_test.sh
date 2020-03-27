@@ -33,6 +33,9 @@ valgrind --leak-check=full --log-file=valgrind_log/test_audio_decoder_2.log ./te
 echo -e "\033[1;43;30m\ntest_audio_encoder...\033[0m"
 valgrind --leak-check=full --log-file=valgrind_log/test_audio_encoder.log ./tests/test_audio_encoder ../data/pcm_mono_44kHz_0035.pcm 44100 1 mono_0035_encoder.mp4
 
+echo -e "\033[1;43;30m\ntest_xm_audio_utils_resampler...\033[0m"
+valgrind --leak-check=full --log-file=valgrind_log/test_xm_audio_utils_resampler.log ./tests/test_xm_audio_utils_resampler ../data/side_chain_test.wav test_xm_audio_utils_resampler.pcm
+
 echo -e "\033[1;43;30m\ntest_xm_audio_effects...\033[0m"
 valgrind --leak-check=full --log-file=valgrind_log/test_xm_audio_effects.log ./tests/test_xm_audio_effects ../data/effect_config.txt test_xm_audio_effects.pcm
 echo -e "\033[1;43;30m\ntest_xm_audio_mixer...\033[0m"
@@ -70,6 +73,9 @@ echo -e "\n"
 cat valgrind_log/test_audio_decoder_2.log
 echo -e "\n"
 cat valgrind_log/test_audio_encoder.log
+
+echo -e "\n"
+cat valgrind_log/test_xm_audio_utils_resampler.log
 
 echo -e "\n"
 cat valgrind_log/test_xm_audio_effects.log
