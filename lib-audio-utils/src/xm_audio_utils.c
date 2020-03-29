@@ -20,7 +20,7 @@ typedef struct PcmResampler {
     short *buffer;
     int buffer_nb_samples;
     int sample_interval;
-    PcmParser *parser;
+    IAudioDecoder *decoder;
 } PcmResampler;
 
 typedef struct Fade {
@@ -46,8 +46,8 @@ static void pcm_resampler_release(PcmResampler **swr)
     if (!swr || !*swr)
         return;
 
-    if ((*swr)->parser) {
-        pcm_parser_freep(&(*swr)->parser);
+    if ((*swr)->decoder) {
+        IAudioDecoder_freep(&(*swr)->decoder);
     }
     if ((*swr)->buffer) {
         free((*swr)->buffer);
@@ -320,13 +320,13 @@ int xm_audio_utils_pcm_resampler_resample(
     if (!self || !buffer || !self->pcm_resampler) return -1;
 
     PcmResampler *swr = self->pcm_resampler;
-    if (!swr->parser) return -1;
+    if (!swr->decoder) return -1;
 
     int cur_nb_samples = 0;
     int dst_nb_samples = buffer_size_in_short / swr->dst_nb_channels;
     while (swr->sample_interval * (dst_nb_samples - cur_nb_samples)
             >= swr->buffer_nb_samples) {
-        int read_len = pcm_parser_get_pcm_frame(swr->parser, swr->buffer,
+        int read_len = IAudioDecoder_get_pcm_frame(swr->decoder, swr->buffer,
             swr->buffer_nb_samples * swr->src_nb_channels, false);
         if (read_len <= 0) {
             break;
@@ -360,10 +360,10 @@ int xm_audio_utils_pcm_resampler_resample(
 }
 
 bool xm_audio_utils_pcm_resampler_init(
-    XmAudioUtils *self, char *in_pcm_path, int src_sample_rate,
+    XmAudioUtils *self, char *in_audio_path, bool is_pcm, int src_sample_rate,
     int src_nb_channels, double dst_sample_rate, int dst_nb_channels) {
     LogInfo("%s\n", __func__);
-    if (!self || !in_pcm_path
+    if (!self || !in_audio_path
             || (src_nb_channels != 1 && src_nb_channels != 2)) return false;
     if (dst_sample_rate <= 0
             || (dst_nb_channels != 1 && dst_nb_channels != 2)) return false;
@@ -376,17 +376,18 @@ bool xm_audio_utils_pcm_resampler_init(
     }
 
     PcmResampler *swr = self->pcm_resampler;
-    WavContext wav_ctx;
-    if (wav_read_header(in_pcm_path, &wav_ctx) >= 0) {
-        src_sample_rate = wav_ctx.header.sample_rate;
-        src_nb_channels = wav_ctx.header.nb_channels;
+    enum DecoderType type;
+    if(is_pcm) {
+        type = DECODER_PCM;
+    } else {
+        type = DECODER_FFMPEG;
     }
     int out_sample_rate= src_sample_rate;
     int out_channels = 1;
-    swr->parser = pcm_parser_create(in_pcm_path, src_sample_rate,
-        src_nb_channels, out_sample_rate, out_channels, 1.0f, &wav_ctx);
-    if (!swr->parser) {
-        LogError("%s pcm_parser_create failed.\n", __func__);
+    swr->decoder = audio_decoder_create(in_audio_path, src_sample_rate,
+        src_nb_channels, out_sample_rate, out_channels, 1.0f, type);
+    if (!swr->decoder) {
+        LogError("%s audio_decoder_create failed.\n", __func__);
         goto fail;
     }
 

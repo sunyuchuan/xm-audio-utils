@@ -346,22 +346,23 @@ public class XmAudioUtils {
 
     /**
      * pcm重采样器初始化
-     * @param inPcmPath pcm文件路径
+     * @param inAudioPath 音频文件路径
+     * @param isPcm 是否是PCM文件
      * @param srcSampleRate pcm的采样率
      * @param srcChannels pcm的声道数
      * @param dstSampleRate 输出采样率
      * @param dstChannels 输出声道数
      * @return false 失败，true 成功
      */
-    public boolean resampler_init(String inPcmPath, int srcSampleRate, int srcChannels,
+    public boolean resampler_init(String inAudioPath, boolean isPcm, int srcSampleRate, int srcChannels,
                               double dstSampleRate, int dstChannels) {
         boolean ret = false;
-        if (inPcmPath == null) {
+        if (inAudioPath == null) {
             return ret;
         }
 
         try {
-            ret = native_resampler_init(inPcmPath, srcSampleRate, srcChannels, dstSampleRate, dstChannels);
+            ret = native_resampler_init(inAudioPath, isPcm, srcSampleRate, srcChannels, dstSampleRate, dstChannels);
         } catch (IllegalStateException e) {
             e.printStackTrace();
         }
@@ -406,7 +407,7 @@ public class XmAudioUtils {
     private native void native_close_log_file();
     private native void native_setup();
 
-    private native boolean native_resampler_init(String inPcmPath, int srcSampleRate, int srcChannels,
+    private native boolean native_resampler_init(String inAudioPath, boolean isPcm, int srcSampleRate, int srcChannels,
                                              double dstSampleRate, int dstChannels);
     private native int native_resampler_resample(short[] buffer, int bufferSize);
 
