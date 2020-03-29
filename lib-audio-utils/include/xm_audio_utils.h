@@ -166,7 +166,8 @@ int xm_audio_utils_pcm_resampler_resample(
  * @brief pcm resampler init
  *
  * @param self XmAudioUtils
- * @param in_pcm_path Input pcm file path
+ * @param in_audio_path Input pcm file path
+ * @param is_pcm true:pcm file, false:mp3\wav\mp4 etc.
  * @param src_sample_rate pcm sample_rate
  * @param src_nb_channels pcm nb_channels
  * @param dst_sample_rate out sample_rate
@@ -174,7 +175,7 @@ int xm_audio_utils_pcm_resampler_resample(
  * @return false:fail, true:success
  */
 bool xm_audio_utils_pcm_resampler_init(
-    XmAudioUtils *self, char *in_pcm_path, int src_sample_rate,
+    XmAudioUtils *self, char *in_audio_path, bool is_pcm, int src_sample_rate,
     int src_nb_channels, double dst_sample_rate, int dst_nb_channels);
 
 /**

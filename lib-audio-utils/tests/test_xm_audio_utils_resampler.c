@@ -33,7 +33,7 @@ int main(int argc, char **argv) {
         goto end;
     }
 
-    xm_audio_utils_pcm_resampler_init(utils, argv[1], 44100, 2, 11025, 1);
+    xm_audio_utils_pcm_resampler_init(utils, argv[1], true, 44100, 1, 11025, 1);
     while (1) {
         ret = xm_audio_utils_pcm_resampler_resample(utils, buffer, buffer_size_in_short);
         if (ret <= 0) break;
