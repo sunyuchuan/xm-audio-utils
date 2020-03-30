@@ -1,4 +1,6 @@
 /*
+ * copyright (c) 2017 Raymond Zheng
+ *
  * This file is part of FFmpeg.
  *
  * FFmpeg is free software; you can redistribute it and/or
@@ -16,36 +18,21 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  */
 
+#ifndef AVUTIL_DNS_CACHE_H
+#define AVUTIL_DNS_CACHE_H
 
-#ifndef AVUTIL_HWCONTEXT_CUDA_H
-#define AVUTIL_HWCONTEXT_CUDA_H
+#include "libavutil/log.h"
 
-#ifndef CUDA_VERSION
-#include <cuda.h>
-#endif
+typedef struct DnsCacheEntry {
+    volatile int ref_count;
+    volatile int delete_flag;
+    int64_t expired_time;
+    struct addrinfo *res;  // construct by private function, not support ai_next and ai_canonname, can only be released using free_private_addrinfo
+} DnsCacheEntry;
 
-#include "pixfmt.h"
+DnsCacheEntry *get_dns_cache_reference(char *hostname);
+int release_dns_cache_reference(char *hostname, DnsCacheEntry **p_entry);
+int remove_dns_cache_entry(char *hostname);
+int add_dns_cache_entry(char *hostname, struct addrinfo *cur_ai, int64_t timeout);
 
-/**
- * @file
- * An API-specific header for AV_HWDEVICE_TYPE_CUDA.
- *
- * This API supports dynamic frame pools. AVHWFramesContext.pool must return
- * AVBufferRefs whose data pointer is a CUdeviceptr.
- */
-
-typedef struct AVCUDADeviceContextInternal AVCUDADeviceContextInternal;
-
-/**
- * This struct is allocated as AVHWDeviceContext.hwctx
- */
-typedef struct AVCUDADeviceContext {
-    CUcontext cuda_ctx;
-    AVCUDADeviceContextInternal *internal;
-} AVCUDADeviceContext;
-
-/**
- * AVHWFramesContext.hwctx is currently not used
- */
-
-#endif /* AVUTIL_HWCONTEXT_CUDA_H */
+#endif /* AVUTIL_DNS_CACHE_H */
