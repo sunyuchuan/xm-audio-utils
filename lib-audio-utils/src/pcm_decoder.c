@@ -171,7 +171,7 @@ static int init_decoder(IAudioDecoder_Opaque *decoder,
     return 0;
 end:
     if (tmp_file_addr) {
-        av_freep(tmp_file_addr);
+        av_freep(&tmp_file_addr);
     }
     PcmDecoder_free(decoder);
     return ret;
@@ -210,9 +210,13 @@ static int PcmDecoder_get_pcm_frame(IAudioDecoder_Opaque *decoder,
 	ret = write_fifo(decoder);
 	if (ret < 0) {
 	    if (loop && ret == PCM_FILE_EOF) {
-	        init_decoder(decoder, decoder->file_addr, decoder->src_sample_rate_in_Hz,
+	        ret = init_decoder(decoder, decoder->file_addr, decoder->src_sample_rate_in_Hz,
 	            decoder->src_nb_channels, decoder->dst_sample_rate_in_Hz,
 	            decoder->dst_nb_channels, decoder->volume_flp);
+	        if (ret < 0) {
+	            LogError("%s init_decoder failed\n", __func__);
+	            goto end;
+	        }
 	    } else if (0 < fifo_occupancy(decoder->pcm_fifo)) {
 	        break;
 	    } else {
@@ -249,8 +253,7 @@ static int PcmDecoder_seekTo(IAudioDecoder_Opaque *decoder,
         (decoder->src_sample_rate_in_Hz / (float) 1000),
         (decoder->src_nb_channels * decoder->bits_per_sample / 8));
     LogInfo("%s fseek offset 0x%x.\n", __func__, offset + decoder->pcm_start_pos);
-    int ret = fseek(decoder->reader, offset + decoder->pcm_start_pos, SEEK_SET);
-    return ret;
+    return fseek(decoder->reader, offset + decoder->pcm_start_pos, SEEK_SET);
 }
 
 IAudioDecoder *PcmDecoder_create(const char *file_addr,

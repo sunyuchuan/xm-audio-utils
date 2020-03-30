@@ -191,7 +191,7 @@ static int decode_audio_frame(IAudioDecoder_Opaque *decoder) {
 
             if (decoder->swr_ctx) {
                 ret = resample_audio(decoder);
-                if (ret < 0) break;
+                if (ret < 0) goto end;
                 ret = AudioFifoPut(decoder->audio_fifo, decoder->dst_nb_samples,
                                    (void **)decoder->dst_data);
                 if (ret < 0) goto end;

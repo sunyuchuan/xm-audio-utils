@@ -27,7 +27,12 @@ int main(int argc, char **argv) {
     gettimeofday(&start, NULL);
 
     FILE *pcm_writer = NULL;
-    OpenFile(&pcm_writer, argv[3], true);
+    ret = OpenFile(&pcm_writer, argv[3], true);
+    if (ret < 0) {
+        LogError("OpenFile %s failed\n", argv[3]);
+        ret = -1;
+        goto end;
+    }
 
     buffer = (short *)calloc(sizeof(short), buffer_size_in_short);
     if (!buffer) goto end;

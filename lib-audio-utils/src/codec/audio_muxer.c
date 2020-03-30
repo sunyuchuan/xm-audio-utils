@@ -246,10 +246,13 @@ static int create_audio_encoder(AudioMuxer *am) {
         am->audio_encoder = ff_encoder_sw_create();
         if (NULL == am->audio_encoder) {
             LogError("%s ff_encoder_sw_create failed.\n", __func__);
+            ret = -1;
             goto end;
         }
     } else {
         LogError("%s unsupport encoder_type %d.\n", __func__, am->config.encoder_type);
+        ret = -1;
+        goto end;
     }
 
     av_dict_set(&audio_opt, "mime", am->config.mime, 0);

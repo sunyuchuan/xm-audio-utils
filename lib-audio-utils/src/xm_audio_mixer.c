@@ -133,6 +133,11 @@ static int mixer_effects_init(MixerEffcets *mixer) {
         goto fail;
     }
     mixer->bgmQueue = source_queue_create();
+    if (NULL == mixer->bgmQueue) {
+        LogError("%s alloc AudioSourceQueue bgmQueue failed.\n", __func__);
+        ret = -1;
+        goto fail;
+    }
 
     mixer->music = (AudioSource *)calloc(1, sizeof(AudioSource));
     if (NULL == mixer->music) {
@@ -141,6 +146,11 @@ static int mixer_effects_init(MixerEffcets *mixer) {
         goto fail;
     }
     mixer->musicQueue = source_queue_create();
+    if (NULL == mixer->musicQueue) {
+        LogError("%s alloc AudioSourceQueue musicQueue failed.\n", __func__);
+        ret = -1;
+        goto fail;
+    }
 
     ret = 0;
 fail:
@@ -156,17 +166,20 @@ static int audio_effects_init(XmMixerContext *ctx,
     ctx->effects_ctx = xm_audio_effect_create();
     if (!ctx->effects_ctx) {
         LogError("%s xm_audio_effect_create failed\n", __func__);
+        ret = -1;
         goto fail;
     }
 
     if ((ret = xm_audio_effect_init(ctx->effects_ctx, in_config_path)) < 0) {
         LogError("Error: xm_audio_effect_init failed\n");
+        ret = -1;
         goto fail;
     }
 
     IAudioDecoder *decoder = xm_audio_effect_get_decoder(ctx->effects_ctx);
     if (!decoder) {
         LogError("%s xm_audio_effect_get_decoder failed\n", __func__);
+        ret = -1;
         goto fail;
     }
     ctx->pcm_sample_rate = decoder->out_sample_rate;
@@ -541,6 +554,7 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
         ctx->middle_buffer[Decoder], ctx->middle_buffer[MixBgm]);
     if (voice_bgm_buffer == NULL) {
         LogError("mixing voice and bgm failed.\n");
+        ret = -1;
         goto end;
     }
 
@@ -554,6 +568,7 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
         ctx->middle_buffer[Decoder], ctx->middle_buffer[MixMusic]);
     if (voice_bgm_music_buffer == NULL) {
         LogError("mixing voice_bgm and music failed.\n");
+        ret = -1;
         goto end;
     }
 
@@ -768,6 +783,7 @@ int xm_audio_mixer_init(XmMixerContext *ctx,
 
     if ((ret = audio_effects_init(ctx, in_config_path)) < 0) {
         LogError("%s audio_effects_init failed\n", __func__);
+        ret = -1;
         goto fail;
     }
 
