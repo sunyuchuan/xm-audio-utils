@@ -249,6 +249,7 @@ static int create_audio_encoder(AudioMuxer *am) {
         am->audio_encoder = ff_encoder_sw_create();
         if (NULL == am->audio_encoder) {
             LogError("%s ff_encoder_sw_create failed.\n", __func__);
+            ret = -1;
             goto end;
         }
     } else {
@@ -256,6 +257,7 @@ static int create_audio_encoder(AudioMuxer *am) {
         am->audio_encoder = ff_encoder_mediacodec_create();
         if (NULL == am->audio_encoder) {
             LogError("%s ff_encoder_mediacodec_create failed.\n", __func__);
+            ret = -1;
             goto end;
         }
 #endif

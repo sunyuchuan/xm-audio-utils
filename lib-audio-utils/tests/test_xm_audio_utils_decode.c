@@ -28,7 +28,11 @@ int main(int argc, char **argv) {
     gettimeofday(&start, NULL);
 
     FILE *pcm_writer = NULL;
-    OpenFile(&pcm_writer, argv[2], true);
+    ret = OpenFile(&pcm_writer, argv[2], true);
+    if (ret < 0) {
+        LogError("OpenFile %s failed\n", argv[4]);
+        goto end;
+    }
 
     buffer = (short *)calloc(sizeof(short), buffer_size_in_short);
     if (!buffer) goto end;
@@ -41,9 +45,19 @@ int main(int argc, char **argv) {
         goto end;
     }
 
-    xm_audio_utils_decoder_create(utils, argv[1], atoi(argv[3]), atoi(argv[4]), false, 100);
+    ret = xm_audio_utils_decoder_create(utils, argv[1], atoi(argv[3]), atoi(argv[4]), false, 100);
+    if (ret < 0) {
+        LogError("xm_audio_utils_decoder_create failed\n");
+        goto end;
+    }
+
     xm_audio_utils_decoder_seekTo(utils, 1000);
-    xm_audio_utils_fade_init(utils, atoi(argv[3]), atoi(argv[4]), 0, 60000, 5000, 5000);
+
+    ret = xm_audio_utils_fade_init(utils, atoi(argv[3]), atoi(argv[4]), 0, 60000, 5000, 5000);
+    if (ret < 0) {
+        LogError("xm_audio_utils_fade_init failed\n");
+        goto end;
+    }
 
     int64_t cur_size = 0;
     while (1) {

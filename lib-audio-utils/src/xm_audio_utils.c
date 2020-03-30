@@ -304,9 +304,9 @@ int xm_audio_utils_decoder_create(XmAudioUtils *self,
     } else {
         type = DECODER_FFMPEG;
     }
+
     self->decoder = audio_decoder_create(in_audio_path, 0, 0,
         out_sample_rate, out_channels, volume_flp, type);
-
     if (self->decoder == NULL) {
         LogError("audio_decoder_create failed\n");
         return -1;

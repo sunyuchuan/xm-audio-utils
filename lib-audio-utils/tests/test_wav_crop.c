@@ -18,7 +18,7 @@ int main(int argc, char **argv) {
 
     long duration = xm_wav_utils_get_duration(argv[1]);
     if (duration < 0) {
-        LogError("%s wav_read_header failed\n", __func__);
+        LogError("%s xm_wav_utils_get_duration failed\n", __func__);
         goto end;
     }
 

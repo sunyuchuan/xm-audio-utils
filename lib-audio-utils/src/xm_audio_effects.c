@@ -306,8 +306,7 @@ int xm_audio_effect_seekTo(XmEffectContext *ctx,
     if (ctx->audio_fifo) fifo_clear(ctx->audio_fifo);
     ctx->flush = false;
 
-    int ret = IAudioDecoder_seekTo(decoder, ctx->seek_time_ms);
-    return ret;
+    return IAudioDecoder_seekTo(decoder, ctx->seek_time_ms);
 }
 
 static int xm_audio_effect_add_effects_l(XmEffectContext *ctx,
@@ -327,6 +326,8 @@ static int xm_audio_effect_add_effects_l(XmEffectContext *ctx,
     wav_ctx.is_wav = true;
     if (wav_write_header(writer, &wav_ctx) < 0) {
         LogError("%s 1 write wav header failed, out_pcm_path %s\n", __func__, out_pcm_path);
+        ret = -1;
+        goto fail;
     }
 
     ctx->seek_time_ms = 0;
@@ -365,6 +366,8 @@ static int xm_audio_effect_add_effects_l(XmEffectContext *ctx,
         sizeof(wav_ctx.header) - 8;
     if (wav_write_header(writer, &wav_ctx) < 0) {
         LogError("%s 2 write wav header failed, out_pcm_path %s\n", __func__, out_pcm_path);
+        ret = -1;
+        goto fail;
     }
 
     if (PCM_FILE_EOF == ret) ret = 0;
@@ -422,6 +425,7 @@ int xm_audio_effect_init(XmEffectContext *ctx,
     ctx->voice_effects.record = (AudioRecordSource *)calloc(1, sizeof(AudioRecordSource));
     if (NULL == ctx->voice_effects.record) {
         LogError("%s alloc AudioRecordSource failed.\n", __func__);
+        ret = -1;
         goto fail;
     }
 
