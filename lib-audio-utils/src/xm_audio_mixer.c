@@ -514,10 +514,10 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
 
     int buffer_start_ms = ctx->seek_time_ms + calculation_duration_ms(ctx->cur_size,
         ctx->bits_per_sample/8, ctx->dst_channels, ctx->dst_sample_rate);
-    if (buffer_start_ms > MAX_DURATION_MIX_IN_MS) {
+    /*if (buffer_start_ms > MAX_DURATION_MIX_IN_MS) {
         ret = PCM_FILE_EOF;
         goto end;
-    }
+    }*/
 
     int read_len = xm_audio_effect_get_frame(ctx->effects_ctx,
         ctx->middle_buffer[EffectsPcm], buffer_len);
@@ -699,7 +699,7 @@ static int xm_audio_mixer_mix_l(XmMixerContext *ctx,
     ctx->seek_time_ms = 0;
     ctx->cur_size = 0;
     int file_duration = ctx->mixer_effects.mix_duration_ms;
-    if (file_duration > MAX_DURATION_MIX_IN_MS) file_duration = MAX_DURATION_MIX_IN_MS;
+    //if (file_duration > MAX_DURATION_MIX_IN_MS) file_duration = MAX_DURATION_MIX_IN_MS;
     while (!ctx->abort) {
         int cur_position = ctx->seek_time_ms + calculation_duration_ms(ctx->cur_size,
             ctx->bits_per_sample/8, ctx->dst_channels, ctx->dst_sample_rate);

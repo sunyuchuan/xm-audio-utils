@@ -158,10 +158,10 @@ static int add_effects_and_write_fifo(XmEffectContext *ctx) {
 
     int cur_position = ctx->seek_time_ms + calculation_duration_ms(ctx->cur_size,
         ctx->dst_bits_per_sample/8, ctx->dst_channels, ctx->dst_sample_rate);
-    if (cur_position > MAX_DURATION_MIX_IN_MS) {
+    /*if (cur_position > MAX_DURATION_MIX_IN_MS) {
         ret = PCM_FILE_EOF;
         goto end;
-    }
+    }*/
 
     int read_len = IAudioDecoder_get_pcm_frame(decoder,
         ctx->buffer, MAX_NB_SAMPLES, false);
@@ -335,7 +335,7 @@ static int xm_audio_effect_add_effects_l(XmEffectContext *ctx,
     ctx->flush = false;
     uint32_t data_size_byte = 0;
     int file_duration = ctx->duration_ms;
-    if (file_duration > MAX_DURATION_MIX_IN_MS) file_duration = MAX_DURATION_MIX_IN_MS;
+    //if (file_duration > MAX_DURATION_MIX_IN_MS) file_duration = MAX_DURATION_MIX_IN_MS;
     while (!ctx->abort) {
         int cur_position = ctx->seek_time_ms + calculation_duration_ms(ctx->cur_size,
             ctx->dst_bits_per_sample/8, ctx->dst_channels, ctx->dst_sample_rate);
