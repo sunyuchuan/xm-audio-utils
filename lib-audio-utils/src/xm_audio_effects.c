@@ -156,9 +156,9 @@ static int add_effects_and_write_fifo(XmEffectContext *ctx) {
     if (!decoder)
         return -1;
 
-    int cur_position = ctx->seek_time_ms + calculation_duration_ms(ctx->cur_size,
+    /*int cur_position = ctx->seek_time_ms + calculation_duration_ms(ctx->cur_size,
         ctx->dst_bits_per_sample/8, ctx->dst_channels, ctx->dst_sample_rate);
-    /*if (cur_position > MAX_DURATION_MIX_IN_MS) {
+    if (cur_position > MAX_DURATION_MIX_IN_MS) {
         ret = PCM_FILE_EOF;
         goto end;
     }*/
