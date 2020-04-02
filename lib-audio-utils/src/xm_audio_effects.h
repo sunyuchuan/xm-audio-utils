@@ -33,6 +33,14 @@ void xm_audio_effect_stop(XmEffectContext *ctx);
  */
 int xm_audio_effect_get_progress(XmEffectContext *ctx);
 
+/**
+* @brief get effecter duration in the ms
+*
+* @param ctx XmEffectContext
+* @return duration in the ms
+*/
+int xm_audio_effect_get_duration_ms(XmEffectContext *ctx);
+
  /**
  * @brief get AudioDecoder
  *

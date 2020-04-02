@@ -186,7 +186,7 @@ static int audio_effects_init(XmMixerContext *ctx,
     ctx->pcm_channels = decoder->out_nb_channels;
     ctx->dst_sample_rate = decoder->out_sample_rate;
     ctx->bits_per_sample = decoder->out_bits_per_sample;
-    ctx->mixer_effects.mix_duration_ms = decoder->duration_ms;
+    ctx->mixer_effects.mix_duration_ms = xm_audio_effect_get_duration_ms(ctx->effects_ctx);
 
     ret = 0;
 fail:
