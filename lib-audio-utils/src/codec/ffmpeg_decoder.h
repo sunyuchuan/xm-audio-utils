@@ -5,4 +5,6 @@
 IAudioDecoder *FFmpegDecoder_create(const char *file_addr,
     int dst_sample_rate, int dst_channels, float volume_flp);
 
+int get_audio_file_duration_ms(const char *file_addr);
+
 #endif // FFMPEG_DECODER_H

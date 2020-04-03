@@ -146,6 +146,7 @@ src/wav_dec.c
 src/xm_wav_utils.c
 src/xm_audio_effects.c
 src/xm_audio_mixer.c
+src/xm_duration_parser.c
 src/xm_audio_utils.c
 src/xm_audio_generator.c
 )

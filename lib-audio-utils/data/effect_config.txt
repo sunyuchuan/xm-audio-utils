@@ -4,16 +4,13 @@
         { "name":"Beautify","info":"Magnetic"}
     ],
     "record": [
-        { "file_path":"../data/side_chain_test.pcm","isPcm":"true","volume":80,"sampleRate":44100,"nbChannels":1,"startTimeMs":2000,"endTimeMs":180000}
+        { "file_path":"../data/side_chain_test.pcm","isPcm":"true","volume":80,"cropStartTimeMs":10000,"cropEndTimeMs":100000,"sampleRate":44100,"nbChannels":1,"startTimeMs":10000,"endTimeMs":180000}
     ],
     "bgm": [
-        { "file_path":"../data/side_chain_music_test.wav","volume":80,"startTimeMs":5000,"endTimeMs":60000,"fadeInTimeMs":3000,"fadeOutTimeMs":3000,"sideChain":"on","makeUpGain":50},
-        { "file_path":"../data/bgm2.mp4","volume":80,"startTimeMs":70000,"endTimeMs":100000,"fadeInTimeMs":3000,"fadeOutTimeMs":3000,"sideChain":"on","makeUpGain":50},
-        { "file_path":"../data/bgm2.mp4","volume":80,"startTimeMs":1000,"endTimeMs":70000,"fadeInTimeMs":3000,"fadeOutTimeMs":3000,"sideChain":"off","makeUpGain":50}
+        { "file_path":"../data/side_chain_music_test.wav","volume":80,"cropStartTimeMs":35000,"cropEndTimeMs":65000,"startTimeMs":5000,"endTimeMs":75000,"fadeInTimeMs":3000,"fadeOutTimeMs":3000,"sideChain":"on","makeUpGain":50},
+        { "file_path":"../data/bgm2.mp4","volume":80,"cropStartTimeMs":0,"cropEndTimeMs":350000,"startTimeMs":80000,"endTimeMs":120000,"fadeInTimeMs":3000,"fadeOutTimeMs":3000,"sideChain":"off","makeUpGain":50}
     ],
     "music": [
-        { "file_path":"../data/audio_effects_2.wav","volume":80,"startTimeMs":1000,"endTimeMs":35000,"fadeInTimeMs":2000,"fadeOutTimeMs":3000,"sideChain":"off","makeUpGain":50},
-        { "file_path":"../data/audio_effects_2.mp3","volume":80,"startTimeMs":140000,"endTimeMs":200000,"fadeInTimeMs":2000,"fadeOutTimeMs":2000,"sideChain":"off","makeUpGain":50},
-        { "file_path":"../data/audio_effects_2.wav","volume":80,"startTimeMs":60000,"endTimeMs":90000,"fadeInTimeMs":2000,"fadeOutTimeMs":2000,"sideChain":"off","makeUpGain":50}
+        { "file_path":"../data/audio_effects_2.wav","volume":80,"cropStartTimeMs":1000,"cropEndTimeMs":6000,"startTimeMs":150000,"endTimeMs":200000,"fadeInTimeMs":2000,"fadeOutTimeMs":2000,"sideChain":"off","makeUpGain":50}
     ]
 }

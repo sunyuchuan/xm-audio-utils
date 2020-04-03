@@ -263,8 +263,8 @@ int xm_audio_utils_decoder_seekTo(XmAudioUtils *self,
 }
 
 int xm_audio_utils_decoder_create(XmAudioUtils *self,
-    const char *in_audio_path, int out_sample_rate, int out_channels,
-    bool isPcm, int volume_fix) {
+    const char *in_audio_path, int crop_start_time_in_ms, int crop_end_time_in_ms,
+    int out_sample_rate, int out_channels, bool isPcm, int volume_fix) {
     LogInfo("%s\n", __func__);
     if (NULL == self || NULL == in_audio_path) {
         return -1;
@@ -283,6 +283,13 @@ int xm_audio_utils_decoder_create(XmAudioUtils *self,
         out_sample_rate, out_channels, volume_flp, type);
     if (self->decoder == NULL) {
         LogError("audio_decoder_create failed\n");
+        return -1;
+    }
+
+    if (IAudioDecoder_set_crop_pos(self->decoder,
+        crop_start_time_in_ms, crop_end_time_in_ms) < 0) {
+        LogError("%s IAudioDecoder_set_crop_pos failed.\n", __func__);
+        IAudioDecoder_freep(&self->decoder);
         return -1;
     }
 

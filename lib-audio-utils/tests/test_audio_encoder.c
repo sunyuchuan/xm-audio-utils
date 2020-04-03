@@ -3,6 +3,7 @@
 #include "error_def.h"
 #include "log.h"
 #include "audio_decoder_factory.h"
+#include "xm_duration_parser.h"
 
 #define DEFAULT_SAMPLE_RATE 44100
 #define DEFAULT_CHANNEL_NUMBER 2
@@ -26,13 +27,25 @@ int main(int argc, char **argv) {
     gettimeofday(&start, NULL);
 
     RegisterFFmpeg();
-
+    int crop_start_time = 0;
+    int crop_end_time = 0;
     int sample_rate = atoi(argv[2]);
     int nb_channels = atoi(argv[3]);
+
+    ret = get_file_duration_ms(argv[1], true, 16, sample_rate, nb_channels);
+    if (ret > 0) {
+        crop_end_time = ret/2;
+    }
+
     IAudioDecoder *decoder = audio_decoder_create(argv[1], sample_rate, nb_channels,
         sample_rate, nb_channels, 1.0f, DECODER_PCM);
     if (decoder == NULL) {
         LogError("audio_decoder_create failed\n");
+        goto end;
+    }
+
+    if (IAudioDecoder_set_crop_pos(decoder, crop_start_time, crop_end_time) < 0) {
+        LogError("%s IAudioDecoder_set_crop_pos failed.\n", __func__);
         goto end;
     }
 
