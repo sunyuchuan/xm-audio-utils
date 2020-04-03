@@ -13,6 +13,7 @@
 typedef struct IAudioDecoder_Opaque {
     // seek parameters
     int seek_pos_ms;
+    int64_t seek_pos_bytes;
 
     // play-out volume.
     short volume_fix;
@@ -24,8 +25,13 @@ typedef struct IAudioDecoder_Opaque {
     int bits_per_sample;
     int64_t pcm_start_pos;
     int duration_ms;
+    int64_t duration_bytes;
 
     // Output parameters
+    int crop_start_time_in_ms;
+    int crop_end_time_in_ms;
+    int64_t crop_start_pos;
+    int64_t crop_end_pos;
     int dst_sample_rate_in_Hz;
     int dst_nb_channels;
 
@@ -37,19 +43,34 @@ typedef struct IAudioDecoder_Opaque {
 
     char* file_addr;
     int64_t file_size;
+    int64_t cur_pos;
     FILE *reader;
 } IAudioDecoder_Opaque;
 
 static void PcmDecoder_free(IAudioDecoder_Opaque *decoder);
+static int PcmDecoder_set_crop_pos(IAudioDecoder *decoder,
+    int crop_start_time_ms, int crop_end_time_ms);
 
 inline static int64_t align(int64_t x, int align) {
     return ((( x ) + (align) - 1) / (align) * (align));
+}
+
+static int64_t calculate_location_bytes(int time_in_ms,
+    int bits_per_sample, int src_sample_rate_in_Hz, int src_nb_channels) {
+    return align((bits_per_sample / 8) * (time_in_ms / (float) 1000) *
+        src_nb_channels * (int64_t)src_sample_rate_in_Hz,
+        (src_nb_channels * bits_per_sample / 8));
 }
 
 static int write_fifo(IAudioDecoder_Opaque *decoder) {
     int ret = -1;
     if (!decoder || !decoder->reader)
         return ret;
+
+    if (decoder->cur_pos + decoder->seek_pos_bytes >= decoder->duration_bytes) {
+        ret = PCM_FILE_EOF;
+        goto end;
+    }
 
     if (feof(decoder->reader) || ferror(decoder->reader)) {
         ret = PCM_FILE_EOF;
@@ -62,6 +83,8 @@ static int write_fifo(IAudioDecoder_Opaque *decoder) {
         ret = PCM_FILE_EOF;
         goto end;
     }
+    decoder->cur_pos += read_len * sizeof(*(decoder->src_buffer));
+
     set_gain(decoder->src_buffer, read_len, decoder->volume_fix);
 
     if (decoder->src_nb_channels != decoder->dst_nb_channels) {
@@ -89,6 +112,40 @@ end:
     return ret;
 }
 
+static int init_timings_params(IAudioDecoder_Opaque *decoder,
+    int crop_start_time_ms, int crop_end_time_ms) {
+    int ret = -1;
+    if (!decoder || !decoder->reader) return -1;
+
+    decoder->duration_ms =  calculation_duration_ms(decoder->file_size,
+        decoder->bits_per_sample/8, decoder->src_nb_channels,
+        decoder->src_sample_rate_in_Hz);
+
+    decoder->crop_start_time_in_ms = crop_start_time_ms < 0 ? 0 :
+        (crop_start_time_ms > decoder->duration_ms ? decoder->duration_ms : crop_start_time_ms);
+    decoder->crop_end_time_in_ms = crop_end_time_ms < 0 ? 0 :
+        (crop_end_time_ms > decoder->duration_ms ? decoder->duration_ms : crop_end_time_ms);
+
+    decoder->duration_ms = decoder->crop_end_time_in_ms - decoder->crop_start_time_in_ms;
+
+    decoder->crop_start_pos = calculate_location_bytes(
+        decoder->crop_start_time_in_ms, decoder->bits_per_sample,
+        decoder->src_sample_rate_in_Hz, decoder->src_nb_channels);
+
+    decoder->crop_end_pos = calculate_location_bytes(
+        decoder->crop_end_time_in_ms, decoder->bits_per_sample,
+        decoder->src_sample_rate_in_Hz, decoder->src_nb_channels);
+    LogInfo("%s crop_start_time %d crop_end_time %d duration %d.\n", __func__, decoder->crop_start_time_in_ms,
+        decoder->crop_end_time_in_ms, decoder->duration_ms);
+
+    decoder->duration_bytes = decoder->crop_end_pos - decoder->crop_start_pos;
+
+    ret = fseek(decoder->reader,
+        decoder->pcm_start_pos + decoder->crop_start_pos, SEEK_SET);
+
+    return ret;
+}
+
 static int init_decoder(IAudioDecoder_Opaque *decoder,
         const char *file_addr, int src_sample_rate, int src_nb_channels,
         int dst_sample_rate, int dst_nb_channels, float volume_flp) {
@@ -104,7 +161,13 @@ static int init_decoder(IAudioDecoder_Opaque *decoder,
     }
 
     PcmDecoder_free(decoder);
+    decoder->cur_pos = 0;
     decoder->seek_pos_ms = 0;
+    decoder->seek_pos_bytes = 0;
+    decoder->crop_start_time_in_ms = 0;
+    decoder->crop_end_time_in_ms = 0;
+    decoder->crop_start_pos = 0;
+    decoder->crop_end_pos = 0;
     decoder->src_sample_rate_in_Hz = src_sample_rate;
     decoder->src_nb_channels = src_nb_channels;
     decoder->bits_per_sample = BITS_PER_SAMPLE_16;
@@ -161,9 +224,10 @@ static int init_decoder(IAudioDecoder_Opaque *decoder,
     fseek(decoder->reader, 0, SEEK_END);
     decoder->file_size = ftell(decoder->reader) - decoder->pcm_start_pos;
     fseek(decoder->reader, decoder->pcm_start_pos, SEEK_SET);
-    decoder->duration_ms =  calculation_duration_ms(decoder->file_size,
+    decoder->duration_ms = calculation_duration_ms(decoder->file_size,
         decoder->bits_per_sample/8, decoder->src_nb_channels,
         decoder->src_sample_rate_in_Hz);
+    decoder->duration_bytes = decoder->file_size;
 
     if (tmp_file_addr) {
         av_freep(&tmp_file_addr);
@@ -200,16 +264,21 @@ static void PcmDecoder_free(IAudioDecoder_Opaque *decoder) {
     }
 }
 
-static int PcmDecoder_get_pcm_frame(IAudioDecoder_Opaque *decoder,
-        short *buffer, int buffer_size_in_short, bool loop) {
+static int PcmDecoder_get_pcm_frame(
+        IAudioDecoder *audioDecoder, short *buffer,
+        int buffer_size_in_short, bool loop) {
     int ret = -1;
-    if (!decoder || !buffer || buffer_size_in_short < 0)
+    if (!audioDecoder || !audioDecoder->opaque
+            || !buffer || buffer_size_in_short < 0)
         return ret;
+    IAudioDecoder_Opaque *decoder = audioDecoder->opaque;
 
     while (fifo_occupancy(decoder->pcm_fifo) < (size_t) buffer_size_in_short) {
 	ret = write_fifo(decoder);
 	if (ret < 0) {
 	    if (loop && ret == PCM_FILE_EOF) {
+	        int crop_start_time_in_ms = decoder->crop_start_time_in_ms;
+                int crop_end_time_in_ms = decoder->crop_end_time_in_ms;
 	        ret = init_decoder(decoder, decoder->file_addr, decoder->src_sample_rate_in_Hz,
 	            decoder->src_nb_channels, decoder->dst_sample_rate_in_Hz,
 	            decoder->dst_nb_channels, decoder->volume_flp);
@@ -217,6 +286,11 @@ static int PcmDecoder_get_pcm_frame(IAudioDecoder_Opaque *decoder,
 	            LogError("%s init_decoder failed\n", __func__);
 	            goto end;
 	        }
+	        if (PcmDecoder_set_crop_pos(audioDecoder,
+                    crop_start_time_in_ms, crop_end_time_in_ms) < 0) {
+                    LogError("%s PcmDecoder_set_crop_pos failed.\n", __func__);
+                    goto end;
+                }
 	    } else if (0 < fifo_occupancy(decoder->pcm_fifo)) {
 	        break;
 	    } else {
@@ -245,15 +319,29 @@ static int PcmDecoder_seekTo(IAudioDecoder_Opaque *decoder,
         decoder->seek_pos_ms, file_duration);
 
     if (decoder->pcm_fifo) fifo_clear(decoder->pcm_fifo);
+    decoder->cur_pos = 0;
 
     //The offset needs to be a multiple of 2, because the pcm data is 16-bit.
     //The size of seek is in pcm data.
-    int64_t offset = align((decoder->bits_per_sample / 8) *
-        ((int64_t) decoder->seek_pos_ms * decoder->src_nb_channels) *
-        (decoder->src_sample_rate_in_Hz / (float) 1000),
-        (decoder->src_nb_channels * decoder->bits_per_sample / 8));
-    LogInfo("%s fseek offset 0x%x.\n", __func__, offset + decoder->pcm_start_pos);
-    return fseek(decoder->reader, offset + decoder->pcm_start_pos, SEEK_SET);
+    decoder->seek_pos_bytes = calculate_location_bytes(decoder->seek_pos_ms,
+        decoder->bits_per_sample, decoder->src_sample_rate_in_Hz,
+        decoder->src_nb_channels);
+    LogInfo("%s fseek offset 0x%x.\n", __func__,
+        decoder->seek_pos_bytes + decoder->pcm_start_pos + decoder->crop_start_pos);
+    return fseek(decoder->reader,
+        decoder->seek_pos_bytes + decoder->pcm_start_pos + decoder->crop_start_pos, SEEK_SET);
+}
+
+static int PcmDecoder_set_crop_pos(IAudioDecoder *decoder,
+    int crop_start_time_ms, int crop_end_time_ms) {
+    LogInfo("%s\n", __func__);
+    if (!decoder || !decoder->opaque)
+        return -1;
+
+    int ret = init_timings_params(decoder->opaque,
+        crop_start_time_ms, crop_end_time_ms);
+    decoder->duration_ms = decoder->opaque->duration_ms;
+    return ret;
 }
 
 IAudioDecoder *PcmDecoder_create(const char *file_addr,
@@ -277,6 +365,7 @@ IAudioDecoder *PcmDecoder_create(const char *file_addr,
         return NULL;
     }
 
+    decoder->func_set_crop_pos = PcmDecoder_set_crop_pos;
     decoder->func_seekTo = PcmDecoder_seekTo;
     decoder->func_get_pcm_frame = PcmDecoder_get_pcm_frame;
     decoder->func_free = PcmDecoder_free;
@@ -298,4 +387,23 @@ end:
         IAudioDecoder_freep(&decoder);
     }
     return NULL;
+}
+
+int get_pcm_file_duration_ms(const char *file_addr,
+    int bits_per_sample, int src_sample_rate_in_Hz, int src_nb_channels) {
+    int ret = -1;
+    if (!file_addr) return -1;
+
+    FILE *reader = NULL;
+    if ((ret = ae_open_file(&reader, file_addr, false)) < 0) {
+	LogError("%s open file_addr %s failed\n", __func__, file_addr);
+	goto end;
+    }
+
+    fseek(reader, 0, SEEK_END);
+    ret = calculation_duration_ms(ftell(reader),
+        bits_per_sample/8, src_nb_channels, src_sample_rate_in_Hz);
+end:
+    if (reader != NULL) fclose(reader);
+    return ret;
 }

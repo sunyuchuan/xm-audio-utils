@@ -4,6 +4,7 @@
 #include "xm_android_jni.h"
 #include "log.h"
 #include "xm_audio_utils.h"
+#include "xm_duration_parser.h"
 #include "utils.h"
 #include <assert.h>
 #include <pthread.h>
@@ -237,8 +238,8 @@ LABEL_RETURN:
 
 static int
 XMAudioUtils_decoder_create(JNIEnv *env, jobject thiz,
-    jstring inAudioPath, jint outSampleRate, jint outChannels, jboolean isPcm,
-    jint volume)
+    jstring inAudioPath, jint cropStartTimeInMs, jint cropEndTimeInMs,
+    jint outSampleRate, jint outChannels, jboolean isPcm, jint volume)
 {
     LOGI("%s\n", __func__);
     int ret = -1;
@@ -250,6 +251,7 @@ XMAudioUtils_decoder_create(JNIEnv *env, jobject thiz,
         in_audio_path = (*env)->GetStringUTFChars(env, inAudioPath, 0);
 
     ret = xm_audio_utils_decoder_create(ctx, in_audio_path,
+        cropStartTimeInMs, cropEndTimeInMs,
         outSampleRate, outChannels, isPcm, volume);
 
     if (in_audio_path)
@@ -343,6 +345,23 @@ LABEL_RETURN:
 }
 
 static int
+XMAudioUtils_GetAudioFileDuration(JNIEnv *env,
+    jobject thiz, jstring inAudioPath, jboolean isPcm, jint bitsPerSample,
+    jint srcSampleRate, jint srcChannels) {
+    int ret = 0;
+    const char *in_audio_path = NULL;
+    if (inAudioPath)
+        in_audio_path = (*env)->GetStringUTFChars(env, inAudioPath, 0);
+
+    ret = get_file_duration_ms(in_audio_path, isPcm,
+        bitsPerSample, srcSampleRate, srcChannels);
+
+    if (in_audio_path)
+        (*env)->ReleaseStringUTFChars(env, inAudioPath, in_audio_path);
+    return ret;
+}
+
+static int
 XMAudioUtils_StereoToMonoS16(JNIEnv *env, jobject thiz,
     jshortArray dstBuffer, jshortArray srcBuffer, jint nbSamples, jint indexChannels) {
     int ret = 0;
@@ -382,12 +401,13 @@ fail:
 
 static JNINativeMethod g_methods[] = {
     { "native_StereoToMonoS16", "([S[SII)I", (void *) XMAudioUtils_StereoToMonoS16 },
+    { "native_GetAudioFileDuration", "(Ljava/lang/String;ZIII)I", (void *) XMAudioUtils_GetAudioFileDuration },
     { "native_setup", "()V", (void *) XMAudioUtils_setup },
     { "native_resampler_init", "(Ljava/lang/String;ZIIDI)Z", (void *) XMAudioUtils_resampler_init },
     { "native_resampler_resample", "([SI)I", (void *) XMAudioUtils_resampler_resample },
     { "native_set_log", "(IILjava/lang/String;)V", (void *) XMAudioUtils_set_log },
     { "native_close_log_file", "()V", (void *) XMAudioUtils_close_log_file },
-    { "native_decoder_create", "(Ljava/lang/String;IIZI)I", (void *) XMAudioUtils_decoder_create },
+    { "native_decoder_create", "(Ljava/lang/String;IIIIZI)I", (void *) XMAudioUtils_decoder_create },
     { "native_decoder_seekTo", "(I)V", (void *) XMAudioUtils_decoder_seekTo },
     { "native_get_decoded_frame", "([SIZ)I", (void *) XMAudioUtils_get_decoded_frame },
     { "native_fade_init", "(IIIIII)I", (void *) XMAudioUtils_fade_init },

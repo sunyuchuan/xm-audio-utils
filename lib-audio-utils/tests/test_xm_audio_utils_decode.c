@@ -5,6 +5,7 @@
 #include "error_def.h"
 #include "file_helper.h"
 #include "log.h"
+#include "xm_duration_parser.h"
 
 static inline int calculation_duration_ms(int64_t size,
     float bytes_per_sample, int nb_channles, int sample_rate) {
@@ -45,7 +46,15 @@ int main(int argc, char **argv) {
         goto end;
     }
 
-    ret = xm_audio_utils_decoder_create(utils, argv[1], atoi(argv[3]), atoi(argv[4]), false, 100);
+    int crop_start_time = 0;
+    int crop_end_time = 0;
+    ret = get_file_duration_ms(argv[1], false, 0, 0, 0);
+    if (ret > 0) {
+        crop_end_time = ret /2;
+    }
+
+    ret = xm_audio_utils_decoder_create(utils, argv[1], crop_start_time,
+        crop_end_time, atoi(argv[3]), atoi(argv[4]), false, 100);
     if (ret < 0) {
         LogError("xm_audio_utils_decoder_create failed\n");
         goto end;
@@ -53,7 +62,7 @@ int main(int argc, char **argv) {
 
     xm_audio_utils_decoder_seekTo(utils, 1000);
 
-    ret = xm_audio_utils_fade_init(utils, atoi(argv[3]), atoi(argv[4]), 0, 60000, 5000, 5000);
+    ret = xm_audio_utils_fade_init(utils, atoi(argv[3]), atoi(argv[4]), 0, crop_end_time, 5000, 5000);
     if (ret < 0) {
         LogError("xm_audio_utils_fade_init failed\n");
         goto end;

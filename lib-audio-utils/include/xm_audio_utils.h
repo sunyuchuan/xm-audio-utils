@@ -168,6 +168,8 @@ void xm_audio_utils_decoder_seekTo(XmAudioUtils *self,
  *
  * @param self XmAudioUtils
  * @param in_audio_path Input audio file path
+ * @param crop_start_time_in_ms starting position of cropping
+ * @param crop_end_time_in_ms end position of cropping
  * @param out_sample_rate Output audio sample_rate
  * @param out_channels Output audio nb_channels
  * @param isPcm true:pcm file, false:mp3\wav\mp4 etc.
@@ -175,8 +177,8 @@ void xm_audio_utils_decoder_seekTo(XmAudioUtils *self,
  * @return Less than 0 means failure
  */
 int xm_audio_utils_decoder_create(XmAudioUtils *self,
-    const char *in_audio_path, int out_sample_rate, int out_channels,
-    bool isPcm, int volume_fix);
+    const char *in_audio_path, int crop_start_time_in_ms, int crop_end_time_in_ms,
+    int out_sample_rate, int out_channels, bool isPcm, int volume_fix);
 
 /**
  * @brief get pcm resampler out samples

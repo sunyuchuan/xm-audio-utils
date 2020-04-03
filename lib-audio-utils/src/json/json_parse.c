@@ -44,12 +44,15 @@ static int parse_audio_record_source(cJSON *root_json, AudioRecordSource *record
     {
         cJSON *file_path = cJSON_GetObjectItemCaseSensitive(sub, "file_path");
         cJSON *vol = cJSON_GetObjectItemCaseSensitive(sub, "volume");
+        cJSON *crop_start = cJSON_GetObjectItemCaseSensitive(sub, "cropStartTimeMs");
+        cJSON *crop_end = cJSON_GetObjectItemCaseSensitive(sub, "cropEndTimeMs");
         cJSON *start = cJSON_GetObjectItemCaseSensitive(sub, "startTimeMs");
         cJSON *end = cJSON_GetObjectItemCaseSensitive(sub, "endTimeMs");
         cJSON *is_pcm = cJSON_GetObjectItemCaseSensitive(sub, "isPcm");
         cJSON *sample_rate = cJSON_GetObjectItemCaseSensitive(sub, "sampleRate");
         cJSON *nb_channel = cJSON_GetObjectItemCaseSensitive(sub, "nbChannels");
         if (!cJSON_IsString(file_path) || !cJSON_IsNumber(vol)
+            || !cJSON_IsNumber(crop_start) || !cJSON_IsNumber(crop_end)
             || !cJSON_IsNumber(start) || !cJSON_IsNumber(end)
             || !file_path->valuestring || !cJSON_IsNumber(sample_rate)
             || !cJSON_IsNumber(nb_channel) || !cJSON_IsString(is_pcm))
@@ -62,9 +65,11 @@ static int parse_audio_record_source(cJSON *root_json, AudioRecordSource *record
         if (record->decoder) IAudioDecoder_freep(&record->decoder);
         record->file_path = av_strdup(file_path->valuestring);
         record->volume = vol->valuedouble / (float)100;
+        record->crop_start_time_ms = crop_start->valuedouble;
+        record->crop_end_time_ms = crop_end->valuedouble;
         record->start_time_ms = start->valuedouble;
-        record->end_time_ms  = end->valuedouble;
-        record->sample_rate= sample_rate->valuedouble;
+        record->end_time_ms = end->valuedouble;
+        record->sample_rate = sample_rate->valuedouble;
         record->nb_channels = nb_channel->valuedouble;
         if (0 == strcasecmp(is_pcm->valuestring, "True"))
             record->decoder_type = DECODER_PCM;
@@ -81,10 +86,18 @@ static int parse_audio_record_source(cJSON *root_json, AudioRecordSource *record
             goto fail;
         }
 
+        if ((ret = IAudioDecoder_set_crop_pos(record->decoder,
+            record->crop_start_time_ms, record->crop_end_time_ms)) < 0) {
+            LogError("%s IAudioDecoder_set_crop_pos failed, ret = %d.\n", __func__, ret);
+            goto fail;
+        }
+
         LogInfo("%s file_path %s\n", __func__, record->file_path);
         LogInfo("%s volume %f\n", __func__, record->volume);
-        LogInfo("%s start time  %d\n", __func__, record->start_time_ms );
-        LogInfo("%s end time %d\n", __func__, record->end_time_ms );
+        LogInfo("%s crop start time  %d\n", __func__, record->crop_start_time_ms);
+        LogInfo("%s crop end time %d\n", __func__, record->crop_end_time_ms);
+        LogInfo("%s start time  %d\n", __func__, record->start_time_ms);
+        LogInfo("%s end time %d\n", __func__, record->end_time_ms);
         LogInfo("%s sample_rate %d\n", __func__, record->sample_rate);
         LogInfo("%s nb_channels %d\n", __func__, record->nb_channels);
         LogInfo("%s decoder_type %d\n", __func__, record->decoder_type);
@@ -115,6 +128,8 @@ static int parse_audio_source(cJSON *json, AudioSourceQueue *queue) {
     cJSON_ArrayForEach(sub, json)
     {
         cJSON *file_path = cJSON_GetObjectItemCaseSensitive(sub, "file_path");
+        cJSON *crop_start = cJSON_GetObjectItemCaseSensitive(sub, "cropStartTimeMs");
+        cJSON *crop_end = cJSON_GetObjectItemCaseSensitive(sub, "cropEndTimeMs");
         cJSON *start = cJSON_GetObjectItemCaseSensitive(sub, "startTimeMs");
         cJSON *end = cJSON_GetObjectItemCaseSensitive(sub, "endTimeMs");
         cJSON *vol = cJSON_GetObjectItemCaseSensitive(sub, "volume");
@@ -124,6 +139,7 @@ static int parse_audio_source(cJSON *json, AudioSourceQueue *queue) {
 
         if (!cJSON_IsString(file_path) || !cJSON_IsNumber(start)
             || !cJSON_IsNumber(end) || !file_path->valuestring
+            || !cJSON_IsNumber(crop_start) || !cJSON_IsNumber(crop_end)
             || !cJSON_IsNumber(fade_in_time) || !cJSON_IsNumber(fade_out_time)
             || !cJSON_IsNumber(vol) || !cJSON_IsString(side_chain))
         {
@@ -134,8 +150,10 @@ static int parse_audio_source(cJSON *json, AudioSourceQueue *queue) {
 
         memset(&source, 0, sizeof(AudioSource));
         source.file_path = av_strdup(file_path->valuestring);
+        source.crop_start_time_ms = crop_start->valuedouble;
+        source.crop_end_time_ms = crop_end->valuedouble;
         source.start_time_ms = start->valuedouble;
-        source.end_time_ms  = end->valuedouble;
+        source.end_time_ms = end->valuedouble;
         source.volume = vol->valuedouble / (float)100;
         source.fade_io.fade_in_time_ms = fade_in_time->valuedouble;
         source.fade_io.fade_out_time_ms = fade_out_time->valuedouble;
@@ -158,8 +176,10 @@ static int parse_audio_source(cJSON *json, AudioSourceQueue *queue) {
         source_queue_put(queue, &source);
 
         LogInfo("%s file_path %s\n", __func__, source.file_path);
-        LogInfo("%s start time  %d\n", __func__, source.start_time_ms );
-        LogInfo("%s end time %d\n", __func__, source.end_time_ms );
+        LogInfo("%s crop start time  %d\n", __func__, source.crop_start_time_ms);
+        LogInfo("%s crop end time %d\n", __func__, source.crop_end_time_ms);
+        LogInfo("%s start time  %d\n", __func__, source.start_time_ms);
+        LogInfo("%s end time %d\n", __func__, source.end_time_ms);
         LogInfo("%s volume %f\n", __func__, source.volume);
         LogInfo("%s fade_in_time_ms %d\n", __func__, source.fade_io.fade_in_time_ms);
         LogInfo("%s fade_out_time_ms %d\n", __func__, source.fade_io.fade_out_time_ms);

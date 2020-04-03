@@ -62,6 +62,23 @@ public class XmAudioUtils {
         return native_StereoToMonoS16(dstBuffer, srcBuffer, nbSamples, indexChannel);
     }
 
+    /**
+     * 获取音频文件的时长
+     * @param inAudioPath　输入音频文件的路径
+     * @param isPcm　输入音频文件是否是一个纯pcm文件
+     * @param bitsPerSample 假如是纯pcm文件，pcm数据的采样深度，一般是16
+     * @param srcSampleRate　假如是纯pcm文件，pcm数据的采样率
+     * @param srcChannels　假如是纯pcm文件，pcm数据的声道数
+     * @return
+     */
+    public static int getAudioFileDurationMs(String inAudioPath, boolean isPcm, int bitsPerSample,
+                                             int srcSampleRate, int srcChannels) {
+        if (inAudioPath == null) return -1;
+
+        return native_GetAudioFileDuration(inAudioPath, isPcm, bitsPerSample,
+                srcSampleRate, srcChannels);
+    }
+
     private static final LibLoader sLocalLibLoader = new LibLoader() {
         @Override
         public void loadLibrary(String libName) throws UnsatisfiedLinkError, SecurityException {
@@ -288,21 +305,24 @@ public class XmAudioUtils {
     /**
      * 解码背景音或音效,解码器创建
      * @param inAudioPath 解码文件路径
+     * @param cropStartTimeInMs 对音频文件进行裁剪，裁剪的开始位置，单位是毫秒
+     * @param cropEndTimeInMs 对音频文件进行裁剪，裁剪的结束位置，单位是毫秒
      * @param outSampleRate 解码器输出的pcm数据采样率,建议和人声pcm数据的采样率一致
      * @param outChannels 解码输出的pcm数据声道数,建议双声道
      * @param isPcm 是否是PCM文件
      * @param volume 背景音音量大小,范围0到100
      * @return 小于0表示失败
      */
-    public int decoder_create(String inAudioPath, int outSampleRate, int outChannels,
-                              boolean isPcm, int volume) {
+    public int decoder_create(String inAudioPath, int cropStartTimeInMs, int cropEndTimeInMs,
+                              int outSampleRate, int outChannels, boolean isPcm, int volume) {
         int ret = -1;
         if (inAudioPath == null) {
             return ret;
         }
 
         try {
-            ret = native_decoder_create(inAudioPath, outSampleRate, outChannels, isPcm, volume);
+            ret = native_decoder_create(inAudioPath, cropStartTimeInMs, cropEndTimeInMs,
+                    outSampleRate, outChannels, isPcm, volume);
         } catch (IllegalStateException e) {
             e.printStackTrace();
         }
@@ -403,6 +423,8 @@ public class XmAudioUtils {
     }
 
     private static native int native_StereoToMonoS16(short[] dstBuffer, short[] srcBuffer, int nbSamples, int indexChannel);
+    private static native int native_GetAudioFileDuration(String inAudioPath, boolean isPcm, int bitsPerSample,
+                                                          int srcSampleRate, int srcChannels);
     private native void native_set_log(int logMode, int logLevel, String outLogPath);
     private native void native_close_log_file();
     private native void native_setup();
@@ -411,7 +433,8 @@ public class XmAudioUtils {
                                              double dstSampleRate, int dstChannels);
     private native int native_resampler_resample(short[] buffer, int bufferSize);
 
-    private native int native_decoder_create(String inAudioPath, int outSampleRate, int outChannels, boolean isPcm, int volume);
+    private native int native_decoder_create(String inAudioPath, int cropStartTimeInMs, int cropEndTimeInMs,
+                                             int outSampleRate, int outChannels, boolean isPcm, int volume);
     private native void native_decoder_seekTo(int seekTimeMs);
     private native int native_get_decoded_frame(short[] buffer, int bufferSize, boolean loop);
 

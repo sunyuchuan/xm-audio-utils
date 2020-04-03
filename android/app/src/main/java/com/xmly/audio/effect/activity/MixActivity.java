@@ -188,7 +188,7 @@ public class MixActivity extends AppCompatActivity implements View.OnClickListen
                     return;
                 }
 
-                ret = mAudioUtils.mixer_seekTo(10000);
+                ret = mAudioUtils.mixer_seekTo(11000);
                 if (ret < 0) {
                     Log.e(TAG, "mixer_seekTo failed");
                     return;
@@ -220,7 +220,7 @@ public class MixActivity extends AppCompatActivity implements View.OnClickListen
                     }
                 }
 
-                ret = mAudioUtils.mixer_seekTo(127226);
+                ret = mAudioUtils.mixer_seekTo(96226);
                 if (ret < 0) {
                     Log.e(TAG, "mixer_seekTo failed");
                     return;
@@ -323,9 +323,11 @@ public class MixActivity extends AppCompatActivity implements View.OnClickListen
                     e.printStackTrace();
                 }
 
-                mAudioUtils.decoder_create(decodeRawAudio, 44100, 2, false, 100);
-                mAudioUtils.decoder_seekTo(10000);
-                mAudioUtils.fadeInit(44100, 2, 0, 60000, 5000, 5000);
+                int cropStartTimeMs = 0;
+                int cropEndTimeMs = XmAudioUtils.getAudioFileDurationMs(decodeRawAudio, false, 0, 0, 0) / 2;
+                mAudioUtils.decoder_create(decodeRawAudio, cropStartTimeMs, cropEndTimeMs, 44100, 2, false, 100);
+                mAudioUtils.decoder_seekTo(1000);
+                mAudioUtils.fadeInit(44100, 2, 0, cropEndTimeMs, 3000, 3000);
                 long curSize = 0;
                 abortFade = false;
                 while (!abortFade) {

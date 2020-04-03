@@ -208,6 +208,14 @@ static IAudioDecoder *open_source_decoder(AudioSource *source,
         LogError("%s malloc bgm_music decoder failed.\n", __func__);
         return NULL;
     }
+
+    if (IAudioDecoder_set_crop_pos(decoder,
+        source->crop_start_time_ms, source->crop_end_time_ms) < 0) {
+        LogError("%s IAudioDecoder_set_crop_pos failed.\n", __func__);
+        IAudioDecoder_freep(&decoder);
+        return NULL;
+    }
+
     source->fade_io.fade_in_nb_samples = source->fade_io.fade_in_time_ms * dst_sample_rate / 1000;
     source->fade_io.fade_out_nb_samples = source->fade_io.fade_out_time_ms * dst_sample_rate / 1000;
     source->yl_prev = source->makeup_gain * MAKEUP_GAIN_MAX_DB;

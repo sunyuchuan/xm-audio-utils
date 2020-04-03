@@ -52,10 +52,12 @@ public class JsonUtils {
             json.put("file_path", raw);
             json.put("isPcm", "false");
             json.put("volume", 80);
+            json.put("cropStartTimeMs", 10000);
+            json.put("cropEndTimeMs", 100000);
             json.put("sampleRate", 44100);
             json.put("nbChannels", 1);
-            json.put("startTimeMs", 0);
-            json.put("endTimeMs", 150000);
+            json.put("startTimeMs", 10000);
+            json.put("endTimeMs", 180000);
         } catch (JSONException e) {
             e.printStackTrace();
         }

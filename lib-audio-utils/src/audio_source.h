@@ -5,6 +5,8 @@
 #include "audio_decoder_factory.h"
 
 typedef struct AudioSource {
+    int crop_start_time_ms;
+    int crop_end_time_ms;
     int start_time_ms;
     int end_time_ms;
     float volume;
@@ -20,6 +22,8 @@ typedef struct AudioSource {
 } AudioSource;
 
 typedef struct AudioRecordSource {
+    int crop_start_time_ms;
+    int crop_end_time_ms;
     int start_time_ms;
     int end_time_ms;
     int sample_rate;
