@@ -1,0 +1,13 @@
+#include "source_queue.h"
+
+DECLARE_FUNC_IS_VALID(AudioRecordSource)
+DECLARE_FUNC_GET_END_TIME_MS(AudioRecordSource)
+DECLARE_FUNC_BUBBLE_SORT(AudioRecordSource)
+DECLARE_FUNC_SIZE(AudioRecordSource)
+DECLARE_FUNC_FLUSH(AudioRecordSource)
+DECLARE_FUNC_FREE(AudioRecordSource)
+DECLARE_FUNC_FREEP(AudioRecordSource)
+DECLARE_FUNC_GET(AudioRecordSource)
+DECLARE_FUNC_PUT(AudioRecordSource)
+DECLARE_FUNC_CREATE(AudioRecordSource)
+

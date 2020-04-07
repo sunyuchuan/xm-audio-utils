@@ -69,7 +69,7 @@ int main(int argc, char **argv) {
 	    break;
     }
 
-    ret = xm_audio_utils_mixer_seekTo(utils, 96226);
+    ret = xm_audio_utils_mixer_seekTo(utils, 150226);
     if (ret < 0) {
 	LogError("xm_audio_utils_mixer_seekTo failed\n");
 	goto end;

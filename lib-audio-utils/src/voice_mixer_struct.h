@@ -2,6 +2,7 @@
 #define _VOICE_MIXER_STRUCT_
 #include "effects/effect_struct.h"
 #include "source/audio_source_queue.h"
+#include "source/audio_record_source_queue.h"
 
 // Limit the maximum duration of a mix
 //#define MAX_DURATION_MIX_IN_MS (50*60*1000)
@@ -15,15 +16,15 @@ enum EffectType {
 };
 
 typedef struct VoiceEffcets {
+    int duration_ms;
     AudioRecordSource *record;
+    AudioRecordSourceQueue *recordQueue;
     EffectContext *effects[MAX_NB_EFFECTS];
-    int dst_sample_rate;
-    int dst_channels;
+    char *effects_info[MAX_NB_EFFECTS];
 } VoiceEffcets;
 
 typedef struct MixerEffcets {
-    int mix_duration_ms;
-    AudioRecordSource *record;
+    int duration_ms;
     AudioSource *bgm;
     AudioSourceQueue *bgmQueue;
     AudioSource *music;

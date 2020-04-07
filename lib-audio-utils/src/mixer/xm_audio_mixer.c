@@ -66,20 +66,17 @@ static void mixer_effects_free(MixerEffcets *mixer) {
     if (NULL == mixer)
         return;
 
-    if (mixer->record) {
-        audio_record_source_freep(&mixer->record);
-    }
     if (mixer->bgm) {
-        audio_source_freep(&mixer->bgm);
+        AudioSource_freep(&mixer->bgm);
     }
     if (mixer->bgmQueue) {
-        source_queue_freep(&mixer->bgmQueue);
+        AudioSourceQueue_freep(&mixer->bgmQueue);
     }
     if (mixer->music) {
-        audio_source_freep(&mixer->music);
+        AudioSource_freep(&mixer->music);
     }
     if (mixer->musicQueue) {
-        source_queue_freep(&mixer->musicQueue);
+        AudioSourceQueue_freep(&mixer->musicQueue);
     }
 }
 
@@ -119,20 +116,13 @@ static int mixer_effects_init(MixerEffcets *mixer) {
 
     mixer_effects_free(mixer);
 
-    mixer->record = (AudioRecordSource *)calloc(1, sizeof(AudioRecordSource));
-    if (NULL == mixer->record) {
-        LogError("%s alloc AudioRecordSource failed.\n", __func__);
-        ret = -1;
-        goto fail;
-    }
-
     mixer->bgm = (AudioSource *)calloc(1, sizeof(AudioSource));
     if (NULL == mixer->bgm) {
         LogError("%s alloc AudioSource failed.\n", __func__);
         ret = -1;
         goto fail;
     }
-    mixer->bgmQueue = source_queue_create();
+    mixer->bgmQueue = AudioSourceQueue_create();
     if (NULL == mixer->bgmQueue) {
         LogError("%s alloc AudioSourceQueue bgmQueue failed.\n", __func__);
         ret = -1;
@@ -145,7 +135,7 @@ static int mixer_effects_init(MixerEffcets *mixer) {
         ret = -1;
         goto fail;
     }
-    mixer->musicQueue = source_queue_create();
+    mixer->musicQueue = AudioSourceQueue_create();
     if (NULL == mixer->musicQueue) {
         LogError("%s alloc AudioSourceQueue musicQueue failed.\n", __func__);
         ret = -1;
@@ -175,18 +165,11 @@ static int audio_effects_init(XmMixerContext *ctx,
         ret = -1;
         goto fail;
     }
-
-    IAudioDecoder *decoder = xm_audio_effect_get_decoder(ctx->effects_ctx);
-    if (!decoder) {
-        LogError("%s xm_audio_effect_get_decoder failed\n", __func__);
-        ret = -1;
-        goto fail;
-    }
-    ctx->pcm_sample_rate = decoder->out_sample_rate;
-    ctx->pcm_channels = decoder->out_nb_channels;
-    ctx->dst_sample_rate = decoder->out_sample_rate;
-    ctx->bits_per_sample = decoder->out_bits_per_sample;
-    ctx->mixer_effects.mix_duration_ms = xm_audio_effect_get_duration_ms(ctx->effects_ctx);
+    ctx->pcm_sample_rate = ctx->effects_ctx->dst_sample_rate;
+    ctx->pcm_channels = ctx->effects_ctx->dst_channels;
+    ctx->dst_sample_rate = ctx->effects_ctx->dst_sample_rate;
+    ctx->bits_per_sample = ctx->effects_ctx->dst_bits_per_sample;
+    ctx->mixer_effects.duration_ms = ctx->effects_ctx->duration_ms;
 
     ret = 0;
 fail:
@@ -230,9 +213,9 @@ static int update_audio_source(AudioSourceQueue *queue,
     if (!queue || !source)
         return ret;
 
-    while (source_queue_size(queue) > 0) {
-        audio_source_free(source);
-        if (source_queue_get(queue, source) > 0) {
+    while (AudioSourceQueue_size(queue) > 0) {
+        AudioSource_free(source);
+        if (AudioSourceQueue_get(queue, source) > 0) {
             source->decoder = open_source_decoder(source, dst_sample_rate, dst_channels, 0);
             if (!source->decoder)
             {
@@ -250,14 +233,14 @@ static int update_audio_source(AudioSourceQueue *queue,
 static void audio_source_seekTo(AudioSourceQueue *queue,
         AudioSource *source, int dst_sample_rate, int dst_channels, int seek_time_ms) {
     LogInfo("%s\n", __func__);
-    if (!queue || !source || (source_queue_size(queue) <= 0))
+    if (!queue || !source || (AudioSourceQueue_size(queue) <= 0))
         return;
 
     int bgm_seek_time = 0;
     bool find_source = false;
-    while ((source_queue_size(queue) > 0)) {
-        audio_source_free(source);
-        if (source_queue_get(queue, source) > 0) {
+    while ((AudioSourceQueue_size(queue) > 0)) {
+        AudioSource_free(source);
+        if (AudioSourceQueue_get(queue, source) > 0) {
             if (source->start_time_ms <= seek_time_ms) {
                 if (source->end_time_ms <= seek_time_ms) {
                     bgm_seek_time = 0;
@@ -276,7 +259,7 @@ static void audio_source_seekTo(AudioSourceQueue *queue,
     if (find_source)
         open_source_decoder(source, dst_sample_rate, dst_channels, bgm_seek_time);
     else
-        audio_source_free(source);
+        AudioSource_free(source);
 }
 
 static void fade_in_out(AudioSource *source, int sample_rate,
@@ -484,7 +467,7 @@ static short *mixer_combine(XmMixerContext *ctx, short *pcm_buffer,
         }
     } else if(pcm_start_time >= source->end_time_ms) {
         //update the decoder that point the next bgm
-        audio_source_free(source);
+        AudioSource_free(source);
         mix_buffer = pcm_buffer;
         goto end;
     } else {
@@ -532,7 +515,7 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
     int read_len = xm_audio_effect_get_frame(ctx->effects_ctx,
         ctx->middle_buffer[EffectsPcm], buffer_len);
     if (read_len <= 0) {
-        if (buffer_start_ms >= ctx->mixer_effects.mix_duration_ms) {
+        if (buffer_start_ms >= ctx->mixer_effects.duration_ms) {
             ret = read_len;
             goto end;
         } else {
@@ -555,7 +538,7 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
     ctx->cur_size += (read_len * sizeof(*ctx->middle_buffer[EffectsPcm]));
 
     if ((!ctx->mixer_effects.bgm->decoder) &&
-            (source_queue_size(ctx->mixer_effects.bgmQueue) > 0)) {
+            (AudioSourceQueue_size(ctx->mixer_effects.bgmQueue) > 0)) {
         update_audio_source(ctx->mixer_effects.bgmQueue,
             ctx->mixer_effects.bgm, ctx->dst_sample_rate, ctx->dst_channels);
     }
@@ -569,7 +552,7 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
     }
 
     if ((!ctx->mixer_effects.music->decoder) &&
-            (source_queue_size(ctx->mixer_effects.musicQueue) > 0)) {
+            (AudioSourceQueue_size(ctx->mixer_effects.musicQueue) > 0)) {
         update_audio_source(ctx->mixer_effects.musicQueue,
             ctx->mixer_effects.music, ctx->dst_sample_rate, ctx->dst_channels);
     }
@@ -659,11 +642,6 @@ int xm_audio_mixer_seekTo(XmMixerContext *ctx,
     }
     ctx->cur_size = 0;
 
-    if ((ret = mixer_effects_init(&(ctx->mixer_effects))) < 0) {
-        LogError("%s mixer_effects_init failed\n", __func__);
-        return ret;
-    }
-
     if ((ret = mixer_parse(&(ctx->mixer_effects), ctx->in_config_path)) < 0) {
         LogError("%s mixer_parse %s failed\n", __func__, ctx->in_config_path);
         return ret;
@@ -708,7 +686,7 @@ static int xm_audio_mixer_mix_l(XmMixerContext *ctx,
 
     ctx->seek_time_ms = 0;
     ctx->cur_size = 0;
-    int file_duration = ctx->mixer_effects.mix_duration_ms;
+    int file_duration = ctx->mixer_effects.duration_ms;
     //if (file_duration > MAX_DURATION_MIX_IN_MS) file_duration = MAX_DURATION_MIX_IN_MS;
     while (!ctx->abort) {
         int cur_position = ctx->seek_time_ms + calculation_duration_ms(ctx->cur_size,
