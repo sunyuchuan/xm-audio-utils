@@ -100,6 +100,9 @@ src/codec/ffmpeg_decoder.c
 src/codec/audio_encoder.c
 src/codec/sw/audio_encoder_sw.c
 src/codec/audio_muxer.c
+src/codec/pcm_decoder.c
+src/codec/idecoder.c
+src/codec/audio_decoder_factory.c
 
 src/tools/avstring.c
 src/tools/conversion.c
@@ -126,26 +129,23 @@ src/effects/beautify.c
 src/effects/math/junior_func.c
 src/effects/noise_suppression/noise_estimation.c
 src/effects/noise_suppression.c
-
 src/effects/volume_limiter.c
+src/effects/voice_effect.c
+src/effects/xm_audio_effects.c
+
+src/mixer/fade_in_out.c
+src/mixer/side_chain_compress.c
+src/mixer/xm_audio_mixer.c
 
 src/json/cJSON.c
 src/json/json_parse.c
 
-src/mixer_effects/fade_in_out.c
-src/mixer_effects/side_chain_compress.c
+src/source/audio_source.c
+src/source/audio_source_queue.c
 
-src/effects/voice_effect.c
+src/wave/wav_dec.c
 
-src/audio_source.c
-src/audio_source_queue.c
-src/pcm_decoder.c
-src/idecoder.c
-src/audio_decoder_factory.c
-src/wav_dec.c
 src/xm_wav_utils.c
-src/xm_audio_effects.c
-src/xm_audio_mixer.c
 src/xm_duration_parser.c
 src/xm_audio_utils.c
 src/xm_audio_generator.c

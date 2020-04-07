@@ -1,5 +1,5 @@
 #include "xm_duration_parser.h"
-#include "pcm_decoder.h"
+#include "codec/pcm_decoder.h"
 #include "codec/ffmpeg_decoder.h"
 
 int get_file_duration_ms(const char *file_addr, bool is_pcm,

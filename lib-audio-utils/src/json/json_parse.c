@@ -4,7 +4,7 @@
 #include "tools/util.h"
 #include <string.h>
 #include <stdlib.h>
-#include "audio_decoder_factory.h"
+#include "codec/audio_decoder_factory.h"
 #include "codec/ffmpeg_utils.h"
 
 #define DEFAULT_SAMPLE_RATE 44100

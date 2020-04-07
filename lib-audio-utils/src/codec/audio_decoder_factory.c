@@ -1,7 +1,7 @@
 #include "audio_decoder_factory.h"
-#include "codec/ffmpeg_decoder.h"
+#include "ffmpeg_decoder.h"
 #include "pcm_decoder.h"
-#include "codec/ffmpeg_utils.h"
+#include "ffmpeg_utils.h"
 
 IAudioDecoder *audio_decoder_create(const char *file_addr,
     int src_sample_rate, int src_nb_channels, int dst_sample_rate,

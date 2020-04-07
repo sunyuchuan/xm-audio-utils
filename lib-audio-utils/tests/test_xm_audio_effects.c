@@ -1,4 +1,4 @@
-#include "xm_audio_effects.h"
+#include "effects/xm_audio_effects.h"
 #include "log.h"
 #include <pthread.h>
 #include <stdint.h>

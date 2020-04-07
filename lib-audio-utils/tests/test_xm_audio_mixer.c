@@ -1,4 +1,4 @@
-#include "xm_audio_mixer.h"
+#include "mixer/xm_audio_mixer.h"
 #include <pthread.h>
 #include <stdint.h>
 #include <string.h>
