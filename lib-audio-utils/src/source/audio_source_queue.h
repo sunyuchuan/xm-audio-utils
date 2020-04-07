@@ -16,14 +16,14 @@ typedef struct AudioSourceQueue
     pthread_mutex_t mLock;
 } AudioSourceQueue;
 
-int source_queue_get_end_time_ms(AudioSourceQueue *queue);
-void source_queue_bubble_sort(AudioSourceQueue *queue);
-int source_queue_size(AudioSourceQueue *queue);
-void source_queue_flush(AudioSourceQueue *queue);
-void source_queue_free(AudioSourceQueue *queue);
-void source_queue_freep(AudioSourceQueue **queue);
-int source_queue_get(AudioSourceQueue *queue, AudioSource *source);
-int source_queue_put(AudioSourceQueue *queue, AudioSource *source);
-AudioSourceQueue *source_queue_create();
+int AudioSourceQueue_get_end_time_ms(AudioSourceQueue *queue);
+void AudioSourceQueue_bubble_sort(AudioSourceQueue *queue);
+int AudioSourceQueue_size(AudioSourceQueue *queue);
+void AudioSourceQueue_flush(AudioSourceQueue *queue);
+void AudioSourceQueue_free(AudioSourceQueue *queue);
+void AudioSourceQueue_freep(AudioSourceQueue **queue);
+int AudioSourceQueue_get(AudioSourceQueue *queue, AudioSource *source);
+int AudioSourceQueue_put(AudioSourceQueue *queue, AudioSource *source);
+AudioSourceQueue *AudioSourceQueue_create();
 
 #endif

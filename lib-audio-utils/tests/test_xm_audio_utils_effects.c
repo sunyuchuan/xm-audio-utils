@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
 	    break;
     }
 
-    ret = xm_audio_utils_effect_seekTo(utils, 25000);
+    ret = xm_audio_utils_effect_seekTo(utils, 150000);
     if (ret < 0) {
 	LogError("xm_audio_utils_effect_seekTo failed\n");
 	goto end;

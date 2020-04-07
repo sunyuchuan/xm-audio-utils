@@ -142,6 +142,8 @@ src/json/json_parse.c
 
 src/source/audio_source.c
 src/source/audio_source_queue.c
+src/source/audio_record_source.c
+src/source/audio_record_source_queue.c
 
 src/wave/wav_dec.c
 

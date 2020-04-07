@@ -1,48 +1,19 @@
 #include "xm_audio_effects.h"
 #include <assert.h>
-#include <stdlib.h>
 #include <string.h>
-#include <pthread.h>
 #include "log.h"
 #include "tools/util.h"
-#include "tools/fifo.h"
 #include "json/json_parse.h"
-#include "voice_mixer_struct.h"
 #include "effects/voice_effect.h"
-#include "codec/ffmpeg_utils.h"
 #include "wave/wav_dec.h"
 
 #define DEFAULT_SAMPLE_RATE 44100
 #define DEFAULT_CHANNEL_NUMBER 1
 
-struct XmEffectContext_T {
-    volatile bool abort;
-    volatile bool flush;
-    int ae_status;
-    int progress;
-    // output pcm sample rate and number channels
-    int dst_sample_rate;
-    int dst_channels;
-    int dst_bits_per_sample;
-    // input record audio file seek position
-    int seek_time_ms;
-    // input record audio file read location
-    int64_t cur_size;
-    int duration_ms;
-    short buffer[MAX_NB_SAMPLES];
-    fifo *audio_fifo;
-    pthread_mutex_t mutex;
-    VoiceEffcets voice_effects;
-};
-
 static void voice_effects_free(VoiceEffcets *voice) {
     LogInfo("%s\n", __func__);
     if (!voice) {
         return;
-    }
-
-    if (voice->record) {
-        audio_record_source_freep(&voice->record);
     }
 
     for (short i = 0; i < MAX_NB_EFFECTS; ++i) {
@@ -53,15 +24,186 @@ static void voice_effects_free(VoiceEffcets *voice) {
     }
 }
 
+static void voice_effects_info_free(VoiceEffcets *voice) {
+    LogInfo("%s\n", __func__);
+    if (!voice) {
+        return;
+    }
+
+    for (short i = 0; i < MAX_NB_EFFECTS; ++i) {
+        if (voice->effects_info[i]) {
+            free(voice->effects_info[i]);
+            voice->effects_info[i] = NULL;
+        }
+    }
+}
+
+static int voice_effects_init(XmEffectContext *ctx) {
+    LogInfo("%s\n", __func__);
+    if (NULL == ctx)
+        return -1;
+
+    VoiceEffcets *voice = &ctx->voice_effects;
+    voice_effects_free(voice);
+
+    for (int i = 0; i < MAX_NB_EFFECTS; ++i) {
+        if (NULL == voice->effects_info[i]) continue;
+
+        switch (i) {
+            case NoiseSuppression:
+                voice->effects[NoiseSuppression] = create_effect(find_effect("noise_suppression"),
+                        ctx->dst_sample_rate, ctx->dst_channels);
+                init_effect(voice->effects[NoiseSuppression], 0, NULL);
+                set_effect(voice->effects[NoiseSuppression], "Switch", voice->effects_info[i], 0);
+                break;
+            case Beautify:
+                voice->effects[Beautify] = create_effect(find_effect("beautify"),
+                        ctx->dst_sample_rate, ctx->dst_channels);
+                init_effect(voice->effects[Beautify], 0, NULL);
+                set_effect(voice->effects[Beautify], "mode", voice->effects_info[i], 0);
+                break;
+            case Reverb:
+                voice->effects[Reverb] = create_effect(find_effect("reverb"),
+                        ctx->dst_sample_rate, ctx->dst_channels);
+                init_effect(voice->effects[Reverb], 0, NULL);
+                set_effect(voice->effects[Reverb], "mode", voice->effects_info[i], 0);
+                break;
+            case VolumeLimiter:
+                voice->effects[VolumeLimiter] = create_effect(find_effect("limiter"),
+                        ctx->dst_sample_rate, ctx->dst_channels);
+                init_effect(voice->effects[VolumeLimiter], 0, NULL);
+                set_effect(voice->effects[VolumeLimiter], "Switch", voice->effects_info[i], 0);
+                break;
+            default:
+                LogWarning("%s unsupport effect %s\n", __func__, voice->effects_info[i]);
+                break;
+        }
+    }
+
+    return 0;
+}
+
+static IAudioDecoder *open_record_source_decoder(
+        AudioRecordSource *source, int dst_sample_rate,
+        int dst_channels, int seek_time_ms) {
+    LogInfo("%s\n", __func__);
+    if (!source || !source->file_path)
+        return NULL;
+
+    IAudioDecoder_freep(&(source->decoder));
+
+    source->decoder = audio_decoder_create(source->file_path,
+        source->sample_rate, source->nb_channels, dst_sample_rate,
+        dst_channels, source->volume, source->decoder_type);
+    if (source->decoder == NULL) {
+        LogError("%s record audio_decoder_create failed.\n", __func__);
+        return NULL;
+    }
+
+    if (IAudioDecoder_set_crop_pos(source->decoder,
+        source->crop_start_time_ms, source->crop_end_time_ms) < 0) {
+        LogError("%s IAudioDecoder_set_crop_pos failed.\n", __func__);
+        IAudioDecoder_freep(&(source->decoder));
+        return NULL;
+    }
+
+    IAudioDecoder_seekTo(source->decoder, seek_time_ms);
+    return source->decoder;
+}
+
+static int update_record_source(AudioRecordSourceQueue *queue,
+        AudioRecordSource *source, int dst_sample_rate, int dst_channels) {
+    int ret = -1;
+    if (!queue || !source)
+        return ret;
+
+    while (AudioRecordSourceQueue_size(queue) > 0) {
+        AudioRecordSource_free(source);
+        if (AudioRecordSourceQueue_get(queue, source) > 0) {
+            source->decoder = open_record_source_decoder(source,
+                        dst_sample_rate, dst_channels, 0);
+            if (!source->decoder)
+            {
+                LogError("%s open decoder failed, file_path: %s.\n", __func__, source->file_path);
+                ret = AEERROR_NOMEM;
+            } else {
+                ret = 0;
+                break;
+            }
+        }
+    }
+    return ret;
+}
+
+static int record_source_seekTo(AudioRecordSourceQueue *queue,
+        AudioRecordSource *source, int dst_sample_rate, int dst_channels, int seek_time_ms) {
+    LogInfo("%s\n", __func__);
+    if (!queue || !source || (AudioRecordSourceQueue_size(queue) <= 0))
+        return -1;
+
+    int source_seek_time = 0;
+    bool find_source = false;
+    while ((AudioRecordSourceQueue_size(queue) > 0)) {
+        AudioRecordSource_free(source);
+        if (AudioRecordSourceQueue_get(queue, source) > 0) {
+            if (source->start_time_ms <= seek_time_ms) {
+                if (source->end_time_ms <= seek_time_ms) {
+                    source_seek_time = 0;
+                } else {
+                    source_seek_time = seek_time_ms - source->start_time_ms;
+                    find_source = true;
+                    break;
+                }
+            } else {
+                source_seek_time = 0;
+                find_source = true;
+                break;
+            }
+        }
+    }
+
+    if (find_source) {
+        source->decoder = open_record_source_decoder(source,
+                dst_sample_rate, dst_channels, 0);
+        if (!source->decoder)
+        {
+            LogError("%s open decoder failed, file_path: %s.\n", __func__, source->file_path);
+            return AEERROR_NOMEM;
+        }
+
+        source_seek_time = source_seek_time < 0 ? 0 :
+            (source_seek_time > source->decoder->duration_ms
+            ? source->decoder->duration_ms : source_seek_time);
+        return IAudioDecoder_seekTo(source->decoder, source_seek_time);
+    } else {
+        AudioRecordSource_free(source);
+    }
+    return 0;
+}
+
 static void ae_free(XmEffectContext *ctx) {
     LogInfo("%s\n", __func__);
     if (NULL == ctx)
         return;
 
+    if (ctx->voice_effects.record) {
+        AudioRecordSource_freep(&(ctx->voice_effects.record));
+    }
+    if (ctx->voice_effects.recordQueue) {
+        AudioRecordSourceQueue_freep(&(ctx->voice_effects.recordQueue));
+    }
+
+    voice_effects_info_free(&ctx->voice_effects);
+    voice_effects_free(&ctx->voice_effects);
+
+    if (ctx->in_config_path) {
+        free(ctx->in_config_path);
+        ctx->in_config_path = NULL;
+    }
+
     if (ctx->audio_fifo) {
         fifo_delete(&ctx->audio_fifo);
     }
-    voice_effects_free(&ctx->voice_effects);
 }
 
 static int ae_chkst_l(int ae_state)
@@ -93,6 +235,7 @@ static void ae_reset_l(XmEffectContext *ctx)
     ae_abort_l(ctx);
     ae_free(ctx);
 
+    memset(ctx->voice_effects.effects_info, 0, MAX_NB_EFFECTS * sizeof(char *));
     memset(ctx->voice_effects.effects, 0, MAX_NB_EFFECTS * sizeof(EffectContext *));
     memset(ctx->buffer, 0, MAX_NB_SAMPLES * sizeof(*(ctx->buffer)));
     pthread_mutex_lock(&ctx->mutex);
@@ -149,40 +292,63 @@ end:
 
 static int add_effects_and_write_fifo(XmEffectContext *ctx) {
     int ret = -1;
-    if (!ctx)
+    if (!ctx || !(ctx->voice_effects.record) || !(ctx->voice_effects.recordQueue))
         return -1;
 
-    IAudioDecoder *decoder = ctx->voice_effects.record->decoder;
-    if (!decoder)
-        return -1;
-
-    int record_start_time = ctx->voice_effects.record->start_time_ms;
-    int record_end_time = ctx->voice_effects.record->end_time_ms;
-    int record_duration = decoder->duration_ms;
     int cur_position = ctx->seek_time_ms + calculation_duration_ms(ctx->cur_size,
         ctx->dst_bits_per_sample/8, ctx->dst_channels, ctx->dst_sample_rate);
-    if (cur_position >= record_end_time) {
+    if (cur_position >= ctx->duration_ms) {
         ret = PCM_FILE_EOF;
-        goto end;
+        return ret;
     }
 
+    if ((!ctx->voice_effects.record->decoder) &&
+            (AudioRecordSourceQueue_size(ctx->voice_effects.recordQueue) > 0)) {
+        update_record_source(ctx->voice_effects.recordQueue,
+            ctx->voice_effects.record, ctx->dst_sample_rate, ctx->dst_channels);
+        int out_sample_rate = ctx->voice_effects.record->decoder->out_sample_rate;
+        int out_nb_channels = ctx->voice_effects.record->decoder->out_nb_channels;
+        int out_bits_per_sample = ctx->voice_effects.record->decoder->out_bits_per_sample;
+        if (ctx->dst_sample_rate != out_sample_rate
+                || ctx->dst_channels != out_nb_channels
+                || ctx->dst_bits_per_sample != out_bits_per_sample) {
+            LogError("%s effects dst_sample_rate != out_sample_rate or "
+                        "dst_channels != out_nb_channels or "
+                        "dst_bits_per_sample != out_bits_per_sample.\n", __func__);
+            return -1;
+        }
+    }
+
+    int record_start_time = ctx->voice_effects.record->start_time_ms;
+    int record_duration = 0;
+    IAudioDecoder *decoder = ctx->voice_effects.record->decoder;
+    if (decoder) record_duration = decoder->duration_ms;
+
     int read_len = 0;
-    if (cur_position >= record_start_time
+    if (cur_position < record_start_time) {
+        // zeros are added at the start or end of the recording.
+        memset(ctx->buffer, 0, MAX_NB_SAMPLES * sizeof(*ctx->buffer));
+        read_len = MAX_NB_SAMPLES;
+    } else if (cur_position >= record_start_time
         && cur_position < record_start_time + record_duration) {
         read_len = IAudioDecoder_get_pcm_frame(decoder,
             ctx->buffer, MAX_NB_SAMPLES, false);
         if (read_len < 0) {
             if (read_len == PCM_FILE_EOF) {
+                //update the decoder that point the next bgm
+                AudioRecordSource_free(ctx->voice_effects.record);
                 // zeros are added at the end of the recording.
                 memset(ctx->buffer, 0, MAX_NB_SAMPLES * sizeof(*ctx->buffer));
-                ret = read_len = MAX_NB_SAMPLES;
+                read_len = MAX_NB_SAMPLES;
             } else {
                 LogError("%s IAudioDecoder_get_pcm_frame failed\n", __func__);
                 ret = read_len;
-                goto end;
+                return ret;
             }
         }
     } else {
+        //update the decoder that point the next bgm
+        AudioRecordSource_free(ctx->voice_effects.record);
         // zeros are added at the start or end of the recording.
         memset(ctx->buffer, 0, MAX_NB_SAMPLES * sizeof(*ctx->buffer));
         read_len = MAX_NB_SAMPLES;
@@ -196,7 +362,7 @@ static int add_effects_and_write_fifo(XmEffectContext *ctx) {
             if(send_samples(voice_effects->effects[i], ctx->buffer, read_len) < 0) {
                 LogError("%s send_samples to the first effect failed\n", __func__);
                 ret = -1;
-                goto end;
+                return ret;
             }
             find_valid_effect = true;
             break;
@@ -205,7 +371,7 @@ static int add_effects_and_write_fifo(XmEffectContext *ctx) {
 
     if (!find_valid_effect) {
         ret = fifo_write(ctx->audio_fifo, ctx->buffer, read_len);
-        if (ret < 0) goto end;
+        if (ret < 0) return ret;
         return read_len;
     }
 
@@ -224,7 +390,7 @@ static int add_effects_and_write_fifo(XmEffectContext *ctx) {
                     if (receive_len < 0) {
                         LogError("%s send_samples to the next effect failed\n", __func__);
                         ret = -1;
-                        goto end;
+                        return ret;
                     }
                     is_last_effect = false;
                     receive_len = receive_samples(voice_effects->effects[i], ctx->buffer, MAX_NB_SAMPLES);
@@ -236,10 +402,8 @@ static int add_effects_and_write_fifo(XmEffectContext *ctx) {
     }
 
     ret = fifo_write(ctx->audio_fifo, ctx->buffer, receive_len);
-    if (ret < 0) goto end;
-    ret = receive_len;
-end:
-    return ret;
+    if (ret < 0) return ret;
+    return receive_len;
 }
 
 void xm_audio_effect_freep(XmEffectContext **ctx) {
@@ -275,20 +439,6 @@ int xm_audio_effect_get_progress(XmEffectContext *ctx) {
     return ret;
 }
 
-int xm_audio_effect_get_duration_ms(XmEffectContext *ctx) {
-    if (!ctx) return 0;
-
-    return ctx->duration_ms;
-}
-
-IAudioDecoder *xm_audio_effect_get_decoder(XmEffectContext *ctx) {
-    if (!ctx || !ctx->voice_effects.record
-            || !ctx->voice_effects.record->decoder)
-        return NULL;
-
-    return ctx->voice_effects.record->decoder;
-}
-
 int xm_audio_effect_get_frame(XmEffectContext *ctx,
     short *buffer, int buffer_size_in_short) {
     int ret = -1;
@@ -316,22 +466,23 @@ int xm_audio_effect_seekTo(XmEffectContext *ctx,
         int seek_time_ms) {
     LogInfo("%s seek_time_ms %d.\n", __func__, seek_time_ms);
     if (!ctx || !ctx->voice_effects.record
-            || !ctx->voice_effects.record->decoder)
+            || !ctx->voice_effects.recordQueue)
         return -1;
-    IAudioDecoder *decoder = ctx->voice_effects.record->decoder;
 
     ctx->seek_time_ms = seek_time_ms > 0 ? seek_time_ms : 0;
     ctx->cur_size = 0;
-
-    int decoder_seek_time_ms = ctx->seek_time_ms - ctx->voice_effects.record->start_time_ms;
-    decoder_seek_time_ms = decoder_seek_time_ms < 0 ? 0 :
-        (decoder_seek_time_ms > decoder->duration_ms ? decoder->duration_ms : decoder_seek_time_ms);
 
     flush(ctx);
     if (ctx->audio_fifo) fifo_clear(ctx->audio_fifo);
     ctx->flush = false;
 
-    return IAudioDecoder_seekTo(decoder, decoder_seek_time_ms);
+    if (effects_parse(&(ctx->voice_effects), ctx->in_config_path) < 0) {
+        LogError("%s effects_parse %s failed\n", __func__, ctx->in_config_path);
+        return -1;
+    }
+
+    return record_source_seekTo(ctx->voice_effects.recordQueue,
+        ctx->voice_effects.record, ctx->dst_sample_rate, ctx->dst_channels, ctx->seek_time_ms);
 }
 
 static int xm_audio_effect_add_effects_l(XmEffectContext *ctx,
@@ -454,16 +605,37 @@ int xm_audio_effect_init(XmEffectContext *ctx,
         goto fail;
     }
 
+    ctx->voice_effects.recordQueue = AudioRecordSourceQueue_create();
+    if (NULL == ctx->voice_effects.recordQueue) {
+        LogError("%s alloc AudioRecordSourceQueue recordQueue failed.\n", __func__);
+        ret = -1;
+        goto fail;
+    }
+
+    ctx->in_config_path = av_strdup(in_config_path);
     if ((ret = effects_parse(&(ctx->voice_effects), in_config_path)) < 0) {
         LogError("%s effects_parse %s failed\n", __func__, in_config_path);
         goto fail;
     }
+
+    if ((ret = update_record_source(ctx->voice_effects.recordQueue,
+            ctx->voice_effects.record, DEFAULT_SAMPLE_RATE, DEFAULT_CHANNEL_NUMBER)) < 0) {
+        LogError("%s get the first AudioRecordSource failed.\n", __func__);
+        goto fail;
+    }
+
     ctx->seek_time_ms = 0;
     ctx->cur_size = 0;
     ctx->dst_sample_rate = ctx->voice_effects.record->decoder->out_sample_rate;
     ctx->dst_channels = ctx->voice_effects.record->decoder->out_nb_channels;
     ctx->dst_bits_per_sample = ctx->voice_effects.record->decoder->out_bits_per_sample;
-    ctx->duration_ms = ctx->voice_effects.record->end_time_ms;
+    ctx->duration_ms = ctx->voice_effects.duration_ms;
+
+    if ((ret = voice_effects_init(ctx)) < 0) {
+        LogError("%s voice_effects_init failed.\n", __func__);
+        ret = -1;
+        goto fail;
+    }
 
     // Allocate buffer for audio fifo
     ctx->audio_fifo = fifo_create(sizeof(short));
@@ -494,6 +666,7 @@ XmEffectContext *xm_audio_effect_create() {
 
     self->dst_sample_rate = DEFAULT_SAMPLE_RATE;
     self->dst_channels = DEFAULT_CHANNEL_NUMBER;
+    memset(self->voice_effects.effects_info, 0, MAX_NB_EFFECTS * sizeof(char *));
     memset(self->voice_effects.effects, 0, MAX_NB_EFFECTS * sizeof(EffectContext *));
     pthread_mutex_init(&self->mutex, NULL);
     self->ae_status = AE_STATE_UNINIT;

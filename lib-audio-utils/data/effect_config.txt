@@ -4,7 +4,8 @@
         { "name":"Beautify","info":"Magnetic"}
     ],
     "record": [
-        { "file_path":"../data/side_chain_test.pcm","isPcm":"true","volume":80,"cropStartTimeMs":10000,"cropEndTimeMs":100000,"sampleRate":44100,"nbChannels":1,"startTimeMs":10000,"endTimeMs":180000}
+        { "file_path":"../data/side_chain_test.pcm","isPcm":"true","volume":80,"cropStartTimeMs":118000,"cropEndTimeMs":150000,"sampleRate":44100,"nbChannels":1,"startTimeMs":140000,"endTimeMs":200000},
+        { "file_path":"../data/side_chain_test.pcm","isPcm":"true","volume":80,"cropStartTimeMs":10000,"cropEndTimeMs":118000,"sampleRate":44100,"nbChannels":1,"startTimeMs":10000,"endTimeMs":120000}
     ],
     "bgm": [
         { "file_path":"../data/side_chain_music_test.wav","volume":80,"cropStartTimeMs":35000,"cropEndTimeMs":65000,"startTimeMs":5000,"endTimeMs":75000,"fadeInTimeMs":3000,"fadeOutTimeMs":3000,"sideChain":"on","makeUpGain":50},

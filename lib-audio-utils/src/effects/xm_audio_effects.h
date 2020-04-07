@@ -1,10 +1,34 @@
 #ifndef XM_AUDIO_EFFECTS_H_
 #define XM_AUDIO_EFFECTS_H_
 
+#include <pthread.h>
 #include <stddef.h>
+#include <stdlib.h>
+#include "tools/fifo.h"
+#include "voice_mixer_struct.h"
 #include "codec/idecoder.h"
+#include "codec/ffmpeg_utils.h"
 
-typedef struct XmEffectContext_T XmEffectContext;
+typedef struct XmEffectContext {
+    volatile bool abort;
+    volatile bool flush;
+    int ae_status;
+    int progress;
+    // output pcm sample rate and number channels
+    int dst_sample_rate;
+    int dst_channels;
+    int dst_bits_per_sample;
+    // input record audio file seek position
+    int seek_time_ms;
+    // input record audio file read location
+    int64_t cur_size;
+    int duration_ms;
+    short buffer[MAX_NB_SAMPLES];
+    char *in_config_path;
+    fifo *audio_fifo;
+    pthread_mutex_t mutex;
+    VoiceEffcets voice_effects;
+} XmEffectContext;
 
 #define AE_STATE_UNINIT  0
 #define AE_STATE_INITIALIZED  1
@@ -32,22 +56,6 @@ void xm_audio_effect_stop(XmEffectContext *ctx);
  * @param ctx
  */
 int xm_audio_effect_get_progress(XmEffectContext *ctx);
-
-/**
-* @brief get effecter duration in the ms
-*
-* @param ctx XmEffectContext
-* @return duration in the ms
-*/
-int xm_audio_effect_get_duration_ms(XmEffectContext *ctx);
-
- /**
- * @brief get AudioDecoder
- *
- * @param ctx XmEffectContext
- * @return IAudioDecoder*
- */
-IAudioDecoder *xm_audio_effect_get_decoder(XmEffectContext *ctx);
 
 /**
  * @brief Get frame data with voice effects

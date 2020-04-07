@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-void audio_source_free(AudioSource *source) {
+void AudioSource_free(AudioSource *source) {
     if (source) {
         if (source->file_path || source->decoder) {
             if (source->file_path) {
@@ -15,32 +15,10 @@ void audio_source_free(AudioSource *source) {
     }
 }
 
-void audio_source_freep(AudioSource **source) {
+void AudioSource_freep(AudioSource **source) {
     if (source && *source) {
-        audio_source_free(*source);
+        AudioSource_free(*source);
         free(*source);
         *source = NULL;
     }
 }
-
-void audio_record_source_free(AudioRecordSource *record) {
-    if (record) {
-        if (record->file_path || record->decoder) {
-            if (record->file_path) {
-                free(record->file_path);
-                record->file_path = NULL;
-            }
-            IAudioDecoder_freep(&(record->decoder));
-            memset(record, 0, sizeof(AudioRecordSource));
-        }
-    }
-}
-
-void audio_record_source_freep(AudioRecordSource **record) {
-    if (record && *record) {
-        audio_record_source_free(*record);
-        free(*record);
-        *record = NULL;
-    }
-}
-
