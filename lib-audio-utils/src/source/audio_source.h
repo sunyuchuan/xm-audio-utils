@@ -1,8 +1,8 @@
 #ifndef _AUDIO_SOURCE_H_
 #define _AUDIO_SOURCE_H_
-#include "mixer_effects/fade_in_out.h"
-#include "idecoder.h"
-#include "audio_decoder_factory.h"
+#include "mixer/fade_in_out.h"
+#include "codec/idecoder.h"
+#include "codec/audio_decoder_factory.h"
 
 typedef struct AudioSource {
     int crop_start_time_ms;

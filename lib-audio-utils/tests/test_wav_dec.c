@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <sys/time.h>
 #include "log.h"
-#include "wav_dec.h"
+#include "wave/wav_dec.h"
 
 int main(int argc, char **argv) {
     struct timeval start;

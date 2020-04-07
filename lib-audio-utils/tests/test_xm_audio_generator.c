@@ -1,5 +1,5 @@
 #include "xm_audio_generator.h"
-#include "../src/codec/ffmpeg_utils.h"
+#include "codec/ffmpeg_utils.h"
 #include <sys/time.h>
 #include <stdlib.h>
 #include <pthread.h>

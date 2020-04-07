@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include "log.h"
-#include "xm_audio_effects.h"
+#include "effects/xm_audio_effects.h"
 #include <stdlib.h>
 
 static volatile bool abort_request = false;

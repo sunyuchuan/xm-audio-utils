@@ -10,7 +10,7 @@
 #include "voice_mixer_struct.h"
 #include "effects/voice_effect.h"
 #include "codec/ffmpeg_utils.h"
-#include "wav_dec.h"
+#include "wave/wav_dec.h"
 
 #define DEFAULT_SAMPLE_RATE 44100
 #define DEFAULT_CHANNEL_NUMBER 1

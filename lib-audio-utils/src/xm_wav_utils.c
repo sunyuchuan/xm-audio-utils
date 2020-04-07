@@ -1,7 +1,7 @@
 #include "xm_wav_utils.h"
 #include "log.h"
 #include "tools/util.h"
-#include "wav_dec.h"
+#include "wave/wav_dec.h"
 
 #define NB_SAMPLES 1024
 

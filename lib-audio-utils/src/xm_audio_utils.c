@@ -6,10 +6,10 @@
 #include "log.h"
 #include "error_def.h"
 #include "tools/util.h"
-#include "audio_decoder_factory.h"
-#include "mixer_effects/fade_in_out.h"
-#include "xm_audio_mixer.h"
-#include "xm_audio_effects.h"
+#include "codec/audio_decoder_factory.h"
+#include "mixer/fade_in_out.h"
+#include "mixer/xm_audio_mixer.h"
+#include "effects/xm_audio_effects.h"
 
 typedef struct PcmResampler {
     int src_sample_rate;

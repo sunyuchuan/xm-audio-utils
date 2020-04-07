@@ -4,7 +4,7 @@
 #include "tools/util.h"
 #include "tools/fifo.h"
 #include "effects/effect_struct.h"
-#include "codec/ffmpeg_utils.h"
+#include "ffmpeg_utils.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>

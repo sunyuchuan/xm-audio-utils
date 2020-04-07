@@ -1,5 +1,5 @@
 #include "xm_audio_generator.h"
-#include "xm_audio_mixer.h"
+#include "mixer/xm_audio_mixer.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>

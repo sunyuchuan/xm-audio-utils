@@ -2,7 +2,7 @@
 #define XM_AUDIO_EFFECTS_H_
 
 #include <stddef.h>
-#include "idecoder.h"
+#include "codec/idecoder.h"
 
 typedef struct XmEffectContext_T XmEffectContext;
 

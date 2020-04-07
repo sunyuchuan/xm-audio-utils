@@ -5,7 +5,7 @@
 #include "muxer_config.h"
 #include <pthread.h>
 #include "ffmpeg_utils.h"
-#include "codec/audio_encoder.h"
+#include "audio_encoder.h"
 
 typedef struct AudioMuxer
 {

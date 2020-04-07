@@ -2,7 +2,7 @@
 #include "codec/audio_muxer.h"
 #include "error_def.h"
 #include "log.h"
-#include "audio_decoder_factory.h"
+#include "codec/audio_decoder_factory.h"
 #include "xm_duration_parser.h"
 
 #define DEFAULT_SAMPLE_RATE 44100
