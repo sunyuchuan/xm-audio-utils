@@ -23,8 +23,7 @@
 
 /**
  * @file
- * @ingroup lavu
- * Convenience header that includes @ref lavu "libavutil"'s core.
+ * external API header
  */
 
 /**
@@ -79,15 +78,14 @@
  */
 
 /**
- * @defgroup lavu libavutil
- * Common code shared across all FFmpeg libraries.
+ * @defgroup lavu Common utility functions
  *
- * @note
- * libavutil is designed to be modular. In most cases, in order to use the
- * functions provided by one component of libavutil you must explicitly include
- * the specific header containing that feature. If you are only using
- * media-related components, you could simply include libavutil/avutil.h, which
- * brings in most of the "core" components.
+ * @brief
+ * libavutil contains the code shared across all the other FFmpeg
+ * libraries
+ *
+ * @note In order to use the functions provided by avutil you must include
+ * the specific header.
  *
  * @{
  *
@@ -96,7 +94,7 @@
  * @{
  * @}
  *
- * @defgroup lavu_math Mathematics
+ * @defgroup lavu_math Maths
  * @{
  *
  * @}
@@ -114,12 +112,6 @@
  * @}
  *
  * @defgroup lavu_data Data Structures
- * @{
- *
- * @}
- *
- * @defgroup lavu_video Video related
- *
  * @{
  *
  * @}
@@ -196,7 +188,7 @@ const char *avutil_license(void);
  * @brief Media Type
  */
 
-enum AVMediaType {
+enum FF_AVMediaType {
     AVMEDIA_TYPE_UNKNOWN = -1,  ///< Usually treated as AVMEDIA_TYPE_DATA
     AVMEDIA_TYPE_VIDEO,
     AVMEDIA_TYPE_AUDIO,
@@ -210,7 +202,7 @@ enum AVMediaType {
  * Return a string describing the media_type enum, NULL if media_type
  * is unknown.
  */
-const char *av_get_media_type_string(enum AVMediaType media_type);
+const char *av_get_media_type_string(enum FF_AVMediaType media_type);
 
 /**
  * @defgroup lavu_const Constants
@@ -342,20 +334,6 @@ FILE *av_fopen_utf8(const char *path, const char *mode);
  * Return the fractional representation of the internal time base.
  */
 AVRational av_get_time_base_q(void);
-
-#define AV_FOURCC_MAX_STRING_SIZE 32
-
-#define av_fourcc2str(fourcc) av_fourcc_make_string((char[AV_FOURCC_MAX_STRING_SIZE]){0}, fourcc)
-
-/**
- * Fill the provided buffer with a string containing a FourCC (four-character
- * code) representation.
- *
- * @param buf    a buffer with size in bytes of at least AV_FOURCC_MAX_STRING_SIZE
- * @param fourcc the fourcc to represent
- * @return the buffer in input
- */
-char *av_fourcc_make_string(char *buf, uint32_t fourcc);
 
 /**
  * @}
