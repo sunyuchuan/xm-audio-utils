@@ -47,7 +47,8 @@ typedef struct IAudioDecoder_Opaque {
 
 static void FFmpegDecoder_free(IAudioDecoder_Opaque *decoder);
 static int FFmpegDecoder_set_crop_pos(
-    IAudioDecoder *decoder, int crop_start_time_ms, int crop_end_time_ms);
+    IAudioDecoder_Opaque *decoder, int crop_start_time_ms,
+    int crop_end_time_ms);
 
 static inline void free_input_media_context(AVFormatContext **fmt_ctx,
                                          AVCodecContext **dec_ctx) {
@@ -452,12 +453,11 @@ static void FFmpegDecoder_free(IAudioDecoder_Opaque *decoder) {
 }
 
 static int FFmpegDecoder_get_pcm_frame(
-        IAudioDecoder *audioDecoder, short *buffer,
+        IAudioDecoder_Opaque *decoder, short *buffer,
         const int buffer_size_in_short, bool loop) {
     int ret = -1;
-    if (!audioDecoder || !audioDecoder->opaque || !buffer)
+    if (!decoder || !buffer || buffer_size_in_short < 0)
         return ret;
-    IAudioDecoder_Opaque *decoder = audioDecoder->opaque;
 
     while (av_audio_fifo_size(decoder->audio_fifo) * decoder->dst_nb_channels <
            buffer_size_in_short) {
@@ -475,7 +475,7 @@ static int FFmpegDecoder_get_pcm_frame(
                     LogError("%s init_decoder failed\n", __func__);
                     goto end;
                 }
-                if (FFmpegDecoder_set_crop_pos(audioDecoder,
+                if (FFmpegDecoder_set_crop_pos(decoder,
                     crop_start_time_in_ms, crop_end_time_in_ms) < 0) {
                     LogError("%s FFmpegDecoder_set_crop_pos failed.\n", __func__);
                     goto end;
@@ -515,15 +515,15 @@ static int FFmpegDecoder_seekTo(IAudioDecoder_Opaque *decoder,
 }
 
 static int FFmpegDecoder_set_crop_pos(
-    IAudioDecoder *decoder, int crop_start_time_ms, int crop_end_time_ms) {
+    IAudioDecoder_Opaque *decoder, int crop_start_time_ms,
+    int crop_end_time_ms) {
     LogInfo("%s\n", __func__);
-    if (!decoder || !decoder->opaque)
+    if (!decoder)
         return -1;
 
-    int ret = init_timings_params(decoder->opaque,
+    int ret = init_timings_params(decoder,
         crop_start_time_ms, crop_end_time_ms);
-    decoder->duration_ms = decoder->opaque->duration_ms;
-    return ret;
+    return ret < 0 ? ret : decoder->duration_ms;
 }
 
 IAudioDecoder *FFmpegDecoder_create(const char *file_addr,

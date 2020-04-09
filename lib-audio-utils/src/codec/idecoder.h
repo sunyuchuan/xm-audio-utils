@@ -32,8 +32,6 @@ static inline int calculation_duration_ms(int64_t size,
 }
 
 typedef struct IAudioDecoder_Opaque IAudioDecoder_Opaque;
-typedef struct IAudioDecoder IAudioDecoder;
-
 typedef struct IAudioDecoder
 {
     IAudioDecoder_Opaque *opaque;
@@ -43,9 +41,9 @@ typedef struct IAudioDecoder
     int duration_ms;
 
     void (*func_free)(IAudioDecoder_Opaque *opaque);
-    int (*func_get_pcm_frame)(IAudioDecoder *decoder,
+    int (*func_get_pcm_frame)(IAudioDecoder_Opaque *opaque,
         short *buffer, int buffer_size_in_short, bool loop);
-    int (*func_set_crop_pos)(IAudioDecoder *decoder,
+    int (*func_set_crop_pos)(IAudioDecoder_Opaque *opaque,
         int crop_start_time_in_ms, int crop_end_time_in_ms);
     int (*func_seekTo)(IAudioDecoder_Opaque *opaque, int seek_pos_ms);
 } IAudioDecoder;
