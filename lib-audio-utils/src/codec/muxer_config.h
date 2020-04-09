@@ -1,6 +1,6 @@
 #ifndef _MUXER_CONFIG_H_
 #define _MUXER_CONFIG_H_
-#include "libavcodec/avcodec.h"
+#include "codec/ffmpeg_utils.h"
 
 enum EncoderType {
     ENCODER_NONE = -1,

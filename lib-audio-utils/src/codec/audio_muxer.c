@@ -1,7 +1,6 @@
 #include "audio_muxer.h"
 #include "log.h"
 #include "error_def.h"
-#include "ffmpeg_utils.h"
 #include "sw/audio_encoder_sw.h"
 
 #define MONO_BIT_RATE 64000

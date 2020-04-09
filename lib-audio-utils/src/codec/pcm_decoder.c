@@ -3,7 +3,6 @@
 #include "error_def.h"
 #include "tools/util.h"
 #include "tools/fifo.h"
-#include "effects/effect_struct.h"
 #include "ffmpeg_utils.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -48,7 +47,7 @@ typedef struct IAudioDecoder_Opaque {
 } IAudioDecoder_Opaque;
 
 static void PcmDecoder_free(IAudioDecoder_Opaque *decoder);
-static int PcmDecoder_set_crop_pos(IAudioDecoder *decoder,
+static int PcmDecoder_set_crop_pos(IAudioDecoder_Opaque *decoder,
     int crop_start_time_ms, int crop_end_time_ms);
 
 inline static int64_t align(int64_t x, int align) {
@@ -265,13 +264,11 @@ static void PcmDecoder_free(IAudioDecoder_Opaque *decoder) {
 }
 
 static int PcmDecoder_get_pcm_frame(
-        IAudioDecoder *audioDecoder, short *buffer,
+        IAudioDecoder_Opaque *decoder, short *buffer,
         int buffer_size_in_short, bool loop) {
     int ret = -1;
-    if (!audioDecoder || !audioDecoder->opaque
-            || !buffer || buffer_size_in_short < 0)
+    if (!decoder || !buffer || buffer_size_in_short < 0)
         return ret;
-    IAudioDecoder_Opaque *decoder = audioDecoder->opaque;
 
     while (fifo_occupancy(decoder->pcm_fifo) < (size_t) buffer_size_in_short) {
 	ret = write_fifo(decoder);
@@ -286,7 +283,7 @@ static int PcmDecoder_get_pcm_frame(
 	            LogError("%s init_decoder failed\n", __func__);
 	            goto end;
 	        }
-	        if (PcmDecoder_set_crop_pos(audioDecoder,
+	        if (PcmDecoder_set_crop_pos(decoder,
                     crop_start_time_in_ms, crop_end_time_in_ms) < 0) {
                     LogError("%s PcmDecoder_set_crop_pos failed.\n", __func__);
                     goto end;
@@ -332,16 +329,16 @@ static int PcmDecoder_seekTo(IAudioDecoder_Opaque *decoder,
         decoder->seek_pos_bytes + decoder->pcm_start_pos + decoder->crop_start_pos, SEEK_SET);
 }
 
-static int PcmDecoder_set_crop_pos(IAudioDecoder *decoder,
-    int crop_start_time_ms, int crop_end_time_ms) {
+static int PcmDecoder_set_crop_pos(
+    IAudioDecoder_Opaque *decoder, int crop_start_time_ms,
+    int crop_end_time_ms) {
     LogInfo("%s\n", __func__);
-    if (!decoder || !decoder->opaque)
+    if (!decoder)
         return -1;
 
-    int ret = init_timings_params(decoder->opaque,
+    int ret = init_timings_params(decoder,
         crop_start_time_ms, crop_end_time_ms);
-    decoder->duration_ms = decoder->opaque->duration_ms;
-    return ret;
+    return ret < 0 ? ret : decoder->duration_ms;
 }
 
 IAudioDecoder *PcmDecoder_create(const char *file_addr,
