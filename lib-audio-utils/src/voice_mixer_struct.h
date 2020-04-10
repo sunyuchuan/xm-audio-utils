@@ -15,20 +15,20 @@ enum EffectType {
     MAX_NB_EFFECTS
 };
 
-typedef struct VoiceEffcets {
+typedef struct VoiceEffects {
     int duration_ms;
     AudioRecordSource *record;
     AudioRecordSourceQueue *recordQueue;
     EffectContext *effects[MAX_NB_EFFECTS];
     char *effects_info[MAX_NB_EFFECTS];
-} VoiceEffcets;
+} VoiceEffects;
 
-typedef struct MixerEffcets {
+typedef struct MixerEffects {
     int duration_ms;
     AudioSource *bgm;
     AudioSourceQueue *bgmQueue;
     AudioSource *music;
     AudioSourceQueue *musicQueue;
-} MixerEffcets;
+} MixerEffects;
 
 #endif

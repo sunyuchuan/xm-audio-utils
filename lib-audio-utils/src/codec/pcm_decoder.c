@@ -198,7 +198,7 @@ static int init_decoder(IAudioDecoder_Opaque *decoder,
         } else if (src_nb_channels == 2) {
             decoder->max_dst_buffer_size = decoder->max_src_buffer_size >> 1;
         } else {
-            LogError("%s unsupport src_nb_channels %d.\n", __func__, src_nb_channels);
+            LogError("%s unsupported src_nb_channels %d.\n", __func__, src_nb_channels);
             ret = -1;
             goto end;
         }

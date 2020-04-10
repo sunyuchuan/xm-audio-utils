@@ -48,7 +48,7 @@ struct XmMixerContext_T {
     char *in_config_path;
     EffectContext *reverb_ctx;
     pthread_mutex_t mutex;
-    MixerEffcets mixer_effects;
+    MixerEffects mixer_effects;
 };
 
 static void reverb_free(XmMixerContext *ctx) {
@@ -61,7 +61,7 @@ static void reverb_free(XmMixerContext *ctx) {
     }
 }
 
-static void mixer_effects_free(MixerEffcets *mixer) {
+static void mixer_effects_free(MixerEffects *mixer) {
     LogInfo("%s\n", __func__);
     if (NULL == mixer)
         return;
@@ -108,7 +108,7 @@ fail:
     return ret;
 }
 
-static int mixer_effects_init(MixerEffcets *mixer) {
+static int mixer_effects_init(MixerEffects *mixer) {
     LogInfo("%s\n", __func__);
     int ret = -1;
     if (NULL == mixer)

@@ -1,0 +1,8 @@
+{
+    "git.ignoreLimitWarning": true,
+    "editor.fontSize": 20,
+    "editor.wordWrap": "bounded",
+    "files.exclude": {
+        "xmly*": true
+    }
+}
