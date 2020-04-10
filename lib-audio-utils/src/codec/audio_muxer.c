@@ -143,7 +143,7 @@ static int read_encode_and_save(AudioMuxer *am) {
     int ret = 0;
 
     ret = AudioFifoGet(am->encode_fifo, am->frame_size,
-                       (void**)(am->audio_frame->data));
+                (void**)(am->audio_frame->data));
     if (ret < 0) {
         LogError("%s AudioFifoGet failed.\n", __func__);
         goto end;

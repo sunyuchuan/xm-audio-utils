@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include "codec/ffmpeg_utils.h"
 
-static int parse_voice_effects(cJSON *effects, VoiceEffcets *voice_effects)
+static int parse_voice_effects(cJSON *effects, VoiceEffects *voice_effects)
 {
     int ret = -1;
     if (!effects || !voice_effects) {
@@ -36,19 +36,19 @@ static int parse_voice_effects(cJSON *effects, VoiceEffcets *voice_effects)
         LogInfo("%s info->valuestring %s\n", __func__, info->valuestring);
 
         if (0 == strcasecmp(name->valuestring, "NoiseSuppression")) {
-             LogInfo("%s effect NoiseSuppression\n", __func__);
-             voice_effects->effects_info[NoiseSuppression] = av_strdup(info->valuestring);
+            LogInfo("%s effect NoiseSuppression\n", __func__);
+            voice_effects->effects_info[NoiseSuppression] = av_strdup(info->valuestring);
         } else if (0 == strcasecmp(name->valuestring, "Beautify")) {
-             LogInfo("%s effect Beautify\n", __func__);
-             voice_effects->effects_info[Beautify] = av_strdup(info->valuestring);
+            LogInfo("%s effect Beautify\n", __func__);
+            voice_effects->effects_info[Beautify] = av_strdup(info->valuestring);
         } else if (0 == strcasecmp(name->valuestring, "Reverb")) {
-             LogInfo("%s effect Reverb\n", __func__);
-             voice_effects->effects_info[Reverb] = av_strdup(info->valuestring);
+            LogInfo("%s effect Reverb\n", __func__);
+            voice_effects->effects_info[Reverb] = av_strdup(info->valuestring);
         } else if (0 == strcasecmp(name->valuestring, "VolumeLimiter")) {
-             LogInfo("%s effect VolumeLimiter\n", __func__);
-             voice_effects->effects_info[VolumeLimiter] = av_strdup(info->valuestring);
+            LogInfo("%s effect VolumeLimiter\n", __func__);
+            voice_effects->effects_info[VolumeLimiter] = av_strdup(info->valuestring);
         } else {
-             LogWarning("%s unsupport effect %s\n", __func__, name->valuestring);
+            LogWarning("%s unsupported effect %s\n", __func__, name->valuestring);
         }
     }
 
@@ -201,7 +201,7 @@ fail:
     return ret;
 }
 
-int mixer_parse(MixerEffcets *mixer_effects, const char *json_file_addr) {
+int mixer_parse(MixerEffects *mixer_effects, const char *json_file_addr) {
     int ret = -1;
     if (NULL == json_file_addr || NULL == mixer_effects) {
         return ret;
@@ -321,7 +321,7 @@ fail:
     return ret;
 }
 
-int effects_parse(VoiceEffcets *voice_effects, const char *json_file_addr) {
+int effects_parse(VoiceEffects *voice_effects, const char *json_file_addr) {
     int ret = -1;
     if (!json_file_addr || !voice_effects) {
         return ret;

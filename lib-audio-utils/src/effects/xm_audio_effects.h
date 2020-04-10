@@ -27,7 +27,7 @@ typedef struct XmEffectContext {
     char *in_config_path;
     fifo *audio_fifo;
     pthread_mutex_t mutex;
-    VoiceEffcets voice_effects;
+    VoiceEffects voice_effects;
 } XmEffectContext;
 
 #define AE_STATE_UNINIT  0

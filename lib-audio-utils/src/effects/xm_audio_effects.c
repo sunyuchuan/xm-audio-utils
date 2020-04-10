@@ -10,7 +10,7 @@
 #define DEFAULT_SAMPLE_RATE 44100
 #define DEFAULT_CHANNEL_NUMBER 1
 
-static void voice_effects_free(VoiceEffcets *voice) {
+static void voice_effects_free(VoiceEffects *voice) {
     LogInfo("%s\n", __func__);
     if (!voice) {
         return;
@@ -24,7 +24,7 @@ static void voice_effects_free(VoiceEffcets *voice) {
     }
 }
 
-static void voice_effects_info_free(VoiceEffcets *voice) {
+static void voice_effects_info_free(VoiceEffects *voice) {
     LogInfo("%s\n", __func__);
     if (!voice) {
         return;
@@ -43,7 +43,7 @@ static int voice_effects_init(XmEffectContext *ctx) {
     if (NULL == ctx)
         return -1;
 
-    VoiceEffcets *voice = &ctx->voice_effects;
+    VoiceEffects *voice = &ctx->voice_effects;
     voice_effects_free(voice);
 
     for (int i = 0; i < MAX_NB_EFFECTS; ++i) {
@@ -75,7 +75,7 @@ static int voice_effects_init(XmEffectContext *ctx) {
                 set_effect(voice->effects[VolumeLimiter], "Switch", voice->effects_info[i], 0);
                 break;
             default:
-                LogWarning("%s unsupport effect %s\n", __func__, voice->effects_info[i]);
+                LogWarning("%s unsupported effect %s\n", __func__, voice->effects_info[i]);
                 break;
         }
     }
@@ -250,7 +250,7 @@ static void flush(XmEffectContext *ctx) {
     if (!ctx)
         return;
 
-    VoiceEffcets *voice_effects = &ctx->voice_effects;
+    VoiceEffects *voice_effects = &ctx->voice_effects;
     while (1) {
         int receive_len = 0;
         for (int i = 0; i < MAX_NB_EFFECTS; ++i) {
@@ -357,7 +357,7 @@ static int add_effects_and_write_fifo(XmEffectContext *ctx) {
     }
     ctx->cur_size += (read_len * sizeof(*ctx->buffer));
 
-    VoiceEffcets *voice_effects = &ctx->voice_effects;
+    VoiceEffects *voice_effects = &ctx->voice_effects;
     bool find_valid_effect = false;
     for (int i = 0; i < MAX_NB_EFFECTS; ++i) {
         if (NULL != voice_effects->effects[i]) {
