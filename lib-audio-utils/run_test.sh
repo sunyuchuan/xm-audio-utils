@@ -43,7 +43,7 @@ echo -e "\033[1;43;30m\ntest_wav_concat...\033[0m"
 ./tests/test_wav_concat ../data/1582626292130.wav 1582626292130_concat.wav
 
 echo -e "\033[1;43;30m\ntest_xm_audio_utils_resampler...\033[0m"
-./tests/test_xm_audio_utils_resampler ../data/side_chain_test.pcm test_xm_audio_utils_resampler.pcm
+./tests/test_xm_audio_utils_resampler ../data/side_chain_test.wav test_xm_audio_utils_resampler.pcm
 
 echo -e "\033[1;43;30m\ntest_xm_audio_effects...\033[0m"
 ./tests/test_xm_audio_effects ../data/effect_config.txt test_xm_audio_effects.wav

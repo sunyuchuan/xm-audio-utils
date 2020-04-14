@@ -41,7 +41,7 @@ int main(int argc, char **argv) {
         goto end;
     }
 
-    bool flag = xm_audio_utils_pcm_resampler_init(utils, argv[1], true, 44100, 1, 11025, 1);
+    bool flag = xm_audio_utils_pcm_resampler_init(utils, argv[1], false, 0, 0, 11025, 1);
     if (!flag) {
         LogError("xm_audio_utils_pcm_resampler_init failed\n");
         ret = -1;
