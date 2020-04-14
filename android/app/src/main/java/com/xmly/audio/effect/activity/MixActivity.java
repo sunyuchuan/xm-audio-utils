@@ -325,7 +325,7 @@ public class MixActivity extends AppCompatActivity implements View.OnClickListen
 
                 int cropStartTimeMs = 0;
                 int cropEndTimeMs = XmAudioUtils.getAudioFileDurationMs(decodeRawAudio, false, 0, 0, 0) / 2;
-                mAudioUtils.decoder_create(decodeRawAudio, cropStartTimeMs, cropEndTimeMs, 44100, 2, false, 100);
+                mAudioUtils.decoder_create(decodeRawAudio, cropStartTimeMs, cropEndTimeMs, 44100, 2, 100);
                 mAudioUtils.decoder_seekTo(1000);
                 mAudioUtils.fadeInit(44100, 2, 0, cropEndTimeMs, 3000, 3000);
                 long curSize = 0;

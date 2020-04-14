@@ -239,7 +239,7 @@ LABEL_RETURN:
 static int
 XMAudioUtils_decoder_create(JNIEnv *env, jobject thiz,
     jstring inAudioPath, jint cropStartTimeInMs, jint cropEndTimeInMs,
-    jint outSampleRate, jint outChannels, jboolean isPcm, jint volume)
+    jint outSampleRate, jint outChannels, jint volume)
 {
     LOGI("%s\n", __func__);
     int ret = -1;
@@ -252,7 +252,7 @@ XMAudioUtils_decoder_create(JNIEnv *env, jobject thiz,
 
     ret = xm_audio_utils_decoder_create(ctx, in_audio_path,
         cropStartTimeInMs, cropEndTimeInMs,
-        outSampleRate, outChannels, isPcm, volume);
+        outSampleRate, outChannels, volume);
 
     if (in_audio_path)
         (*env)->ReleaseStringUTFChars(env, inAudioPath, in_audio_path);
@@ -407,7 +407,7 @@ static JNINativeMethod g_methods[] = {
     { "native_resampler_resample", "([SI)I", (void *) XMAudioUtils_resampler_resample },
     { "native_set_log", "(IILjava/lang/String;)V", (void *) XMAudioUtils_set_log },
     { "native_close_log_file", "()V", (void *) XMAudioUtils_close_log_file },
-    { "native_decoder_create", "(Ljava/lang/String;IIIIZI)I", (void *) XMAudioUtils_decoder_create },
+    { "native_decoder_create", "(Ljava/lang/String;IIIII)I", (void *) XMAudioUtils_decoder_create },
     { "native_decoder_seekTo", "(I)V", (void *) XMAudioUtils_decoder_seekTo },
     { "native_get_decoded_frame", "([SIZ)I", (void *) XMAudioUtils_get_decoded_frame },
     { "native_fade_init", "(IIIIII)I", (void *) XMAudioUtils_fade_init },

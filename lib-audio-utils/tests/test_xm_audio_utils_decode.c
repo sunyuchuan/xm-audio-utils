@@ -54,7 +54,7 @@ int main(int argc, char **argv) {
     }
 
     ret = xm_audio_utils_decoder_create(utils, argv[1], crop_start_time,
-        crop_end_time, atoi(argv[3]), atoi(argv[4]), false, 100);
+        crop_end_time, atoi(argv[3]), atoi(argv[4]), 100);
     if (ret < 0) {
         LogError("xm_audio_utils_decoder_create failed\n");
         goto end;

@@ -290,7 +290,7 @@ void xm_audio_utils_decoder_seekTo(XmAudioUtils *self,
 
 int xm_audio_utils_decoder_create(XmAudioUtils *self,
     const char *in_audio_path, int crop_start_time_in_ms, int crop_end_time_in_ms,
-    int out_sample_rate, int out_channels, bool isPcm, int volume_fix) {
+    int out_sample_rate, int out_channels, int volume_fix) {
     LogInfo("%s\n", __func__);
     if (NULL == self || NULL == in_audio_path) {
         return -1;
@@ -298,15 +298,8 @@ int xm_audio_utils_decoder_create(XmAudioUtils *self,
 
     float volume_flp = volume_fix / (float)100;
     IAudioDecoder_freep(&self->decoder);
-    enum DecoderType type;
-    if(isPcm) {
-        type = DECODER_PCM;
-    } else {
-        type = DECODER_FFMPEG;
-    }
-
     self->decoder = audio_decoder_create(in_audio_path, 0, 0,
-        out_sample_rate, out_channels, volume_flp, type);
+        out_sample_rate, out_channels, volume_flp, DECODER_FFMPEG);
     if (self->decoder == NULL) {
         LogError("audio_decoder_create failed\n");
         return -1;
@@ -371,7 +364,7 @@ bool xm_audio_utils_pcm_resampler_init(
     int src_nb_channels, double dst_sample_rate, int dst_nb_channels) {
     LogInfo("%s\n", __func__);
     if (!self || !in_audio_path
-            || (src_nb_channels != 1 && src_nb_channels != 2)) return false;
+            || (is_pcm && src_nb_channels != 1 && src_nb_channels != 2)) return false;
     if (dst_sample_rate <= 0
             || (dst_nb_channels != 1 && dst_nb_channels != 2)) return false;
 
@@ -383,14 +376,17 @@ bool xm_audio_utils_pcm_resampler_init(
     }
 
     PcmResampler *swr = self->pcm_resampler;
+    int out_sample_rate = 0;
+    int out_channels = 1;
     enum DecoderType type;
     if(is_pcm) {
         type = DECODER_PCM;
+        out_sample_rate = src_sample_rate;
     } else {
         type = DECODER_FFMPEG;
+        out_sample_rate = 44100;
     }
-    int out_sample_rate= src_sample_rate;
-    int out_channels = 1;
+
     swr->decoder = audio_decoder_create(in_audio_path, src_sample_rate,
         src_nb_channels, out_sample_rate, out_channels, 1.0f, type);
     if (!swr->decoder) {
@@ -406,7 +402,7 @@ bool xm_audio_utils_pcm_resampler_init(
     swr->sample_interval = swr->src_sample_rate / swr->dst_sample_rate;
 
     swr->buffer_nb_samples = 512;
-    swr->buffer = (short *)calloc(sizeof(short), swr->buffer_nb_samples * src_nb_channels);
+    swr->buffer = (short *)calloc(sizeof(short), swr->buffer_nb_samples * swr->src_nb_channels);
     if (!swr->buffer) {
         LogError("%s calloc swr->buffer failed.\n", __func__);
         goto fail;

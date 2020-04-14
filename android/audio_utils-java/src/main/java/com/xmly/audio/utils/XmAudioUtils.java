@@ -309,12 +309,11 @@ public class XmAudioUtils {
      * @param cropEndTimeInMs 对音频文件进行裁剪，裁剪的结束位置，单位是毫秒
      * @param outSampleRate 解码器输出的pcm数据采样率,建议和人声pcm数据的采样率一致
      * @param outChannels 解码输出的pcm数据声道数,建议双声道
-     * @param isPcm 是否是PCM文件
      * @param volume 背景音音量大小,范围0到100
      * @return 小于0表示失败
      */
     public int decoder_create(String inAudioPath, int cropStartTimeInMs, int cropEndTimeInMs,
-                              int outSampleRate, int outChannels, boolean isPcm, int volume) {
+                              int outSampleRate, int outChannels, int volume) {
         int ret = -1;
         if (inAudioPath == null) {
             return ret;
@@ -322,7 +321,7 @@ public class XmAudioUtils {
 
         try {
             ret = native_decoder_create(inAudioPath, cropStartTimeInMs, cropEndTimeInMs,
-                    outSampleRate, outChannels, isPcm, volume);
+                    outSampleRate, outChannels, volume);
         } catch (IllegalStateException e) {
             e.printStackTrace();
         }
@@ -434,7 +433,7 @@ public class XmAudioUtils {
     private native int native_resampler_resample(short[] buffer, int bufferSize);
 
     private native int native_decoder_create(String inAudioPath, int cropStartTimeInMs, int cropEndTimeInMs,
-                                             int outSampleRate, int outChannels, boolean isPcm, int volume);
+                                             int outSampleRate, int outChannels, int volume);
     private native void native_decoder_seekTo(int seekTimeMs);
     private native int native_get_decoded_frame(short[] buffer, int bufferSize, boolean loop);
 
