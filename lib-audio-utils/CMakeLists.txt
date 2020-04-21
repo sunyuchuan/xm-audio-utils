@@ -103,6 +103,7 @@ src/codec/audio_muxer.c
 src/codec/pcm_decoder.c
 src/codec/idecoder.c
 src/codec/audio_decoder_factory.c
+src/codec/duration_parser.c
 
 src/tools/avstring.c
 src/tools/conversion.c

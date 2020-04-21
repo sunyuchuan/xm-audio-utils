@@ -290,13 +290,69 @@ end:
     return;
 }
 
-static int add_effects_and_write_fifo(XmEffectContext *ctx) {
+static int add_effects(XmEffectContext *ctx, short *buffer, int buffer_len) {
     int ret = -1;
-    if (!ctx || !(ctx->voice_effects.record) || !(ctx->voice_effects.recordQueue))
-        return -1;
+    if (!ctx || !buffer) return -1;
 
-    int cur_position = ctx->seek_time_ms + calculation_duration_ms(ctx->cur_size,
-        ctx->dst_bits_per_sample/8, ctx->dst_channels, ctx->dst_sample_rate);
+    VoiceEffects *voice_effects = &ctx->voice_effects;
+    bool find_valid_effect = false;
+    for (int i = 0; i < MAX_NB_EFFECTS; ++i) {
+        if (NULL != voice_effects->effects[i]) {
+            if(send_samples(voice_effects->effects[i], buffer,
+                    buffer_len) < 0) {
+                LogError("%s send_samples to the first effect failed\n", __func__);
+                ret = -1;
+                return ret;
+            }
+            find_valid_effect = true;
+            break;
+        }
+    }
+
+    if (!find_valid_effect) {
+        ret = fifo_write(ctx->audio_fifo, buffer, buffer_len);
+        if (ret < 0) return ret;
+        return buffer_len;
+    }
+
+    int receive_len = 0;
+    for (int i = 0; i < MAX_NB_EFFECTS; ++i) {
+        if (NULL == voice_effects->effects[i]) {
+            continue;
+        }
+
+        bool is_last_effect = true;
+        receive_len = receive_samples(voice_effects->effects[i], buffer, MAX_NB_SAMPLES);
+        while (receive_len > 0) {
+            for (short j = i + 1; j < MAX_NB_EFFECTS; ++j) {
+                if (NULL != voice_effects->effects[j]) {
+                    receive_len = send_samples(voice_effects->effects[j], buffer, receive_len);
+                    if (receive_len < 0) {
+                        LogError("%s send_samples to the next effect failed\n", __func__);
+                        ret = -1;
+                        return ret;
+                    }
+                    is_last_effect = false;
+                    receive_len = receive_samples(voice_effects->effects[i], buffer, MAX_NB_SAMPLES);
+                    break;
+                }
+            }
+            if (is_last_effect) break;
+        }
+    }
+
+    ret = receive_len;
+    return ret;
+}
+
+static int read_pcm_frame(XmEffectContext *ctx, short *buffer) {
+    int ret = -1;
+    if (!ctx || !buffer || !(ctx->voice_effects.record)
+        || !(ctx->voice_effects.recordQueue)) return -1;
+
+    int cur_position = ctx->seek_time_ms +
+        calculation_duration_ms(ctx->cur_size, ctx->dst_bits_per_sample/8,
+        ctx->dst_channels, ctx->dst_sample_rate);
     if (cur_position >= ctx->duration_ms) {
         ret = PCM_FILE_EOF;
         return ret;
@@ -329,18 +385,18 @@ static int add_effects_and_write_fifo(XmEffectContext *ctx) {
     int read_len = 0;
     if (cur_position < record_start_time) {
         // zeros are added at the start or end of the recording.
-        memset(ctx->buffer, 0, MAX_NB_SAMPLES * sizeof(*ctx->buffer));
+        memset(buffer, 0, MAX_NB_SAMPLES * sizeof(*buffer));
         read_len = MAX_NB_SAMPLES;
     } else if (cur_position >= record_start_time
         && cur_position < record_start_time + record_duration) {
         read_len = IAudioDecoder_get_pcm_frame(record_decoder,
-            ctx->buffer, MAX_NB_SAMPLES, false);
+            buffer, MAX_NB_SAMPLES, false);
         if (read_len < 0) {
             if (read_len == PCM_FILE_EOF) {
                 //update the decoder that point the next bgm
                 AudioRecordSource_free(ctx->voice_effects.record);
                 // zeros are added at the end of the recording.
-                memset(ctx->buffer, 0, MAX_NB_SAMPLES * sizeof(*ctx->buffer));
+                memset(buffer, 0, MAX_NB_SAMPLES * sizeof(*buffer));
                 read_len = MAX_NB_SAMPLES;
             } else {
                 LogError("%s IAudioDecoder_get_pcm_frame failed\n", __func__);
@@ -352,60 +408,32 @@ static int add_effects_and_write_fifo(XmEffectContext *ctx) {
         //update the decoder that point the next bgm
         AudioRecordSource_free(ctx->voice_effects.record);
         // zeros are added at the start or end of the recording.
-        memset(ctx->buffer, 0, MAX_NB_SAMPLES * sizeof(*ctx->buffer));
+        memset(buffer, 0, MAX_NB_SAMPLES * sizeof(*buffer));
         read_len = MAX_NB_SAMPLES;
     }
-    ctx->cur_size += (read_len * sizeof(*ctx->buffer));
+    ctx->cur_size += (read_len * sizeof(*buffer));
 
-    VoiceEffects *voice_effects = &ctx->voice_effects;
-    bool find_valid_effect = false;
-    for (int i = 0; i < MAX_NB_EFFECTS; ++i) {
-        if (NULL != voice_effects->effects[i]) {
-            if(send_samples(voice_effects->effects[i], ctx->buffer, read_len) < 0) {
-                LogError("%s send_samples to the first effect failed\n", __func__);
-                ret = -1;
-                return ret;
-            }
-            find_valid_effect = true;
-            break;
-        }
+    ret = read_len;
+    return ret;
+}
+
+static int add_effects_and_write_fifo(XmEffectContext *ctx) {
+    int ret = -1;
+    if (!ctx || !ctx->buffer || !ctx->audio_fifo) return -1;
+
+    if ((ret = read_pcm_frame(ctx, ctx->buffer)) < 0) {
+        if (ret != PCM_FILE_EOF)
+            LogError("%s read_pcm_frame failed.\n", __func__);
+        return ret;
     }
 
-    if (!find_valid_effect) {
-        ret = fifo_write(ctx->audio_fifo, ctx->buffer, read_len);
-        if (ret < 0) return ret;
-        return read_len;
+    if ((ret = add_effects(ctx, ctx->buffer, ret)) < 0) {
+        LogError("%s add_effects failed.\n", __func__);
+        return ret;
     }
 
-    int receive_len = 0;
-    for (int i = 0; i < MAX_NB_EFFECTS; ++i) {
-        if (NULL == voice_effects->effects[i]) {
-            continue;
-        }
-
-        bool is_last_effect = true;
-        receive_len = receive_samples(voice_effects->effects[i], ctx->buffer, MAX_NB_SAMPLES);
-        while (receive_len > 0) {
-            for (short j = i + 1; j < MAX_NB_EFFECTS; ++j) {
-                if (NULL != voice_effects->effects[j]) {
-                    receive_len = send_samples(voice_effects->effects[j], ctx->buffer, receive_len);
-                    if (receive_len < 0) {
-                        LogError("%s send_samples to the next effect failed\n", __func__);
-                        ret = -1;
-                        return ret;
-                    }
-                    is_last_effect = false;
-                    receive_len = receive_samples(voice_effects->effects[i], ctx->buffer, MAX_NB_SAMPLES);
-                    break;
-                }
-            }
-            if (is_last_effect) break;
-        }
-    }
-
-    ret = fifo_write(ctx->audio_fifo, ctx->buffer, receive_len);
-    if (ret < 0) return ret;
-    return receive_len;
+    ret = fifo_write(ctx->audio_fifo, ctx->buffer, ret);
+    return ret;
 }
 
 void xm_audio_effect_freep(XmEffectContext **ctx) {
@@ -448,15 +476,15 @@ int xm_audio_effect_get_frame(XmEffectContext *ctx,
         return ret;
 
     while (fifo_occupancy(ctx->audio_fifo) < (size_t) buffer_size_in_short) {
-	ret = add_effects_and_write_fifo(ctx);
-	if (ret < 0) {
-	    if (!ctx->flush) flush(ctx);
-	    if (0 < fifo_occupancy(ctx->audio_fifo)) {
-	        break;
-	    } else {
-	        goto end;
-	    }
-	}
+        ret = add_effects_and_write_fifo(ctx);
+        if (ret < 0) {
+            if (!ctx->flush) flush(ctx);
+            if (0 < fifo_occupancy(ctx->audio_fifo)) {
+                break;
+            } else {
+                goto end;
+            }
+        }
     }
 
     return fifo_read(ctx->audio_fifo, buffer, buffer_size_in_short);
@@ -515,8 +543,9 @@ static int xm_audio_effect_add_effects_l(XmEffectContext *ctx,
     int file_duration = ctx->duration_ms;
     //if (file_duration > MAX_DURATION_MIX_IN_MS) file_duration = MAX_DURATION_MIX_IN_MS;
     while (!ctx->abort) {
-        int cur_position = ctx->seek_time_ms + calculation_duration_ms(ctx->cur_size,
-            ctx->dst_bits_per_sample/8, ctx->dst_channels, ctx->dst_sample_rate);
+        int cur_position = ctx->seek_time_ms +
+            calculation_duration_ms(ctx->cur_size, ctx->dst_bits_per_sample/8,
+            ctx->dst_channels, ctx->dst_sample_rate);
         int progress = ((float)cur_position / file_duration) * 100;
         pthread_mutex_lock(&ctx->mutex);
         ctx->progress = progress;
