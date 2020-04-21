@@ -111,53 +111,24 @@ end:
     return ret;
 }
 
-static int init_timings_params(IAudioDecoder_Opaque *decoder,
-    int crop_start_time_ms, int crop_end_time_ms) {
-    int ret = -1;
-    if (!decoder || !decoder->reader) return -1;
+static void get_duration_l(IAudioDecoder_Opaque *decoder) {
+    if (!decoder || !decoder->reader)
+        return;
 
-    decoder->duration_ms =  calculation_duration_ms(decoder->file_size,
+    fseek(decoder->reader, 0, SEEK_END);
+    decoder->file_size = ftell(decoder->reader) - decoder->pcm_start_pos;
+    fseek(decoder->reader, decoder->pcm_start_pos, SEEK_SET);
+    decoder->duration_ms = calculation_duration_ms(decoder->file_size,
         decoder->bits_per_sample/8, decoder->src_nb_channels,
         decoder->src_sample_rate_in_Hz);
-
-    decoder->crop_start_time_in_ms = crop_start_time_ms < 0 ? 0 :
-        (crop_start_time_ms > decoder->duration_ms ? decoder->duration_ms : crop_start_time_ms);
-    decoder->crop_end_time_in_ms = crop_end_time_ms < 0 ? 0 :
-        (crop_end_time_ms > decoder->duration_ms ? decoder->duration_ms : crop_end_time_ms);
-
-    decoder->duration_ms = decoder->crop_end_time_in_ms - decoder->crop_start_time_in_ms;
-
-    decoder->crop_start_pos = calculate_location_bytes(
-        decoder->crop_start_time_in_ms, decoder->bits_per_sample,
-        decoder->src_sample_rate_in_Hz, decoder->src_nb_channels);
-
-    decoder->crop_end_pos = calculate_location_bytes(
-        decoder->crop_end_time_in_ms, decoder->bits_per_sample,
-        decoder->src_sample_rate_in_Hz, decoder->src_nb_channels);
-    LogInfo("%s crop_start_time %d crop_end_time %d duration %d.\n", __func__, decoder->crop_start_time_in_ms,
-        decoder->crop_end_time_in_ms, decoder->duration_ms);
-
-    decoder->duration_bytes = decoder->crop_end_pos - decoder->crop_start_pos;
-
-    ret = fseek(decoder->reader,
-        decoder->pcm_start_pos + decoder->crop_start_pos, SEEK_SET);
-
-    return ret;
+    decoder->duration_bytes = decoder->file_size;
 }
 
-static int init_decoder(IAudioDecoder_Opaque *decoder,
-        const char *file_addr, int src_sample_rate, int src_nb_channels,
-        int dst_sample_rate, int dst_nb_channels, float volume_flp) {
-    LogInfo("%s\n", __func__);
-    int ret = -1;
-    if (!decoder || !file_addr)
-        return ret;
-
-    char *tmp_file_addr = NULL;
-    if ((ret = CopyString(file_addr, &tmp_file_addr)) < 0) {
-        LogError("%s CopyString to tmp_file_addr failed\n", __func__);
-        goto end;
-    }
+static void init_decoder_params(IAudioDecoder_Opaque *decoder,
+    int src_sample_rate, int src_nb_channels,
+    int dst_sample_rate, int dst_nb_channels, float volume_flp) {
+    if (NULL == decoder)
+        return;
 
     PcmDecoder_free(decoder);
     decoder->cur_pos = 0;
@@ -174,7 +145,52 @@ static int init_decoder(IAudioDecoder_Opaque *decoder,
     decoder->dst_sample_rate_in_Hz = dst_sample_rate;
     decoder->dst_nb_channels = dst_nb_channels;
     decoder->volume_flp = volume_flp;
-    decoder->volume_fix = (short)(32767 * decoder->volume_flp);
+    decoder->volume_fix = (short)(32767 * volume_flp);
+}
+
+static void init_timings_params(IAudioDecoder_Opaque *decoder,
+    int crop_start_time_ms, int crop_end_time_ms) {
+    if (!decoder) return;
+
+    decoder->duration_ms =  calculation_duration_ms(decoder->file_size,
+        decoder->bits_per_sample/8, decoder->src_nb_channels,
+        decoder->src_sample_rate_in_Hz);
+
+    decoder->crop_start_time_in_ms = crop_start_time_ms < 0 ? 0 :
+        (crop_start_time_ms > decoder->duration_ms ? decoder->duration_ms : crop_start_time_ms);
+    decoder->crop_end_time_in_ms = crop_end_time_ms < 0 ? 0 :
+        (crop_end_time_ms > decoder->duration_ms ? decoder->duration_ms : crop_end_time_ms);
+    decoder->duration_ms = decoder->crop_end_time_in_ms - decoder->crop_start_time_in_ms;
+
+    decoder->crop_start_pos = calculate_location_bytes(
+        decoder->crop_start_time_in_ms, decoder->bits_per_sample,
+        decoder->src_sample_rate_in_Hz, decoder->src_nb_channels);
+    decoder->crop_end_pos = calculate_location_bytes(
+        decoder->crop_end_time_in_ms, decoder->bits_per_sample,
+        decoder->src_sample_rate_in_Hz, decoder->src_nb_channels);
+    decoder->duration_bytes = decoder->crop_end_pos - decoder->crop_start_pos;
+
+    LogInfo("%s crop_start_time %d crop_end_time %d duration %d.\n", __func__,
+        decoder->crop_start_time_in_ms, decoder->crop_end_time_in_ms,
+        decoder->duration_ms);
+}
+
+static int init_decoder(IAudioDecoder_Opaque *decoder,
+        const char *file_addr, int src_sample_rate, int src_nb_channels,
+        int dst_sample_rate, int dst_nb_channels, float volume_flp) {
+    LogInfo("%s\n", __func__);
+    int ret = -1;
+    if (!decoder || !file_addr)
+        return ret;
+
+    char *tmp_file_addr = NULL;
+    if ((ret = CopyString(file_addr, &tmp_file_addr)) < 0) {
+        LogError("%s CopyString to tmp_file_addr failed\n", __func__);
+        goto end;
+    }
+
+    init_decoder_params(decoder,src_sample_rate, src_nb_channels,
+        dst_sample_rate, dst_nb_channels, volume_flp);
 
     // Allocate buffer for audio fifo
     decoder->pcm_fifo = fifo_create(sizeof(short));
@@ -220,13 +236,7 @@ static int init_decoder(IAudioDecoder_Opaque *decoder,
 	goto end;
     }
 
-    fseek(decoder->reader, 0, SEEK_END);
-    decoder->file_size = ftell(decoder->reader) - decoder->pcm_start_pos;
-    fseek(decoder->reader, decoder->pcm_start_pos, SEEK_SET);
-    decoder->duration_ms = calculation_duration_ms(decoder->file_size,
-        decoder->bits_per_sample/8, decoder->src_nb_channels,
-        decoder->src_sample_rate_in_Hz);
-    decoder->duration_bytes = decoder->file_size;
+    get_duration_l(decoder);
 
     if (tmp_file_addr) {
         av_freep(&tmp_file_addr);
@@ -333,11 +343,15 @@ static int PcmDecoder_set_crop_pos(
     IAudioDecoder_Opaque *decoder, int crop_start_time_ms,
     int crop_end_time_ms) {
     LogInfo("%s\n", __func__);
-    if (!decoder)
-        return -1;
+    int ret = -1;
+    if (!decoder || !decoder->reader)
+        return ret;
 
-    int ret = init_timings_params(decoder,
-        crop_start_time_ms, crop_end_time_ms);
+    init_timings_params(decoder, crop_start_time_ms, crop_end_time_ms);
+
+    ret = fseek(decoder->reader,
+        decoder->pcm_start_pos + decoder->crop_start_pos, SEEK_SET);
+
     return ret < 0 ? ret : decoder->duration_ms;
 }
 
@@ -384,23 +398,4 @@ end:
         IAudioDecoder_freep(&decoder);
     }
     return NULL;
-}
-
-int get_pcm_file_duration_ms(const char *file_addr,
-    int bits_per_sample, int src_sample_rate_in_Hz, int src_nb_channels) {
-    int ret = -1;
-    if (!file_addr) return -1;
-
-    FILE *reader = NULL;
-    if ((ret = ae_open_file(&reader, file_addr, false)) < 0) {
-	LogError("%s open file_addr %s failed\n", __func__, file_addr);
-	goto end;
-    }
-
-    fseek(reader, 0, SEEK_END);
-    ret = calculation_duration_ms(ftell(reader),
-        bits_per_sample/8, src_nb_channels, src_sample_rate_in_Hz);
-end:
-    if (reader != NULL) fclose(reader);
-    return ret;
 }

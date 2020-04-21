@@ -318,10 +318,32 @@ static int get_duration_l(IAudioDecoder_Opaque *decoder) {
     return duration_ms;
 }
 
-static int init_timings_params(IAudioDecoder_Opaque *decoder,
+static void init_decoder_params(IAudioDecoder_Opaque *decoder,
+    int sample_rate, int channels, float volume_flp) {
+    if (NULL == decoder)
+        return;
+
+    FFmpegDecoder_free(decoder);
+    decoder->crop_start_time_in_ms = 0;
+    decoder->crop_end_time_in_ms = 0;
+    decoder->dst_sample_rate_in_Hz = sample_rate;
+    decoder->dst_nb_channels = channels;
+    decoder->dst_bits_per_sample = BITS_PER_SAMPLE_16;
+    decoder->max_nb_copy_samples = MAX_NB_SAMPLES;
+    decoder->max_dst_nb_samples = MAX_NB_SAMPLES;
+    decoder->dst_nb_samples = MAX_NB_SAMPLES;
+    decoder->audio_stream_index = -1;
+    decoder->seek_pos_ms = 0;
+    decoder->seek_req = false;
+    decoder->flush = false;
+    decoder->duration_ms = 0;
+    decoder->volume_flp = volume_flp;
+    decoder->volume_fix = (short)(32767 * volume_flp);
+}
+
+static void init_timings_params(IAudioDecoder_Opaque *decoder,
     int crop_start_time_ms, int crop_end_time_ms) {
-    int ret = -1;
-    if (!decoder || !decoder->fmt_ctx) return -1;
+    if (!decoder) return;
 
     decoder->duration_ms = get_duration_l(decoder);
     decoder->crop_start_time_in_ms = crop_start_time_ms < 0 ? 0 :
@@ -332,14 +354,6 @@ static int init_timings_params(IAudioDecoder_Opaque *decoder,
     decoder->duration_ms = decoder->crop_end_time_in_ms - decoder->crop_start_time_in_ms;
     LogInfo("%s crop_start_time %d crop_end_time %d duration %d.\n", __func__, decoder->crop_start_time_in_ms,
         decoder->crop_end_time_in_ms, decoder->duration_ms);
-
-    int64_t start_time = decoder->fmt_ctx->start_time;
-    start_time = (start_time != AV_NOPTS_VALUE ? start_time : 0);
-    int64_t start_pos = start_time + milliseconds_to_fftime(decoder->crop_start_time_in_ms);
-    ret = avformat_seek_file(decoder->fmt_ctx, -1, INT64_MIN, start_pos,
-        INT64_MAX, AVSEEK_FLAG_BACKWARD);
-
-    return ret;
 }
 
 static int init_decoder(IAudioDecoder_Opaque *decoder,
@@ -358,22 +372,7 @@ static int init_decoder(IAudioDecoder_Opaque *decoder,
     ret = CheckSampleRateAndChannels(sample_rate, channels);
     if (ret < 0) goto end;
 
-    FFmpegDecoder_free(decoder);
-    decoder->crop_start_time_in_ms = 0;
-    decoder->crop_end_time_in_ms = 0;
-    decoder->dst_sample_rate_in_Hz = sample_rate;
-    decoder->dst_nb_channels = channels;
-    decoder->dst_bits_per_sample = BITS_PER_SAMPLE_16;
-    decoder->max_nb_copy_samples = MAX_NB_SAMPLES;
-    decoder->max_dst_nb_samples = MAX_NB_SAMPLES;
-    decoder->dst_nb_samples = MAX_NB_SAMPLES;
-    decoder->audio_stream_index = -1;
-    decoder->seek_pos_ms = 0;
-    decoder->seek_req = false;
-    decoder->flush = false;
-    decoder->duration_ms = 0;
-    decoder->volume_flp = volume_flp;
-    decoder->volume_fix = (short)(32767 * decoder->volume_flp);
+    init_decoder_params(decoder, sample_rate, channels, volume_flp);
 
     // Allocate sample buffer for resampler
     ret = AllocateSampleBuffer(&(decoder->dst_data), channels,
@@ -517,11 +516,18 @@ static int FFmpegDecoder_set_crop_pos(
     IAudioDecoder_Opaque *decoder, int crop_start_time_ms,
     int crop_end_time_ms) {
     LogInfo("%s\n", __func__);
-    if (!decoder)
-        return -1;
+    int ret = -1;
+    if (!decoder || !decoder->fmt_ctx)
+        return ret;
 
-    int ret = init_timings_params(decoder,
-        crop_start_time_ms, crop_end_time_ms);
+    init_timings_params(decoder, crop_start_time_ms, crop_end_time_ms);
+
+    int64_t start_time = decoder->fmt_ctx->start_time;
+    start_time = (start_time != AV_NOPTS_VALUE ? start_time : 0);
+    int64_t start_pos = start_time + milliseconds_to_fftime(decoder->crop_start_time_in_ms);
+    ret = avformat_seek_file(decoder->fmt_ctx, -1, INT64_MIN, start_pos,
+        INT64_MAX, AVSEEK_FLAG_BACKWARD);
+
     return ret < 0 ? ret : decoder->duration_ms;
 }
 
@@ -562,32 +568,4 @@ end:
         IAudioDecoder_freep(&decoder);
     }
     return NULL;
-}
-
-int get_audio_file_duration_ms(const char *file_addr) {
-    int ret = -1;
-    if (!file_addr) return -1;
-
-    AVFormatContext *fmt_ctx = NULL;
-    ret = OpenInputMediaFile(&fmt_ctx, file_addr);
-    if (ret < 0) goto end;
-
-    int audio_stream_index = FindBestStream(fmt_ctx, AVMEDIA_TYPE_AUDIO);
-    ret = audio_stream_index;
-    if (ret < 0) goto end;
-
-    AVStream *audio_stream = fmt_ctx->streams[audio_stream_index];
-    if (audio_stream->duration != AV_NOPTS_VALUE) {
-        ret = av_rescale_q(audio_stream->duration,
-            audio_stream->time_base, AV_TIME_BASE_Q) / 1000;
-    } else {
-        ret = fftime_to_milliseconds(fmt_ctx->duration);
-    }
-
-end:
-    if (fmt_ctx != NULL) {
-        avformat_close_input(&fmt_ctx);
-        fmt_ctx = NULL;
-    }
-    return ret;
 }

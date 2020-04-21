@@ -503,8 +503,9 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
         buffer_len = MAX_NB_SAMPLES;
     }
 
-    int buffer_start_ms = ctx->seek_time_ms + calculation_duration_ms(ctx->cur_size,
-        ctx->bits_per_sample/8, ctx->dst_channels, ctx->dst_sample_rate);
+    int buffer_start_ms = ctx->seek_time_ms +
+        calculation_duration_ms(ctx->cur_size, ctx->bits_per_sample/8,
+        ctx->dst_channels, ctx->dst_sample_rate);
     /*if (buffer_start_ms > MAX_DURATION_MIX_IN_MS) {
         ret = PCM_FILE_EOF;
         goto end;
@@ -519,7 +520,8 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
         } else {
             // If the recording ends, but the mix does not end,
             // zeros are added at the end of the recording.
-            memset(ctx->middle_buffer[EffectsPcm], 0, buffer_len * sizeof(*ctx->middle_buffer[EffectsPcm]));
+            memset(ctx->middle_buffer[EffectsPcm], 0,
+                buffer_len * sizeof(*ctx->middle_buffer[EffectsPcm]));
             read_len = buffer_len;
         }
     }
@@ -531,7 +533,8 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
     } else if(ctx->pcm_channels == 2) {
         in_mixer_buffer = ctx->middle_buffer[EffectsPcm];
     }
-    int duration = calculation_duration_ms(read_len*sizeof(*ctx->middle_buffer[EffectsPcm]),
+    int duration = calculation_duration_ms(
+        read_len*sizeof(*ctx->middle_buffer[EffectsPcm]),
         ctx->bits_per_sample/8, ctx->dst_channels, ctx->dst_sample_rate);
     ctx->cur_size += (read_len * sizeof(*ctx->middle_buffer[EffectsPcm]));
 
