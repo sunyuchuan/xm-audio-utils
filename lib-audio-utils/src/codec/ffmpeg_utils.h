@@ -31,9 +31,9 @@ extern int FindFirstStream(AVFormatContext* fmt_ctx, enum AVMediaType type);
 
 extern int FindBestStream(AVFormatContext* fmt_ctx, enum AVMediaType type);
 #else
-extern int FindFirstStream(AVFormatContext* fmt_ctx, enum FF_AVMediaType type);
+extern int FindFirstStream(AVFormatContext* fmt_ctx, int type);
 
-extern int FindBestStream(AVFormatContext* fmt_ctx, enum FF_AVMediaType type);
+extern int FindBestStream(AVFormatContext* fmt_ctx, int type);
 #endif
 
 extern int AllocDecodeFrame(AVFrame** decode_frame);

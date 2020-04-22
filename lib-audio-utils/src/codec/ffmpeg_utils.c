@@ -127,7 +127,7 @@ end:
 #if defined(__ANDROID__) || defined (__linux__)
 int FindFirstStream(AVFormatContext* fmt_ctx, enum AVMediaType type) {
 #else
-int FindFirstStream(AVFormatContext* fmt_ctx, enum FF_AVMediaType type) {
+int FindFirstStream(AVFormatContext* fmt_ctx, int type) {
 #endif
     int stream_index = -1;
 
@@ -149,7 +149,7 @@ int FindFirstStream(AVFormatContext* fmt_ctx, enum FF_AVMediaType type) {
 #if defined(__ANDROID__) || defined (__linux__)
 int FindBestStream(AVFormatContext* fmt_ctx, enum AVMediaType type) {
 #else
-int FindBestStream(AVFormatContext* fmt_ctx, enum FF_AVMediaType type) {
+int FindBestStream(AVFormatContext* fmt_ctx, int type) {
 #endif
     int stream_index = -1;
 

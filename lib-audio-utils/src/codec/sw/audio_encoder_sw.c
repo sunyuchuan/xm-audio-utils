@@ -12,7 +12,7 @@ typedef struct Encoder_Opaque {
     AVCodecContext *codec_ctx;
     AVCodec *codec;
     int frame_byte_size;
-    FF_FFAVMediaType type;
+    FF_AVMediaType type;
     AVFrame *frame;
 } Encoder_Opaque;
 
