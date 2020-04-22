@@ -8,10 +8,10 @@
 
 typedef struct Encoder_Opaque Encoder_Opaque;
 typedef struct Encoder Encoder;
-typedef enum FF_FFAVMediaType FF_FFAVMediaType;
+typedef enum FF_AVMediaType FF_AVMediaType;
 
 //ugly ios
-enum FF_FFAVMediaType {
+enum FF_AVMediaType {
     FF_AVMEDIA_TYPE_UNKNOWN = -1,  ///< Usually treated as AVMEDIA_TYPE_DATA
     FF_AVMEDIA_TYPE_VIDEO,
     FF_AVMEDIA_TYPE_AUDIO,
