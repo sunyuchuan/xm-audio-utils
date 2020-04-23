@@ -79,7 +79,6 @@ XMAudioGenerator_release(JNIEnv *env, jobject thiz)
         goto LABEL_RETURN;
     }
 
-    xm_audio_generator_freep(&ctx);
     jni_set_xm_audio_generator(env, thiz, NULL);
 LABEL_RETURN:
     xmag_dec_ref_p(&ctx);

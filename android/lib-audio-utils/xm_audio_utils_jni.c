@@ -77,7 +77,6 @@ XMAudioUtils_release(JNIEnv *env, jobject thiz)
         goto LABEL_RETURN;
     }
 
-    xm_audio_utils_freep(&ctx);
     jni_set_xm_audio_utils(env, thiz, NULL);
 LABEL_RETURN:
     xmau_dec_ref_p(&ctx);
