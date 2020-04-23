@@ -308,12 +308,7 @@ static int add_effects(XmEffectContext *ctx, short *buffer, int buffer_len) {
             break;
         }
     }
-
-    if (!find_valid_effect) {
-        ret = fifo_write(ctx->audio_fifo, buffer, buffer_len);
-        if (ret < 0) return ret;
-        return buffer_len;
-    }
+    if (!find_valid_effect) return buffer_len;
 
     int receive_len = 0;
     for (int i = 0; i < MAX_NB_EFFECTS; ++i) {

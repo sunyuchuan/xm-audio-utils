@@ -4,5 +4,6 @@
     "editor.wordWrap": "bounded",
     "files.exclude": {
         "xmly*": true
-    }
+    },
+    "workbench.editor.enablePreview": false
 }
