@@ -333,7 +333,7 @@ static int PcmDecoder_seekTo(IAudioDecoder_Opaque *decoder,
     decoder->seek_pos_bytes = calculate_location_bytes(decoder->seek_pos_ms,
         decoder->bits_per_sample, decoder->src_sample_rate_in_Hz,
         decoder->src_nb_channels);
-    LogInfo("%s fseek offset 0x%x.\n", __func__,
+    LogInfo("%s fseek offset %"PRId64".\n", __func__,
         decoder->seek_pos_bytes + decoder->pcm_start_pos + decoder->crop_start_pos);
     return fseek(decoder->reader,
         decoder->seek_pos_bytes + decoder->pcm_start_pos + decoder->crop_start_pos, SEEK_SET);
