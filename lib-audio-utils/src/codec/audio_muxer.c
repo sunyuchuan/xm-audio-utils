@@ -2,9 +2,14 @@
 #include "log.h"
 #include "error_def.h"
 #include "sw/audio_encoder_sw.h"
+#if defined(__APPLE__)
+#endif
 
 #define MONO_BIT_RATE 64000
 #define STEREO_BIT_RATE 128000
+#define AUDIO_FIFO_MAX_SIZE_IN_FRAME 10
+
+static int read_encode_and_save(AudioMuxer *am);
 
 static void release(AudioMuxer *am) {
     LogInfo("%s.\n", __func__);
@@ -54,6 +59,83 @@ static void release(AudioMuxer *am) {
     memset(&(am->config), 0, sizeof(MuxerConfig));
 }
 
+static int fifo_size(AudioMuxer *am)
+{
+    int ret = -1;
+    if(!am || !am->encode_fifo)
+        return ret;
+
+    pthread_mutex_lock(&am->mutex);
+    ret = av_audio_fifo_size(am->encode_fifo);
+    pthread_mutex_unlock(&am->mutex);
+    return ret;
+}
+
+static int fifo_put(AudioMuxer *am, int nb_samples, void** buffer)
+{
+    int ret = -1;
+    if(!am || !am->encode_fifo
+        || !buffer || !(*buffer) || nb_samples < 0)
+        return ret;
+
+    pthread_mutex_lock(&am->mutex);
+    ret = AudioFifoPut(am->encode_fifo, nb_samples, buffer);
+    pthread_mutex_unlock(&am->mutex);
+    return ret;
+}
+
+static int fifo_get(AudioMuxer *am, int nb_samples, void** buffer)
+{
+    int ret = -1;
+    if(!am || !am->encode_fifo
+        || !buffer || !(*buffer) || nb_samples < 0)
+        return ret;
+
+    pthread_mutex_lock(&am->mutex);
+    ret = AudioFifoGet(am->encode_fifo, nb_samples, buffer);
+    pthread_mutex_unlock(&am->mutex);
+    return ret;
+}
+
+static void notify(AudioMuxer *am)
+{
+    if(!am)
+        return;
+
+    pthread_mutex_lock(&am->mutex);
+    pthread_cond_signal(&am->condition);
+    pthread_mutex_unlock(&am->mutex);
+}
+
+static void wait_on_notify(AudioMuxer *am)
+{
+    if(!am)
+        return;
+
+    pthread_mutex_lock(&am->mutex);
+    pthread_cond_wait(&am->condition, &am->mutex);
+    pthread_mutex_unlock(&am->mutex);
+}
+
+static void thread_abort(AudioMuxer *am)
+{
+    if(!am)
+        return;
+
+    pthread_mutex_lock(&am->mutex);
+    am->abort = true;
+    pthread_cond_signal(&am->condition);
+    pthread_mutex_unlock(&am->mutex);
+}
+
+static void thread_join(AudioMuxer *am)
+{
+    if(!am || !am->running)
+        return;
+
+    SDL_WaitThread(am->mux_thread, NULL);
+}
+
 static int write_audio_packet(AudioMuxer *am, AVPacket *pkt)
 {
     int ret = 0;
@@ -76,6 +158,16 @@ static bool encoder_flush(AudioMuxer *am)
     int ret = 0;
     int got_packet = 0;
     int i = 0;
+
+    while (fifo_size(am) > 0) {
+        if ((ret = read_encode_and_save(am)) < 0)
+        {
+            LogError("%s read_encode_and_save error, ret = %d.\n",
+                __func__, ret);
+            ret = -1;
+            goto end;
+        }
+    }
 
     for (got_packet = 1; got_packet; i++)
     {
@@ -139,15 +231,13 @@ static int read_encode_and_save(AudioMuxer *am) {
         return kNullPointError;
     int ret = 0;
 
-    ret = AudioFifoGet(am->encode_fifo, am->frame_size,
-                (void**)(am->audio_frame->data));
+    ret = fifo_get(am, am->frame_size, (void**)(am->audio_frame->data));
     if (ret < 0) {
         LogError("%s AudioFifoGet failed.\n", __func__);
         goto end;
     }
 
     ret = encode_and_save(am, am->audio_frame);
-
 end:
     return ret < 0 ? ret : 0;
 }
@@ -196,19 +286,20 @@ static int add_samples_to_encode_fifo(AudioMuxer *am,
             goto end;
         }
 
-        ret = AudioFifoPut(am->encode_fifo, ret, (void **)am->dst_data);
+        ret = fifo_put(am, ret, (void **)am->dst_data);
         if (ret < 0) {
             LogError("%s swr_ctx: AudioFifoPut failed.\n", __func__);
             goto end;
         }
     } else {
-        ret = AudioFifoPut(am->encode_fifo, src_nb_samples, (void **)src_data);
+        ret = fifo_put(am, src_nb_samples, (void **)src_data);
         if (ret < 0) {
             LogError("%s AudioFifoPut failed.\n", __func__);
             goto end;
         }
     }
 
+    notify(am);
 end:
     return ret;
 }
@@ -325,6 +416,30 @@ end:
     return ret;
 }
 
+static int write_frame(AudioMuxer *am) {
+    int ret = -1;
+    if (!am || !am->encode_fifo || !am->enc_ctx) {
+        LogError("%s kNullPointError.\n", __func__);
+        return kNullPointError;
+    }
+
+    while (!am->abort) {
+        if (fifo_size(am) >= am->frame_size) {
+            ret = read_encode_and_save(am);
+            if (ret < 0) {
+                LogError("%s read_encode_and_save failed.\n", __func__);
+                goto end;
+            }
+        } else {
+            notify(am);
+            wait_on_notify(am);
+        }
+    }
+
+end:
+    return ret;
+}
+
 static int write_output_file_header(AVFormatContext *ofmt_ctx) {
     int ret = 0;
 
@@ -414,44 +529,38 @@ end:
     return ret;
 }
 
-void muxer_free(AudioMuxer *am)
+static int thread_startup(void *arg)
 {
-    LogInfo("%s.\n", __func__);
-    if (!am)
-        return;
-
-    release(am);
-    pthread_mutex_destroy(&am->mutex);
-}
-
-void muxer_freep(AudioMuxer **am)
-{
-    LogInfo("%s.\n", __func__);
-    if (!am || !*am)
-        return;
-
-    muxer_free(*am);
-    free(*am);
-    *am = NULL;
-}
-
-int muxer_stop(AudioMuxer *am)
-{
-    LogInfo("%s.\n", __func__);
-    if (!am)
+    LogInfo("mux thread start up.\n");
+    if (!arg) {
+        LogError("%s arg is NULL.\n", __func__);
         return kNullPointError;
+    }
+
+#if defined(__ANDROID__)
+    JNIEnv *env = NULL;
+    if (JNI_OK != SDL_JNI_SetupThreadEnv(&env)) {
+        LogError("%s SetupThreadEnv failed.\n", __func__);
+        return -1;
+    }
+#endif
+
+    SDL_SetThreadPriority(SDL_THREAD_PRIORITY_HIGH);
 
     int ret = -1;
-    while (av_audio_fifo_size(am->encode_fifo) > 0) {
-        if ((ret = read_encode_and_save(am)) < 0)
-        {
-            LogError("%s read_encode_and_save error, ret = %d.\n", __func__, ret);
-            goto end;
-        }
+    AudioMuxer *am = (AudioMuxer *)arg;
+    pthread_mutex_lock(&am->mutex);
+    am->abort = false;
+    am->running = true;
+    pthread_mutex_unlock(&am->mutex);
+
+    if((ret = write_frame(am)) < 0) {
+        LogError("%s write_frame failed.\n", __func__);
+        goto end;
     }
 
     if(!encoder_flush(am)) {
-        LogInfo("%s encoder_flush complete.\n", __func__);
+        LogWarning("%s encoder_flush failed.\n", __func__);
     }
 
     if((ret = av_write_trailer(am->ofmt_ctx)) < 0)
@@ -469,7 +578,51 @@ end:
         avio_closep(&(am->ofmt_ctx->pb));
     avformat_free_context(am->ofmt_ctx);
     am->ofmt_ctx = NULL;
+
+    pthread_mutex_lock(&am->mutex);
+    am->running = false;
+    pthread_mutex_unlock(&am->mutex);
+    LogInfo("mux thread exit.\n");
     return ret;
+}
+
+static int start_async(AudioMuxer *am) {
+    if (!am) {
+        LogError("%s kNullPointError.\n", __func__);
+        return kNullPointError;
+    }
+
+    am->mux_thread = SDL_CreateThreadEx(&am->_mux_thread, thread_startup,
+        am, "audio muxer thread");
+    if (!am->mux_thread) {
+        LogError("%s mux_thread SDL_CreateThread() failed\n", __func__);
+        return -1;
+    }
+
+    return 0;
+}
+
+void muxer_free(AudioMuxer *am)
+{
+    LogInfo("%s.\n", __func__);
+    if (!am)
+        return;
+
+    release(am);
+    pthread_mutex_destroy(&am->mutex);
+    pthread_cond_destroy(&am->condition);
+}
+
+void muxer_freep(AudioMuxer **am)
+{
+    LogInfo("%s.\n", __func__);
+    if (!am || !*am)
+        return;
+
+    muxer_stop(*am);
+    muxer_free(*am);
+    free(*am);
+    *am = NULL;
 }
 
 int muxer_write_audio_frame(AudioMuxer *am, const short *buffer,
@@ -477,6 +630,11 @@ int muxer_write_audio_frame(AudioMuxer *am, const short *buffer,
     if (!am || !am->copy_buffer || !am->encode_fifo || !am->enc_ctx) {
         LogError("%s kNullPointError.\n", __func__);
         return kNullPointError;
+    }
+
+    if (fifo_size(am) >= AUDIO_FIFO_MAX_SIZE_IN_FRAME * am->frame_size) {
+        notify(am);
+        wait_on_notify(am);
     }
 
     int ret = copy_audio_buffer(am, buffer, buffer_size_in_short);
@@ -492,16 +650,18 @@ int muxer_write_audio_frame(AudioMuxer *am, const short *buffer,
         goto end;
     }
 
-    while (av_audio_fifo_size(am->encode_fifo) >= am->frame_size) {
-        ret = read_encode_and_save(am);
-        if (ret < 0) {
-            LogError("%s read_encode_and_save failed.\n", __func__);
-            goto end;
-        }
-    }
-
 end:
     return ret;
+}
+
+void muxer_stop(AudioMuxer *am)
+{
+    if(!am)
+        return;
+
+    thread_abort(am);
+    thread_join(am);
+    LogInfo("%s end.\n", __func__);
 }
 
 AudioMuxer *muxer_create(MuxerConfig *config)
@@ -516,7 +676,9 @@ AudioMuxer *muxer_create(MuxerConfig *config)
         LogError("%s Could not allocate AudioMuxer.\n", __func__);
         goto end;
     }
+
     pthread_mutex_init(&muxer->mutex, NULL);
+    pthread_cond_init(&muxer->condition, NULL);
 
     if ((ret = init_encoder_muxer(muxer, config)) < 0) {
         LogError("%s init muxer failed.\n", __func__);
@@ -525,6 +687,11 @@ AudioMuxer *muxer_create(MuxerConfig *config)
 
     if ((ret = write_output_file_header(muxer->ofmt_ctx)) < 0) {
         LogError("%s write_output_file_header failed.\n", __func__);
+        goto end;
+    }
+
+    if ((ret = start_async(muxer)) < 0) {
+        LogError("%s start_async failed.\n", __func__);
         goto end;
     }
 
