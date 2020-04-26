@@ -87,10 +87,15 @@ src/codec/mediacodec/ijksdl/ijksdl_codec_android_mediaformat.c
 src/codec/mediacodec/ijksdl/ijksdl_codec_android_mediaformat_java.c
 src/codec/mediacodec/ijksdl/ijksdl_mutex.c
 src/codec/mediacodec/ijksdl/ijksdl_timer.c
+src/codec/mediacodec/ijksdl/ijksdl_thread.c
 src/codec/mediacodec/audio_encoder_mediacodec.c
 )
-else()
+elseif(IOS)
 SET(MEDIACODEC )
+else()
+SET(MEDIACODEC
+src/codec/mediacodec/ijksdl/ijksdl_thread.c
+)
 endif()
 
 add_library(${PROJECT_NAME}
@@ -157,7 +162,7 @@ src/xm_audio_generator.c
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Android")
 elseif(IOS)
 else()
-    target_link_libraries(${PROJECT_NAME} m pthread avformat avcodec avutil swresample)
+    target_link_libraries(${PROJECT_NAME} m pthread avformat avcodec avutil swresample bsd)
 endif()
 
 # set prefix as global var
