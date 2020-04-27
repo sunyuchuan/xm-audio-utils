@@ -12,6 +12,7 @@
 typedef struct XmEffectContext {
     volatile bool abort;
     volatile bool flush;
+    volatile bool is_zero;
     int ae_status;
     int progress;
     // output pcm sample rate and number channels

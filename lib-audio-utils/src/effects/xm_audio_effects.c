@@ -292,7 +292,7 @@ end:
 
 static int add_effects(XmEffectContext *ctx, short *buffer, int buffer_len) {
     int ret = -1;
-    if (!ctx || !buffer) return -1;
+    if (!ctx || !buffer || buffer_len <= 0) return -1;
 
     VoiceEffects *voice_effects = &ctx->voice_effects;
     bool find_valid_effect = false;
@@ -378,10 +378,12 @@ static int read_pcm_frame(XmEffectContext *ctx, short *buffer) {
     record_end_time = ctx->voice_effects.record->end_time_ms;
 
     int read_len = 0;
+    ctx->is_zero = false;
     if (cur_position < record_start_time) {
         // zeros are added at the start or end of the recording.
         memset(buffer, 0, MAX_NB_SAMPLES * sizeof(*buffer));
         read_len = MAX_NB_SAMPLES;
+        ctx->is_zero = true;
     } else if (cur_position >= record_start_time
         && cur_position < record_end_time) {
         read_len = IAudioDecoder_get_pcm_frame(record_decoder,
@@ -393,6 +395,7 @@ static int read_pcm_frame(XmEffectContext *ctx, short *buffer) {
                 // zeros are added at the end of the recording.
                 memset(buffer, 0, MAX_NB_SAMPLES * sizeof(*buffer));
                 read_len = MAX_NB_SAMPLES;
+                ctx->is_zero = true;
             } else {
                 LogError("%s IAudioDecoder_get_pcm_frame failed\n", __func__);
                 ret = read_len;
@@ -405,6 +408,7 @@ static int read_pcm_frame(XmEffectContext *ctx, short *buffer) {
         // zeros are added at the start or end of the recording.
         memset(buffer, 0, MAX_NB_SAMPLES * sizeof(*buffer));
         read_len = MAX_NB_SAMPLES;
+        ctx->is_zero = true;
     }
     ctx->cur_size += (read_len * sizeof(*buffer));
 
@@ -422,7 +426,8 @@ static int add_effects_and_write_fifo(XmEffectContext *ctx) {
         return ret;
     }
 
-    if ((ret = add_effects(ctx, ctx->buffer, ret)) < 0) {
+    if (!ctx->is_zero
+        && (ret = add_effects(ctx, ctx->buffer, ret)) < 0) {
         LogError("%s add_effects failed.\n", __func__);
         return ret;
     }
