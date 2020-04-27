@@ -354,7 +354,7 @@ static int read_pcm_frame(XmEffectContext *ctx, short *buffer) {
     }
 
     int record_start_time = 0;
-    int record_duration = 0;
+    int record_end_time = 0;
     IAudioDecoder *record_decoder = NULL;
     if ((!ctx->voice_effects.record->decoder) &&
             (AudioRecordSourceQueue_size(ctx->voice_effects.recordQueue) > 0)) {
@@ -375,7 +375,7 @@ static int read_pcm_frame(XmEffectContext *ctx, short *buffer) {
 
     record_start_time = ctx->voice_effects.record->start_time_ms;
     record_decoder = ctx->voice_effects.record->decoder;
-    if (record_decoder) record_duration = record_decoder->duration_ms;
+    record_end_time = ctx->voice_effects.record->end_time_ms;
 
     int read_len = 0;
     if (cur_position < record_start_time) {
@@ -383,7 +383,7 @@ static int read_pcm_frame(XmEffectContext *ctx, short *buffer) {
         memset(buffer, 0, MAX_NB_SAMPLES * sizeof(*buffer));
         read_len = MAX_NB_SAMPLES;
     } else if (cur_position >= record_start_time
-        && cur_position < record_start_time + record_duration) {
+        && cur_position < record_end_time) {
         read_len = IAudioDecoder_get_pcm_frame(record_decoder,
             buffer, MAX_NB_SAMPLES, false);
         if (read_len < 0) {
