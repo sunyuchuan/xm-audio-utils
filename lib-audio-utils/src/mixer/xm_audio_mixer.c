@@ -336,6 +336,7 @@ static void mixer_abort_l(XmMixerContext *ctx)
     if(!ctx)
         return;
 
+    muxer_stop(ctx->muxer);
     xm_audio_effect_stop(ctx->effects_ctx);
 
     pthread_mutex_lock(&ctx->mutex);
