@@ -7,7 +7,7 @@
 
 #define BITS_PER_SAMPLE_16 16
 #define BITS_PER_SAMPLE_8 8
-#define PCM_FILE_EOF -1000
+#define PCM_FILE_EOF -7000
 
 #define FLOAT_EPS 1e-6
 #define DOUBLE_EPS 1e-15

@@ -44,6 +44,8 @@ public class XmAudioUtils {
     private static boolean mIsLibLoaded = false;
     //本地XmAudioUtils对象实例
     private long mNativeXmAudioUtils = 0;
+    // 文件结束标志
+    public static final int END_OF_FILE = -7000;
 
     /**
      * 取出双声道中的某一个声道值，把pcm数据从双声道变成单声道
