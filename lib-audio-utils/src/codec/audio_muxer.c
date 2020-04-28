@@ -632,7 +632,9 @@ void muxer_freep(AudioMuxer **am)
 
 int muxer_write_audio_frame(AudioMuxer *am, const short *buffer,
         int buffer_size_in_short) {
-    if (!am || !am->copy_buffer || !am->encode_fifo || !am->enc_ctx) {
+    if (!am || am->abort) return 0;
+
+    if (!am->copy_buffer || !am->encode_fifo || !am->enc_ctx) {
         LogError("%s kNullPointError.\n", __func__);
         return kNullPointError;
     }
