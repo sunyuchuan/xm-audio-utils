@@ -31,7 +31,7 @@
 #define kNoDemuxer AVERROR_DEMUXER_NOT_FOUND
 #define kNoAudioStrem AVERROR_STREAM_NOT_FOUND
 #define kDecoderNotFound AVERROR_DECODER_NOT_FOUND
-#define kEndOfFile AVERROR_EOF
+#define kEndOfFile -7000
 #define kUnknowError AVERROR_UNKNOWN
 #define kLogErrorInvalidData AVERROR_INVALIDDATA
 
