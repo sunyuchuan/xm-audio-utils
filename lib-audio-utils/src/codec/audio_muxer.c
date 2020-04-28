@@ -100,6 +100,18 @@ static int fifo_get(AudioMuxer *am, int nb_samples, void** buffer)
     return ret;
 }
 
+static bool is_abort(AudioMuxer *am)
+{
+    if(!am)
+        return true;
+
+    bool ret = false;
+    pthread_mutex_lock(&am->mutex);
+    ret = am->abort;
+    pthread_mutex_unlock(&am->mutex);
+    return ret;
+}
+
 static void notify(AudioMuxer *am)
 {
     if(!am)
@@ -116,7 +128,9 @@ static void wait_on_notify(AudioMuxer *am)
         return;
 
     pthread_mutex_lock(&am->mutex);
-    pthread_cond_wait(&am->condition, &am->mutex);
+    if (!am->abort) {
+        pthread_cond_wait(&am->condition, &am->mutex);
+    }
     pthread_mutex_unlock(&am->mutex);
 }
 
@@ -431,7 +445,7 @@ static int write_frame(AudioMuxer *am) {
         return kNullPointError;
     }
 
-    while (!am->abort) {
+    while (!is_abort(am)) {
         if (fifo_size(am) >= am->frame_size) {
             ret = read_encode_and_save(am);
             if (ret < 0) {
@@ -639,7 +653,7 @@ void muxer_freep(AudioMuxer **am)
 
 int muxer_write_audio_frame(AudioMuxer *am, const short *buffer,
         int buffer_size_in_short) {
-    if (!am || am->abort) return 0;
+    if (!am || is_abort(am)) return 0;
 
     if (!am->copy_buffer || !am->encode_fifo || !am->enc_ctx) {
         LogError("%s kNullPointError.\n", __func__);
