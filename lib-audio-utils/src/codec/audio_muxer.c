@@ -430,8 +430,13 @@ static int write_frame(AudioMuxer *am) {
                 LogError("%s read_encode_and_save failed.\n", __func__);
                 goto end;
             }
-        } else {
+        }
+
+        if (fifo_size(am) < AUDIO_FIFO_MAX_SIZE_IN_FRAME * am->frame_size) {
             notify(am);
+        }
+
+        if (fifo_size(am) < am->frame_size) {
             wait_on_notify(am);
         }
     }
@@ -632,11 +637,6 @@ int muxer_write_audio_frame(AudioMuxer *am, const short *buffer,
         return kNullPointError;
     }
 
-    if (fifo_size(am) >= AUDIO_FIFO_MAX_SIZE_IN_FRAME * am->frame_size) {
-        notify(am);
-        wait_on_notify(am);
-    }
-
     int ret = copy_audio_buffer(am, buffer, buffer_size_in_short);
     if (ret < 0) {
         LogError("%s copy_audio_buffer failed.\n", __func__);
@@ -648,6 +648,10 @@ int muxer_write_audio_frame(AudioMuxer *am, const short *buffer,
     if (ret < 0) {
         LogError("%s add_samples_to_encode_fifo failed.\n", __func__);
         goto end;
+    }
+
+    if (fifo_size(am) >= AUDIO_FIFO_MAX_SIZE_IN_FRAME * am->frame_size) {
+        wait_on_notify(am);
     }
 
 end:
