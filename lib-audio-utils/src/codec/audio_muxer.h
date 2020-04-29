@@ -4,7 +4,7 @@
 #include <pthread.h>
 #include "ffmpeg_utils.h"
 #include "audio_encoder.h"
-#include "mediacodec/ijksdl/ijksdl_thread.h"
+#include "hw/ijksdl/ijksdl_thread.h"
 
 typedef struct AudioMuxer
 {

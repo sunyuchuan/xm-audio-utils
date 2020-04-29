@@ -30,6 +30,8 @@
 #ifdef __ANDROID__
 #include "ijksdl_inc_internal.h"
 #include "xm_android_jni.h"
+#elif __APPLE__
+#include <strings.h>
 #else
 #include <bsd/string.h>
 #endif
@@ -41,6 +43,9 @@ static void *SDL_RunThread(void *data)
     SDL_Thread *thread = data;
 #ifdef __ANDROID__
     LogDebug("SDL_RunThread: [%d] %s\n", (int)gettid(), thread->name);
+#elif __APPLE__
+    pthread_t tid = pthread_self();
+    LogDebug("SDL_RunThread: [%d] %s\n", (int)tid, thread->name);
 #endif
     //pthread_setname_np(pthread_self(), thread->name);
     prctl(PR_SET_NAME, thread->name);

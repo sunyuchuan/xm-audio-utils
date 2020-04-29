@@ -92,11 +92,12 @@ src/codec/mediacodec/audio_encoder_mediacodec.c
 )
 elseif(IOS)
 SET(MEDIACODEC
-src/codec/mediacodec/ijksdl/ijksdl_thread.c
+src/codec/hw/ijksdl/ijksdl_thread.c
+src/codec/hw/audio_encoder_ios_hw.m
 )
 else()
 SET(MEDIACODEC
-src/codec/mediacodec/ijksdl/ijksdl_thread.c
+src/codec/hw/ijksdl/ijksdl_thread.c
 )
 endif()
 

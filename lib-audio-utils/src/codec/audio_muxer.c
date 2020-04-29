@@ -3,6 +3,7 @@
 #include "error_def.h"
 #include "sw/audio_encoder_sw.h"
 #if defined(__APPLE__)
+#include "hw/audio_encoder_ios_hw.h"
 #endif
 
 #define MONO_BIT_RATE 64000
@@ -353,6 +354,15 @@ static int create_audio_encoder(AudioMuxer *am) {
             ret = -1;
             goto end;
         }
+#if defined(__APPLE__)
+    } if (am->config.encoder_type == ENCODER_HW) {
+        am->audio_encoder = ff_encoder_ios_hw_create();
+        if (NULL == am->audio_encoder) {
+            LogError("%s ff_encoder_ios_hw_create failed.\n", __func__);
+            ret = -1;
+            goto end;
+        }
+#endif
     } else {
         LogError("%s unsupport encoder_type %d.\n", __func__, am->config.encoder_type);
         ret = -1;
