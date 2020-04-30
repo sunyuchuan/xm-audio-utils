@@ -15,7 +15,7 @@
 #define AEERROR_EXTERNAL -6000
 
 #if defined(__ANDROID__) || defined (__linux__)
-#include <libavutil/error.h>
+#include "libavutil/error.h"
 
 #define kSampleRateNotSupport -1000
 #define kChannelsNotSupport -1001
