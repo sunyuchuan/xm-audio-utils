@@ -93,6 +93,7 @@ src/codec/mediacodec/audio_encoder_mediacodec.c
 elseif(IOS)
 SET(MEDIACODEC
 src/codec/hw/ijksdl/ijksdl_thread.c
+src/codec/hw/ijksdl/ijksdl_thread_ios.m
 src/codec/hw/audio_encoder_ios_hw.m
 )
 else()
@@ -165,7 +166,7 @@ src/xm_audio_generator.c
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Android")
 elseif(IOS)
 else()
-    target_link_libraries(${PROJECT_NAME} m pthread avformat avcodec avutil swresample bsd)
+    target_link_libraries(${PROJECT_NAME} m pthread avformat avcodec avutil swresample)
 endif()
 
 # set prefix as global var

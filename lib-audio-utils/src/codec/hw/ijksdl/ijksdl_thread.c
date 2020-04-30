@@ -24,16 +24,17 @@
 #include <errno.h>
 #include <assert.h>
 #include <unistd.h>
-#include <sys/prctl.h>
 #include "ijksdl_thread.h"
 #include "log.h"
 #ifdef __ANDROID__
 #include "ijksdl_inc_internal.h"
 #include "xm_android_jni.h"
+#include <sys/prctl.h>
 #elif __APPLE__
 #include <strings.h>
 #else
-#include <bsd/string.h>
+#include <sys/prctl.h>
+#include <string.h>
 #endif
 
 #if !defined(__APPLE__)
@@ -60,7 +61,12 @@ SDL_Thread *SDL_CreateThreadEx(SDL_Thread *thread, int (*fn)(void *), void *data
 {
     thread->func = fn;
     thread->data = data;
-    strlcpy(thread->name, name, sizeof(thread->name) - 1);
+    int size_len = strlen(name);
+    if (size_len > (int)sizeof(thread->name) - 1) {
+        size_len = sizeof(thread->name) - 1;
+    }
+    strncpy(thread->name, name, size_len);
+    thread->name[size_len] = '\0';
     int retval = pthread_create(&thread->id, NULL, SDL_RunThread, thread);
     if (retval)
         return NULL;

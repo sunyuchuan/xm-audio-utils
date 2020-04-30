@@ -11,6 +11,7 @@
 #include "libavutil/imgutils.h"
 #include "libavcodec/avcodec.h"
 
+#include <strings.h>
 #include <pthread.h>
 #import <VideoToolbox/VideoToolbox.h>
 #import <AudioToolbox/AudioToolbox.h>
@@ -44,7 +45,7 @@ typedef struct Encoder_Opaque {
     int               flush_encoder;
     ATContext         *at_ctx;
     VTContext         *vt_ctx;
-    FF_MediaType    type;
+    FF_AVMediaType    type;
 } Encoder_Opaque;
 
 #pragma mark -- AudioCallBack
