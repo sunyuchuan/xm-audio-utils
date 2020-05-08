@@ -3,7 +3,7 @@
 #include <stddef.h>
 #include <stdio.h>
 
-#ifdef __linux__
+#if defined(__linux__) || defined(_EMSCRIPTEN_)
 #define HAVE_STRCASECMP 1
 #endif
 

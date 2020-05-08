@@ -418,7 +418,7 @@ static int read_pcm_frame(XmEffectContext *ctx, short *buffer) {
 
 static int add_effects_and_write_fifo(XmEffectContext *ctx) {
     int ret = -1;
-    if (!ctx || !ctx->buffer || !ctx->audio_fifo) return -1;
+    if (!ctx || !ctx->audio_fifo) return -1;
 
     if ((ret = read_pcm_frame(ctx, ctx->buffer)) < 0) {
         if (ret != PCM_FILE_EOF)

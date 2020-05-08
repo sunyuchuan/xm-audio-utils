@@ -1,6 +1,7 @@
 #ifndef XM_WAV_UTILS_H
 #define XM_WAV_UTILS_H
 #include <stdbool.h>
+#include "em_macro_def.h"
 
 /**
  * @brief concat wav file
@@ -10,7 +11,7 @@
  * @param out_wav_path output wav file path
  * @return false means failure, true means success.
  */
-bool xm_wav_utils_concat(char * const *in_wav_path,
+EM_PORT_API(bool) xm_wav_utils_concat(char * const *in_wav_path,
     int nb_in_wav, const char *out_wav_path);
 
 /**
@@ -22,7 +23,7 @@ bool xm_wav_utils_concat(char * const *in_wav_path,
  * @param out_wav_path output wav file path
  * @return false means failure, true means success.
  */
-bool xm_wav_utils_crop(const char *in_wav_path,
+EM_PORT_API(bool) xm_wav_utils_crop(const char *in_wav_path,
     long crop_start_ms, long crop_end_ms, const char *out_wav_path);
 
 /**
@@ -31,6 +32,6 @@ bool xm_wav_utils_crop(const char *in_wav_path,
  * @param in_wav_path Input wav file path
  * @return duration in ms
  */
-long xm_wav_utils_get_duration(const char *in_wav_path);
+EM_PORT_API(long) xm_wav_utils_get_duration(const char *in_wav_path);
 
 #endif // XM_WAV_UTILS_H

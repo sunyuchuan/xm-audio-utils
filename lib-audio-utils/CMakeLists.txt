@@ -59,8 +59,12 @@ else()
 endif()
     include_directories(${FFmpeg_INCLUDE_DIRS})
     include_directories(${PROJECT_SOURCE_DIR}/src/codec/mediacodec)
-elseif(IOS)
+elseif(${CMAKE_SYSTEM_NAME} STREQUAL "IOS")
     set(FFmpeg_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/../prebuilt/ios/include)
+    include_directories(${FFmpeg_INCLUDE_DIRS})
+elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
+    add_definitions(-D_EMSCRIPTEN_)
+    set(FFmpeg_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/../ffmpeg-3.4.7/build/include)
     include_directories(${FFmpeg_INCLUDE_DIRS})
 else()
     # include system lib
@@ -105,12 +109,12 @@ src/codec/idecoder.c
 src/codec/audio_decoder_factory.c
 src/codec/duration_parser.c
 
-src/tools/avstring.c
+# src/tools/avstring.c
 src/tools/conversion.c
 src/tools/dict.c
 src/tools/fifo.c
 src/tools/log.c
-#src/tools/mem.c
+# src/tools/mem.c
 src/tools/sdl_mutex.c
 src/tools/util.c
 
@@ -148,14 +152,15 @@ src/source/audio_record_source_queue.c
 
 src/wave/wav_dec.c
 
-src/xm_wav_utils.c
-src/xm_duration_parser.c
-src/xm_audio_utils.c
-src/xm_audio_generator.c
+# src/xm_wav_utils.c
+# src/xm_duration_parser.c
+# src/xm_audio_utils.c
+# src/xm_audio_generator.c
 )
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Android")
-elseif(IOS)
+elseif(${CMAKE_SYSTEM_NAME} STREQUAL "IOS")
+elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
 else()
     target_link_libraries(${PROJECT_NAME} m pthread avformat avcodec avutil swresample)
 endif()
@@ -175,6 +180,6 @@ target_include_directories(${PROJECT_NAME}
                            PRIVATE src
                            PUBLIC include)
 
-if(ENABLE_TESTING AND NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Android" AND NOT IOS)
+if(ENABLE_TESTING AND NOT ${CMAKE_SYSTEM_NAME} STREQUAL "Android" AND NOT IOS AND NOT Emscripten)
   add_subdirectory(tests)
 endif()

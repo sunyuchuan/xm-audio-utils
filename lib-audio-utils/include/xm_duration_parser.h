@@ -1,6 +1,7 @@
 #ifndef XM_DURATION_PARSER_H
 #define XM_DURATION_PARSER_H
 #include <stdbool.h>
+#include "em_macro_def.h"
 
 /**
  * @brief Get the duration of an audio file
@@ -12,7 +13,7 @@
  * @param src_nb_channels If it is a pcm file, nb_channels of pcm data
  * @return the duration of an audio file.
  */
-int get_file_duration_ms(const char *file_addr, bool is_pcm,
+EM_PORT_API(int) get_file_duration_ms(const char *file_addr, bool is_pcm,
     int bits_per_sample, int src_sample_rate_in_Hz, int src_nb_channels);
 
 #endif //XM_DURATION_PARSER_H
