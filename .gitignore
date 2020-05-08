@@ -18,3 +18,9 @@ android/lib-audio-utils/src/main/jni/effect-android-lib
 
 xmly-audio-utils.*
 ios-dev.*
+*.o
+*.d
+android/
+ffmpeg-3.4.7/build/
+ffmpeg-3.4.7/ffbuild/config.log
+out/
