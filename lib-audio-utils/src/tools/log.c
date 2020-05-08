@@ -10,6 +10,8 @@
 #include <time.h>
 #include <unistd.h>
 
+extern void SetFFmpegLogLevel(int log_level);
+
 #ifdef __ANDROID__
 #include <android/log.h>
 #define TAG "ap-log"
@@ -231,6 +233,7 @@ void AeSetLogMode(const LogMode mode) {
 
 void AeSetLogLevel(const LogLevel level) {
     pthread_mutex_lock(&self_log_lock);
+    SetFFmpegLogLevel(level);
     self_log_level = level;
     pthread_mutex_unlock(&self_log_lock);
 }

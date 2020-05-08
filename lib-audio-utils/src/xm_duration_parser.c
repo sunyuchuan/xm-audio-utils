@@ -1,6 +1,8 @@
 #include "xm_duration_parser.h"
 #include "codec/duration_parser.h"
 
+extern void RegisterFFmpeg();
+
 int get_file_duration_ms(const char *file_addr, bool is_pcm,
     int bits_per_sample, int src_sample_rate_in_Hz, int src_nb_channels)
 {
@@ -12,6 +14,7 @@ int get_file_duration_ms(const char *file_addr, bool is_pcm,
         return get_pcm_file_duration_ms(file_addr, bits_per_sample,
             src_sample_rate_in_Hz, src_nb_channels);
     } else {
+        RegisterFFmpeg();
         return get_audio_file_duration_ms(file_addr);
     }
 }
