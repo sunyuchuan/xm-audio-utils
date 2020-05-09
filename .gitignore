@@ -20,7 +20,9 @@ xmly-audio-utils.*
 ios-dev.*
 *.o
 *.d
+*.a
 android/
 ffmpeg-3.4.7/build/
 ffmpeg-3.4.7/ffbuild/config.log
+ffmpeg-3.4.7/*
 out/
