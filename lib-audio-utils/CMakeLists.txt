@@ -63,7 +63,6 @@ elseif(${CMAKE_SYSTEM_NAME} STREQUAL "IOS")
     set(FFmpeg_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/../prebuilt/ios/include)
     include_directories(${FFmpeg_INCLUDE_DIRS})
 elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
-    add_definitions(-D_EMSCRIPTEN_)
     set(FFmpeg_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/../ffmpeg-3.4.7/build/include)
     include_directories(${FFmpeg_INCLUDE_DIRS})
 else()
@@ -95,6 +94,20 @@ src/codec/mediacodec/audio_encoder_mediacodec.c
 )
 else()
 SET(MEDIACODEC )
+endif()
+
+if(${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
+    SET(EMSCRIPTEN
+        src/wave/wav_dec.c
+    )
+else()
+    SET(EMSCRIPTEN
+        src/wave/wav_dec.c
+        src/xm_wav_utils.c
+        src/xm_duration_parser.c
+        src/xm_audio_utils.c
+        src/xm_audio_generator.c
+    )
 endif()
 
 add_library(${PROJECT_NAME}
@@ -150,12 +163,7 @@ src/source/audio_source_queue.c
 src/source/audio_record_source.c
 src/source/audio_record_source_queue.c
 
-src/wave/wav_dec.c
-
-# src/xm_wav_utils.c
-# src/xm_duration_parser.c
-# src/xm_audio_utils.c
-# src/xm_audio_generator.c
+${EMSCRIPTEN}
 )
 
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Android")

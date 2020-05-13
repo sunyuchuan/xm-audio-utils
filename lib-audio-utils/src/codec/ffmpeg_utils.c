@@ -55,6 +55,7 @@ void RegisterFFmpeg() {
     if (!init) {
         init = true;
         av_register_all();
+        avformat_network_init();
     }
 }
 
@@ -105,7 +106,7 @@ int OpenInputMediaFile(AVFormatContext** fmt_ctx, const char* filename) {
     // Open the input file to read from it.
     ret = avformat_open_input(fmt_ctx, filename, NULL, NULL);
     if (ret < 0) {
-        LogError("Could not open input file '%s', error(%s), error code(%d)\n",
+        LogError("Could not open input file %s, error(%s), error code(%d)\n",
                 filename, av_err2str(ret), ret);
         goto end;
     }
@@ -315,7 +316,7 @@ int FindAndOpenAudioEncoder(AVCodecContext** enc_ctx,
     // Find the encoder.
     codec = avcodec_find_encoder(codec_id);
     if (NULL == codec) {
-        LogError("Could not find encoder for '%s', error(%s) error code = %d\n",
+        LogError("Could not find encoder for %s, error(%s) error code = %d\n",
                 avcodec_get_name(codec_id), av_err2str(ret), ret);
         goto end;
     }
@@ -378,7 +379,7 @@ int FindAndOpenH264Encoder(AVCodecContext** enc_ctx, const int bit_rate,
     // Find the encoder.
     codec = avcodec_find_encoder(AV_CODEC_ID_H264);
     if (NULL == codec) {
-        LogError("Could not find encoder for '%s', error(%s) error code = %d\n",
+        LogError("Could not find encoder for %s, error(%s) error code = %d\n",
                 avcodec_get_name(AV_CODEC_ID_H264), av_err2str(ret), ret);
         goto end;
     }
@@ -446,7 +447,7 @@ int WriteFileHeader(AVFormatContext* ofmt_ctx, const char* filename) {
     if (!(ofmt_ctx->oformat->flags & AVFMT_NOFILE)) {
         ret = avio_open(&ofmt_ctx->pb, filename, AVIO_FLAG_WRITE);
         if (ret < 0) {
-            LogError("Could not open output file '%s'", filename);
+            LogError("Could not open output file %s", filename);
             goto end;
         }
     }

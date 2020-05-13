@@ -185,6 +185,6 @@ EM_PORT_API(bool) xm_audio_utils_pcm_resampler_init(
  *
  * @return XmAudioUtils*
  */
-EM_PORT_API(XmAudioUtils) *xm_audio_utils_create();
+EM_PORT_API(XmAudioUtils *) xm_audio_utils_create();
 
 #endif

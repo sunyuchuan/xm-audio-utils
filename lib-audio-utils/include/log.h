@@ -8,7 +8,8 @@ typedef enum {
     LOG_MODE_NONE = 0,  // no output
     LOG_MODE_FILE,      // write file
     LOG_MODE_ANDROID,   // output to Android Logcat
-    LOG_MODE_SCREEN     // output to screen
+    LOG_MODE_SCREEN,    // output to screen
+    LOG_MODE_WEB_CONSOLE // output to web console
 } LogMode;
 
 // log level

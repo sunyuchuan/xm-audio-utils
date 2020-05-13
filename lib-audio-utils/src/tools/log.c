@@ -9,6 +9,9 @@
 #include <sys/syscall.h>
 #include <time.h>
 #include <unistd.h>
+#if defined(__EMSCRIPTEN__)
+#include <emscripten.h>
+#endif
 
 extern void SetFFmpegLogLevel(int log_level);
 
@@ -49,6 +52,11 @@ static LogLevel self_log_level = LOG_LEVEL_INFO;
 static FILE *self_log_file = NULL;
 static char self_log_buffer[MAX_BUFFER_SIZE];
 static pthread_mutex_t self_log_lock = PTHREAD_MUTEX_INITIALIZER;
+
+#ifdef __EMSCRIPTEN__
+static char web_log_buffer[MAX_BUFFER_SIZE + 19];
+#define WEB_CONSOLE_LOG "console.log('%s'); \n "
+#endif
 
 static char GetLeveFlag(const LogLevel level) {
     switch (level) {
@@ -110,6 +118,20 @@ static void Log2File() {
     if (NULL == self_log_file) return;
     fprintf(self_log_file, "%s", self_log_buffer);
 }
+
+#ifdef __EMSCRIPTEN__
+static void Log2WebConsole(const LogLevel level) {
+    // remove the newline at the end of the string
+    self_log_buffer[strlen(self_log_buffer) - 1] = '\0';
+    //limit the maximum length of the dst string to sizeof(web_log_buffer)
+    int len = strlen(self_log_buffer) + strlen(WEB_CONSOLE_LOG);
+    if (len >= sizeof(web_log_buffer)) len = sizeof(web_log_buffer);
+    // string concat
+    snprintf(web_log_buffer, len, WEB_CONSOLE_LOG, self_log_buffer);
+    // console log
+    emscripten_run_script(web_log_buffer);
+}
+#endif
 
 static void Log2Screen(const LogLevel level) {
     switch (level) {
@@ -186,6 +208,11 @@ void AePrintLog(const LogLevel level, const char *filename, const int line,
         case LOG_MODE_SCREEN:
             Log2Screen(level);
             break;
+        case LOG_MODE_WEB_CONSOLE:
+#ifdef __EMSCRIPTEN__
+            Log2WebConsole(level);
+#endif
+            break;
         default:
             break;
     }
@@ -233,7 +260,6 @@ void AeSetLogMode(const LogMode mode) {
 
 void AeSetLogLevel(const LogLevel level) {
     pthread_mutex_lock(&self_log_lock);
-    SetFFmpegLogLevel(level);
     self_log_level = level;
     pthread_mutex_unlock(&self_log_lock);
 }

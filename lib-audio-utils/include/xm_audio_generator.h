@@ -54,6 +54,6 @@ EM_PORT_API(int) xm_audio_generator_start(XmAudioGenerator *self,
  *
  * @return XmAudioGenerator*
  */
-EM_PORT_API(XmAudioGenerator) *xm_audio_generator_create();
+EM_PORT_API(XmAudioGenerator *) xm_audio_generator_create();
 
 #endif

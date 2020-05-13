@@ -46,7 +46,8 @@ build_audio_utils_js() {
     -s PROXY_TO_PTHREAD=1 \
     -s SINGLE_FILE=$1 \
     -s EXTRA_EXPORTED_RUNTIME_METHODS="[ccall, cwrap]" \
-    -s TOTAL_MEMORY=1065353216
+    -s TOTAL_MEMORY=67108864 \
+    -s ALLOW_MEMORY_GROWTH=1
 }
 
 main() {

@@ -1,5 +1,6 @@
 #include "xm_duration_parser.h"
 #include "codec/duration_parser.h"
+#include "log.h"
 
 extern void RegisterFFmpeg();
 
@@ -7,6 +8,12 @@ int get_file_duration_ms(const char *file_addr, bool is_pcm,
     int bits_per_sample, int src_sample_rate_in_Hz, int src_nb_channels)
 {
     if (!file_addr) return -1;
+
+#ifdef __EMSCRIPTEN__
+    AeSetLogLevel(LOG_LEVEL_INFO);
+    AeSetLogMode(LOG_MODE_WEB_CONSOLE);
+#endif
+    LogInfo("%s file_addr %s.\n", __func__, file_addr);
 
     if (is_pcm) {
         if (src_sample_rate_in_Hz <= 0 || src_nb_channels <= 0) return -1;

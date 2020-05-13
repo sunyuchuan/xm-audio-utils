@@ -84,7 +84,7 @@ static bool encoder_flush(AudioMuxer *am)
         ret = ff_encoder_encode_frame(am->audio_encoder, NULL, &packet,
             &got_packet);
         if (ret < 0) {
-            LogError("Could not encode frame (error '%s'), error code = %d.\n",
+            LogError("Could not encode frame (error:%s), error code = %d.\n",
                 av_err2str(ret), ret);
             av_packet_unref(&packet);
             goto end;
@@ -117,7 +117,7 @@ static int encode_and_save(AudioMuxer *am, AVFrame *audio_frame) {
     ret = ff_encoder_encode_frame(am->audio_encoder, audio_frame, &packet,
             &got_packet);
     if (ret < 0) {
-        LogError("Could not encode frame (error '%s'), error code = %d.\n", av_err2str(ret), ret);
+        LogError("Could not encode frame error:%s, error code = %d.\n", av_err2str(ret), ret);
         goto end;
     }
 
@@ -330,7 +330,7 @@ static int write_output_file_header(AVFormatContext *ofmt_ctx) {
 
     ret = avformat_write_header(ofmt_ctx, NULL);
     if (ret < 0) {
-        LogError("%s avformat_write_header (error '%s').\n", __func__, av_err2str(ret));
+        LogError("%s avformat_write_header error:%s.\n", __func__, av_err2str(ret));
     }
     return ret;
 }

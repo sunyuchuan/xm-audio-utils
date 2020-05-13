@@ -17,8 +17,8 @@ RELEASE_DIR=$ROOT_DIR/out
 ###################### web  ##########################
 build_wasm() {
     ##### build ffmpeg
-    cd $FFMPEG_DIR
-    bash build_js.sh
+    # cd $FFMPEG_DIR
+    # bash build_js.sh
 
     ##### build audio-utils
     cd $AUDIO_UTILS_DIR
