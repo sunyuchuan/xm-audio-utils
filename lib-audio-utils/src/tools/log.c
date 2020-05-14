@@ -51,10 +51,13 @@ static LogMode self_log_mode = LOG_MODE_NONE;
 static LogLevel self_log_level = LOG_LEVEL_INFO;
 static FILE *self_log_file = NULL;
 static char self_log_buffer[MAX_BUFFER_SIZE];
-static char web_log_buffer[MAX_BUFFER_SIZE + 19];
+static char web_log_buffer[MAX_BUFFER_SIZE + 24];
 static pthread_mutex_t self_log_lock = PTHREAD_MUTEX_INITIALIZER;
 
 #define WEB_CONSOLE_LOG "console.log('%s'); \n "
+#define WEB_CONSOLE_INFO_LOG "console.info('%s'); \n "
+#define WEB_CONSOLE_WARN_LOG "console.warn('%s'); \n "
+#define WEB_CONSOLE_ERROR_LOG "console.error('%s'); \n "
 
 static char GetLeveFlag(const LogLevel level) {
     switch (level) {
@@ -125,7 +128,29 @@ static void Log2WebConsole(const LogLevel level) {
     int len = strlen(self_log_buffer) + strlen(WEB_CONSOLE_LOG);
     if (len >= sizeof(web_log_buffer)) len = sizeof(web_log_buffer);
     // string concat
-    snprintf(web_log_buffer, len, WEB_CONSOLE_LOG, self_log_buffer);
+    switch (level) {
+        case LOG_LEVEL_VERBOSE:
+            snprintf(web_log_buffer, len, WEB_CONSOLE_LOG, self_log_buffer);
+            break;
+        case LOG_LEVEL_DEBUG:
+            snprintf(web_log_buffer, len, WEB_CONSOLE_LOG, self_log_buffer);
+            break;
+        case LOG_LEVEL_INFO:
+            snprintf(web_log_buffer, len, WEB_CONSOLE_INFO_LOG, self_log_buffer);
+            break;
+        case LOG_LEVEL_WARNING:
+            snprintf(web_log_buffer, len, WEB_CONSOLE_WARN_LOG, self_log_buffer);
+            break;
+        case LOG_LEVEL_ERROR:
+            snprintf(web_log_buffer, len, WEB_CONSOLE_ERROR_LOG, self_log_buffer);
+            break;
+        case LOG_LEVEL_FATAL:
+            snprintf(web_log_buffer, len, WEB_CONSOLE_ERROR_LOG, self_log_buffer);
+            break;
+        default:
+            snprintf(web_log_buffer, len, WEB_CONSOLE_LOG, self_log_buffer);
+            break;
+    }
     // console log
     emscripten_run_script(web_log_buffer);
 }
