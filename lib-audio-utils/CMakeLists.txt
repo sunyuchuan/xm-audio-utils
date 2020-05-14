@@ -102,6 +102,7 @@ if(${CMAKE_SYSTEM_NAME} STREQUAL "Emscripten")
     )
 else()
     SET(EMSCRIPTEN
+        src/tools/log.c
         src/wave/wav_dec.c
         src/xm_wav_utils.c
         src/xm_duration_parser.c
@@ -126,7 +127,6 @@ src/codec/duration_parser.c
 src/tools/conversion.c
 src/tools/dict.c
 src/tools/fifo.c
-src/tools/log.c
 # src/tools/mem.c
 src/tools/sdl_mutex.c
 src/tools/util.c

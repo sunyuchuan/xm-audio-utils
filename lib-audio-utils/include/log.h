@@ -1,5 +1,6 @@
 #ifndef LOG_H_
 #define LOG_H_
+#include "em_macro_def.h"
 
 #define ERROR_OPEN_LOG_FILE -1000
 
@@ -25,10 +26,10 @@ typedef enum {
     LOG_LEVEL_QUIET
 } LogLevel;
 
-void AeCloseLogFile();
-int AeSetLogPath(const char *path);
-void AeSetLogMode(const LogMode mode);
-void AeSetLogLevel(const LogLevel level);
+EM_PORT_API(void) AeCloseLogFile();
+EM_PORT_API(int) AeSetLogPath(const char *path);
+EM_PORT_API(void) AeSetLogMode(const LogMode mode);
+EM_PORT_API(void) AeSetLogLevel(const LogLevel level);
 void AePrintLog(const LogLevel level, const char *filename, const int line,
                 const char *format, ...);
 

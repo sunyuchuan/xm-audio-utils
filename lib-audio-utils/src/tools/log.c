@@ -51,12 +51,10 @@ static LogMode self_log_mode = LOG_MODE_NONE;
 static LogLevel self_log_level = LOG_LEVEL_INFO;
 static FILE *self_log_file = NULL;
 static char self_log_buffer[MAX_BUFFER_SIZE];
+static char web_log_buffer[MAX_BUFFER_SIZE + 19];
 static pthread_mutex_t self_log_lock = PTHREAD_MUTEX_INITIALIZER;
 
-#ifdef __EMSCRIPTEN__
-static char web_log_buffer[MAX_BUFFER_SIZE + 19];
 #define WEB_CONSOLE_LOG "console.log('%s'); \n "
-#endif
 
 static char GetLeveFlag(const LogLevel level) {
     switch (level) {
