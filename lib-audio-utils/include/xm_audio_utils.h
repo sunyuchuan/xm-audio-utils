@@ -16,9 +16,9 @@ EM_PORT_API(void) xm_audio_utils_free(XmAudioUtils *self);
 /**
  * @brief free XmAudioUtils
  *
- * @param self XmAudioUtils**
+ * @param self XmAudioUtils*
  */
-EM_PORT_API(void) xm_audio_utils_freep(XmAudioUtils **self);
+EM_PORT_API(void) xm_audio_utils_freep(XmAudioUtils *self);
 
 /**
  * @brief Get frame data with voice effects

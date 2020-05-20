@@ -87,7 +87,7 @@ end:
         fclose(pcm_writer);
         pcm_writer = NULL;
     }
-    xm_audio_utils_freep(&utils);
+    xm_audio_utils_freep(utils);
 
     gettimeofday(&end, NULL);
     timer = 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;

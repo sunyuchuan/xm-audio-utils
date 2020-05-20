@@ -83,16 +83,14 @@ void xm_audio_utils_free(XmAudioUtils *self) {
     }
 }
 
-void xm_audio_utils_freep(XmAudioUtils **au) {
+void xm_audio_utils_freep(XmAudioUtils *au) {
     LogInfo("%s\n", __func__);
-    if (NULL == au || NULL == *au)
+    if (NULL == au)
         return;
-    XmAudioUtils *self = *au;
 
-    xm_audio_utils_free(self);
-    pthread_mutex_destroy(&self->mutex);
-    free(*au);
-    *au = NULL;
+    xm_audio_utils_free(au);
+    pthread_mutex_destroy(&au->mutex);
+    free(au);
 }
 
 int xm_audio_utils_effect_get_frame(XmAudioUtils *self,

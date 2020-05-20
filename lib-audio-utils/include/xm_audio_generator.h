@@ -22,7 +22,7 @@ EM_PORT_API(void) xm_audio_generator_free(XmAudioGenerator *self);
  *
  * @param self XmAudioGenerator**
  */
-EM_PORT_API(void) xm_audio_generator_freep(XmAudioGenerator **self);
+EM_PORT_API(void) xm_audio_generator_freep(XmAudioGenerator *self);
 
 /**
  * @brief stop generator

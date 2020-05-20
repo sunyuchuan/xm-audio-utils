@@ -57,7 +57,7 @@ end:
     abort_request = true;
     pthread_join(get_progress_tid, NULL);
     xm_audio_generator_stop(generator);
-    xm_audio_generator_freep(&generator);
+    xm_audio_generator_freep(generator);
     gettimeofday(&end, NULL);
     timer = 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
     LogInfo("time consuming %ld us\n", timer);

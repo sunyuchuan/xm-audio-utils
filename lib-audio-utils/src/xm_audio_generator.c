@@ -75,16 +75,14 @@ void xm_audio_generator_free(XmAudioGenerator *self) {
     }
 }
 
-void xm_audio_generator_freep(XmAudioGenerator **ag) {
+void xm_audio_generator_freep(XmAudioGenerator *ag) {
     LogInfo("%s\n", __func__);
-    if (NULL == ag || NULL == *ag)
+    if (NULL == ag)
         return;
-    XmAudioGenerator *self = *ag;
 
-    xm_audio_generator_free(self);
-    pthread_mutex_destroy(&self->mutex);
-    free(*ag);
-    *ag = NULL;
+    xm_audio_generator_free(ag);
+    pthread_mutex_destroy(&ag->mutex);
+    free(ag);
 }
 
 void xm_audio_generator_stop(XmAudioGenerator *self) {
