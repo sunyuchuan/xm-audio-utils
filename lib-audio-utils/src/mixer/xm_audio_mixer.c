@@ -693,6 +693,9 @@ static int xm_audio_mixer_mix_l(XmMixerContext *ctx,
         int cur_position = ctx->seek_time_ms + calculation_duration_ms(ctx->cur_size,
             ctx->bits_per_sample/8, ctx->dst_channels, ctx->dst_sample_rate);
         int progress = ((float)cur_position / file_duration) * 100;
+        if (progress > ctx->progress) {
+            LogInfo("mixer mix progress %d.\n", progress);
+        }
         pthread_mutex_lock(&ctx->mutex);
         ctx->progress = progress;
         pthread_mutex_unlock(&ctx->mutex);
