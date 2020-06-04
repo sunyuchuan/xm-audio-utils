@@ -1,62 +1,43 @@
 #ifndef XM_AUDIO_EFFECTS_H_
 #define XM_AUDIO_EFFECTS_H_
 
-#include <pthread.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include "tools/fifo.h"
-#include "voice_mixer_struct.h"
+#include "effects/effect_struct.h"
 #include "codec/idecoder.h"
-#include "codec/ffmpeg_utils.h"
+#include "effects/voice_effect.h"
+
+enum BuffersType {
+    RawPcm = 0,
+    EffectsPcm,
+    FifoPcm,
+    NB_BUFFERS
+};
+
+enum EffectType {
+    NoiseSuppression = 0,
+    Beautify,
+    Reverb,
+    VolumeLimiter,
+    MAX_NB_EFFECTS
+};
 
 typedef struct XmEffectContext {
-    volatile bool abort;
     volatile bool flush;
-    volatile bool is_zero;
-    int ae_status;
-    int progress;
-    // output pcm sample rate and number channels
-    int dst_sample_rate;
-    int dst_channels;
-    int dst_bits_per_sample;
-    // input record audio file seek position
-    int seek_time_ms;
-    // input record audio file read location
-    int64_t cur_size;
-    int duration_ms;
-    short buffer[MAX_NB_SAMPLES];
-    char *in_config_path;
+    short *buffer[NB_BUFFERS];
+    EffectContext *effects[MAX_NB_EFFECTS];
+    IAudioDecoder *decoder;
     fifo *audio_fifo;
-    pthread_mutex_t mutex;
-    VoiceEffects voice_effects;
 } XmEffectContext;
-
-#define AE_STATE_UNINIT  0
-#define AE_STATE_INITIALIZED  1
-#define AE_STATE_STARTED  2
-#define AE_STATE_COMPLETED  3
-#define AE_STATE_ERROR  4
 
 /**
  * @brief free XmEffectContext
  *
  * @param ctx
  */
-void xm_audio_effect_freep(XmEffectContext **ctx);
-
-/**
- * @brief stop add audio effect
- *
- * @param ctx
- */
-void xm_audio_effect_stop(XmEffectContext *ctx);
-
-/**
- * @brief get progress
- *
- * @param ctx
- */
-int xm_audio_effect_get_progress(XmEffectContext *ctx);
+void audio_effect_freep(XmEffectContext **ctx);
 
 /**
  * @brief Get frame data with voice effects
@@ -65,46 +46,27 @@ int xm_audio_effect_get_progress(XmEffectContext *ctx);
  * @param buffer buffer for storing data
  * @param buffer_size_in_short buffer size
  * @return size of valid buffer obtained.
-                  Less than or equal to 0 means failure or end
+                Less than or equal to 0 means failure or end
  */
-int xm_audio_effect_get_frame(XmEffectContext *ctx,
+int audio_effect_get_frame(XmEffectContext *ctx,
     short *buffer, int buffer_size_in_short);
 
 /**
- * @brief file seekTo
+ * @brief init XmEffectContext
  *
  * @param ctx XmEffectContext
- * @param seek_time_ms seek target time in ms
+ * @param decoder Audio decoder, used to obtain raw pcm data
+ * @param effects_info audio special effects info
  * @return Less than 0 means failure
  */
-int xm_audio_effect_seekTo(XmEffectContext *ctx,
-    int seek_time_ms);
-
-/**
- * @brief Add audio effects
- *
- * @param ctx XmEffectContext
- * @param out_pcm_path Output pcm file path
- * @return Less than 0 means failure
- */
-int xm_audio_effect_add_effects(XmEffectContext *ctx,
-    const char *out_pcm_path);
-
-/**
- * @brief effect init
- *
- * @param ctx XmEffectContext
- * @param in_config_path Config file about effects parameter
- * @return Less than 0 means failure
- */
-int xm_audio_effect_init(XmEffectContext *ctx,
-    const char *in_config_path);
+int audio_effect_init(XmEffectContext *ctx,
+    IAudioDecoder *decoder, char **effects_info);
 
 /**
  * @brief create XmEffectContext
  *
  * @return XmEffectContext*
  */
-XmEffectContext *xm_audio_effect_create();
+XmEffectContext *audio_effect_create();
 
 #endif  // XM_AUDIO_EFFECTS_H_

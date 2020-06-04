@@ -156,12 +156,10 @@ src/mixer/side_chain_compress.c
 src/mixer/xm_audio_mixer.c
 
 src/json/cJSON.c
-src/json/json_parse.c
+src/json/web_json_parser.c
 
 src/source/audio_source.c
 src/source/audio_source_queue.c
-src/source/audio_record_source.c
-src/source/audio_record_source_queue.c
 
 ${EMSCRIPTEN}
 )

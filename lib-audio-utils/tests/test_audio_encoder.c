@@ -28,14 +28,9 @@ int main(int argc, char **argv) {
 
     RegisterFFmpeg();
     int crop_start_time = 0;
-    int crop_end_time = 0;
+    int crop_end_time = 500000;
     int sample_rate = atoi(argv[2]);
     int nb_channels = atoi(argv[3]);
-
-    ret = get_file_duration_ms(argv[1], true, 16, sample_rate, nb_channels);
-    if (ret > 0) {
-        crop_end_time = ret/2;
-    }
 
     IAudioDecoder *decoder = audio_decoder_create(argv[1], sample_rate, nb_channels,
         sample_rate, nb_channels, 1.0f, DECODER_PCM);

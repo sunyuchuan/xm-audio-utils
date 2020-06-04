@@ -40,16 +40,10 @@ valgrind --leak-check=full --log-file=valgrind_log/test_audio_encoder.log ./test
 echo -e "\033[1;43;30m\ntest_xm_audio_utils_resampler...\033[0m"
 valgrind --leak-check=full --log-file=valgrind_log/test_xm_audio_utils_resampler.log ./tests/test_xm_audio_utils_resampler ../data/side_chain_test.wav test_xm_audio_utils_resampler.pcm
 
-echo -e "\033[1;43;30m\ntest_xm_audio_effects...\033[0m"
-valgrind --leak-check=full --log-file=valgrind_log/test_xm_audio_effects.log ./tests/test_xm_audio_effects ../data/effect_config.txt test_xm_audio_effects.pcm
-echo -e "\033[1;43;30m\ntest_xm_audio_mixer...\033[0m"
-valgrind --leak-check=full --log-file=valgrind_log/test_xm_audio_mixer.log ./tests/test_xm_audio_mixer ../data/effect_config.txt test_xm_audio_mixer.mp4
 echo -e "\033[1;43;30m\ntest_xm_audio_utils_decode...\033[0m"
 valgrind --leak-check=full --log-file=valgrind_log/test_xm_audio_utils_decode.log ./tests/test_xm_audio_utils_decode ../data/side_chain_music_test.wav side_chain_music_test.pcm 44100 2
 echo -e "\033[1;43;30m\ntest_xm_audio_utils_mix...\033[0m"
 valgrind --leak-check=full --log-file=valgrind_log/test_xm_audio_utils_mix.log ./tests/test_xm_audio_utils_mix ../data/effect_config.txt 44100 utils_mix_side_chain_test.pcm
-echo -e "\033[1;43;30m\ntest_xm_audio_utils_effects...\033[0m"
-valgrind --leak-check=full --log-file=valgrind_log/test_xm_audio_utils_effects.log ./tests/test_xm_audio_utils_effects ../data/effect_config.txt 44100 1 utils_effect_mono_44kHz_0035.pcm
 echo -e "\033[1;43;30m\ntest_xm_audio_generator...\033[0m"
 valgrind --leak-check=full --log-file=valgrind_log/test_xm_audio_generator.log ./tests/test_xm_audio_generator ../data/effect_config.txt generator_pcm_mono_44kHz_0035.m4a
 
@@ -77,20 +71,14 @@ echo -e "\n"
 cat valgrind_log/test_audio_decoder_2.log
 echo -e "\n"
 cat valgrind_log/test_audio_encoder.log
-
 echo -e "\n"
+
 cat valgrind_log/test_xm_audio_utils_resampler.log
+echo -e "\n"
 
-echo -e "\n"
-cat valgrind_log/test_xm_audio_effects.log
-echo -e "\n"
-cat valgrind_log/test_xm_audio_mixer.log
-echo -e "\n"
 cat valgrind_log/test_xm_audio_utils_decode.log
 echo -e "\n"
 cat valgrind_log/test_xm_audio_utils_mix.log
-echo -e "\n"
-cat valgrind_log/test_xm_audio_utils_effects.log
 echo -e "\n"
 cat valgrind_log/test_xm_audio_generator.log
 echo -e "\n"

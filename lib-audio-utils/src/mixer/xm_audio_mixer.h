@@ -37,7 +37,7 @@ int xm_audio_mixer_get_progress(XmMixerContext *ctx);
  * @param buffer buffer for storing data
  * @param buffer_size_in_short buffer size
  * @return size of valid buffer obtained.
-                  Less than or equal to 0 means failure or end
+        Less than or equal to 0 means failure or end
  */
 int xm_audio_mixer_get_frame(XmMixerContext *ctx,
     short *buffer, int buffer_size_in_short);

@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
 
     int crop_start_time = 0;
     int crop_end_time = 0;
-    ret = get_file_duration_ms(argv[1], false, 0, 0, 0);
+    ret = get_file_duration_ms(argv[1]);
     if (ret > 0) {
         crop_end_time = ret /2;
     }
