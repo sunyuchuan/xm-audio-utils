@@ -148,10 +148,13 @@ static IAudioDecoder *open_source_decoder(AudioSource *source,
     IAudioDecoder *decoder = NULL;
 
     IAudioDecoder_freep(&(source->decoder));
+    int decoder_out_channels = dst_channels;
+    if (source->has_effects) {
+        decoder_out_channels = DEFAULT_CHANNEL_NUMBER_1;
+    }
     decoder = audio_decoder_create(source->file_path, 0, 0,
-        dst_sample_rate, dst_channels, source->volume, DECODER_FFMPEG);
-    if (!decoder)
-    {
+        dst_sample_rate, decoder_out_channels, source->volume, DECODER_FFMPEG);
+    if (!decoder) {
         LogError("%s malloc source decoder failed.\n", __func__);
         return NULL;
     }
@@ -170,15 +173,17 @@ static IAudioDecoder *open_source_decoder(AudioSource *source,
     IAudioDecoder_seekTo(decoder, seek_time_ms);
 
     if (source->has_effects) {
+        audio_effect_freep(&source->effects_ctx);
         source->effects_ctx = audio_effect_create();
         if (audio_effect_init(source->effects_ctx,
-                decoder, source->effects_info) < 0) {
+                decoder, source->effects_info, dst_channels) < 0) {
             LogError("%s audio_effect_init failed.\n", __func__);
             IAudioDecoder_freep(&decoder);
             return NULL;
         }
     }
 
+    if (source->buffer.buffer) free(source->buffer.buffer);
     source->buffer.buffer =
         (short *)calloc(sizeof(short), MAX_NB_SAMPLES);
     if (!source->buffer.buffer) {
@@ -422,10 +427,9 @@ static int fill_track_buffer(AudioSource *source,
     short *buffer = source->buffer.buffer;
     int buffer_size_in_short = 0;
     int buffer_data_start_index = 0;
-    memset(buffer, 0, sizeof(short) * MAX_NB_SAMPLES);
-
     if (start_time >= source->start_time_ms &&
         start_time + duration < source->end_time_ms) {
+        memset(buffer, 0, sizeof(short) * MAX_NB_SAMPLES);
         buffer_data_start_index = 0;
         buffer_size_in_short = fill_len > 0 ? fill_len : 0;
 
@@ -436,6 +440,7 @@ static int fill_track_buffer(AudioSource *source,
         }
     } else if (start_time < source->start_time_ms &&
             start_time + duration > source->start_time_ms) {
+        memset(buffer, 0, sizeof(short) * MAX_NB_SAMPLES);
         buffer_data_start_index = ((source->start_time_ms - start_time)
             * sample_rate * channels) / 1000;
         buffer_size_in_short =
@@ -449,6 +454,7 @@ static int fill_track_buffer(AudioSource *source,
         }
     } else if (start_time < source->end_time_ms &&
             start_time + duration > source->end_time_ms) {
+        memset(buffer, 0, sizeof(short) * MAX_NB_SAMPLES);
         buffer_data_start_index = 0;
         buffer_size_in_short = ((source->end_time_ms - start_time)
             * sample_rate * channels) / 1000;
@@ -527,11 +533,11 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
             }
         }
     }
-    ctx->cur_size += (read_len * sizeof(short));
 
+    ctx->cur_size += (read_len * sizeof(short));
     if (!prev_buffer) {
-        memset(ctx->mix_buffer, 0, sizeof(short) * MAX_NB_SAMPLES);
-        prev_buffer = ctx->mix_buffer;
+        fifo_write(ctx->audio_fifo, ctx->mix_buffer, read_len);
+        return read_len;
     }
 
     add_reverb_and_write_fifo(ctx, prev_buffer, read_len);

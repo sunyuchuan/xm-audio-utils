@@ -4,6 +4,8 @@
 #include "tools/util.h"
 #include "codec/ffmpeg_utils.h"
 
+#define DEFAULT_CHANNEL_NUMBER 1
+
 static void ae_free(XmEffectContext *ctx) {
     LogInfo("%s\n", __func__);
     if (NULL == ctx)
@@ -131,14 +133,13 @@ static int add_effects(XmEffectContext *ctx, short *buffer, int buffer_len) {
 static int read_pcm_frame(XmEffectContext *ctx, short *buffer) {
     if (!ctx || !buffer || !ctx->decoder) return -1;
 
-    int read_len = MAX_NB_SAMPLES << 1;
+    int read_len = MAX_NB_SAMPLES;
     return IAudioDecoder_get_pcm_frame(ctx->decoder,
         buffer, read_len, false);
 }
 
 static int add_effects_and_write_fifo(XmEffectContext *ctx) {
-    int ret = -1;
-    int read_len = 0;
+    int ret = -1, read_len = 0;
     short *buffer = ctx->buffer[RawPcm];
     if (!ctx || !ctx->audio_fifo) return -1;
 
@@ -161,11 +162,11 @@ static int add_effects_and_write_fifo(XmEffectContext *ctx) {
         return ret;
     }
 
-    if (ctx->decoder->out_nb_channels == 2) {
+    if (ctx->dst_channels == 2) {
         MonoToStereoS16(ctx->buffer[FifoPcm], buffer, ret);
         read_len = ret << 1;
         buffer = ctx->buffer[FifoPcm];
-    } else if(ctx->decoder->out_nb_channels == 1) {
+    } else if(ctx->dst_channels == 1) {
         read_len = ret;
     }
 
@@ -176,10 +177,10 @@ static int add_effects_and_write_fifo(XmEffectContext *ctx) {
 static int voice_effects_init(XmEffectContext *ctx,
     char **effects_info, int dst_sample_rate, int dst_channels) {
     LogInfo("%s\n", __func__);
-    if (!ctx || !effects_info || !*effects_info)
+    if (!ctx || !effects_info)
         return -1;
 
-    for (short i = 0; i < MAX_NB_EFFECTS; ++i) {
+    for (int i = 0; i < MAX_NB_EFFECTS; ++i) {
         if (ctx->effects[i]) {
             free_effect(ctx->effects[i]);
             ctx->effects[i] = NULL;
@@ -242,7 +243,7 @@ static int init(XmEffectContext *ctx, char **effects_info)
     IAudioDecoder *decoder = ctx->decoder;
 
     if ((ret = voice_effects_init(ctx, effects_info,
-        decoder->out_sample_rate, 1)) < 0) {
+        decoder->out_sample_rate, DEFAULT_CHANNEL_NUMBER)) < 0) {
         LogError("%s voice_effects_init failed.\n", __func__);
         goto fail;
     }
@@ -303,11 +304,12 @@ end:
 }
 
 int audio_effect_init(XmEffectContext *ctx,
-    IAudioDecoder *decoder, char **effects_info) {
-    if (!ctx || !decoder || !effects_info || !*effects_info)
+    IAudioDecoder *decoder, char **effects_info, int dst_channels) {
+    if (!ctx || !decoder || !effects_info)
         return -1;
 
     ctx->decoder = decoder;
+    ctx->dst_channels = dst_channels;
     return init(ctx, effects_info);
 }
 

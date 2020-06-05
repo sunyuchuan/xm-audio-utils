@@ -30,9 +30,8 @@ static const char *tracks_name[MAX_NB_TRACKS] = {
 
 static int parse_voice_effects(cJSON *effects, AudioSource *source)
 {
-    int ret = -1;
     if (!effects || !source) {
-        return ret;
+        return -1;
     }
 
     for (int i = 0; i < MAX_NB_EFFECTS; ++i) {
@@ -77,8 +76,7 @@ static int parse_voice_effects(cJSON *effects, AudioSource *source)
         }
     }
 
-    ret = 0;
-    return ret;
+    return 0;
 }
 
 static int parse_audio_source(cJSON *json, AudioSourceQueue *queue) {

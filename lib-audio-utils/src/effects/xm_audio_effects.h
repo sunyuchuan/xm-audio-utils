@@ -26,6 +26,7 @@ enum EffectType {
 
 typedef struct XmEffectContext {
     volatile bool flush;
+    int dst_channels;
     short *buffer[NB_BUFFERS];
     EffectContext *effects[MAX_NB_EFFECTS];
     IAudioDecoder *decoder;
@@ -57,10 +58,11 @@ int audio_effect_get_frame(XmEffectContext *ctx,
  * @param ctx XmEffectContext
  * @param decoder Audio decoder, used to obtain raw pcm data
  * @param effects_info audio special effects info
+ * @param dst_channels out number of channels
  * @return Less than 0 means failure
  */
 int audio_effect_init(XmEffectContext *ctx,
-    IAudioDecoder *decoder, char **effects_info);
+    IAudioDecoder *decoder, char **effects_info, int dst_channels);
 
 /**
  * @brief create XmEffectContext
