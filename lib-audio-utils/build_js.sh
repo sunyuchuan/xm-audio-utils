@@ -36,7 +36,7 @@ build_audio_utils_js() {
     -L${FFMPEG_BUILD_DIR}/lib  -L${BUILD_DIR}/install/lib \
     -I./src -I./src/effects \
     -Qunused-arguments -Oz \
-    -o $2 src/tools/log.c src/xm_wav_utils.c src/xm_duration_parser.c src/xm_audio_utils.c src/xm_audio_generator.c \
+    -o $2 src/tools/log.c src/xm_wav_utils.c src/xm_duration_parser.c src/xm_audio_utils.c src/xm_audio_generator.c src/xm_audio_transcode.c \
     -laudio_utils -lavfilter -lavformat -lavcodec -lswresample -lavutil \
     -Wno-deprecated-declarations -Wno-pointer-sign -Wno-implicit-int-float-conversion -Wno-switch -Wno-parentheses \
     -s USE_SDL=2 \

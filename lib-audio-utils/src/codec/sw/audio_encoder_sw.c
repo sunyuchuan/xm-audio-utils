@@ -179,10 +179,16 @@ static int sw_encoder_get_frame_size(Encoder *encoder)
     return opaque->frame_byte_size;
 }
 
-static void S16toFLTP(int16_t* in, float** out, int size)
+static void S16toFLTP(int16_t* in, float** out, int size, int out_channels)
 {
     for (int i = 0; i < size; i++) {
-        ((float**)out)[i % 2][i >> 1] = (float)(in[i]) / 32768.0f;
+        if (out_channels == 2) {
+            ((float**)out)[i % 2][i >> 1] = (float)(in[i]) / 32768.0f;
+        } else if (out_channels == 1) {
+            ((float**)out)[0][i] = (float)(in[i]) / 32768.0f;
+        } else {
+            LogError("out_channels invalid.\n");
+        }
     }
 }
 
@@ -196,7 +202,8 @@ static int sw_encoder_encode_frame(Encoder *encoder, AVFrame *frame, AVPacket *p
                 ret = avcodec_encode_audio2(ctx, pkt, frame, got_packet_ptr);
             } else {
                 AVFrame *floatframe = opaque->frame;
-                S16toFLTP((int16_t *)frame->data[0], (float **)floatframe->data, ctx->frame_size * ctx->channels);
+                S16toFLTP((int16_t *)frame->data[0], (float **)floatframe->data,
+                    ctx->frame_size * ctx->channels, ctx->channels);
                 floatframe->format = AV_SAMPLE_FMT_FLTP;
                 floatframe->pts = frame->pts;
                 ret = avcodec_encode_audio2(ctx, pkt, floatframe, got_packet_ptr);

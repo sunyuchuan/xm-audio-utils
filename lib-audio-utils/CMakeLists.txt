@@ -108,6 +108,7 @@ else()
         src/xm_duration_parser.c
         src/xm_audio_utils.c
         src/xm_audio_generator.c
+        src/xm_audio_transcode.c
     )
 endif()
 
