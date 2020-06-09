@@ -3,11 +3,13 @@
 #include "codec/audio_muxer.h"
 #include "error_def.h"
 #include "log.h"
+#include "js_callback.h"
 
 struct XmAudioTranscoder {
     volatile int status;
     volatile bool abort;
     int progress;
+    char *js_progress_callback;
     pthread_mutex_t mutex;
 };
 
@@ -31,6 +33,10 @@ void xm_audio_transcoder_freep(XmAudioTranscoder *self) {
     if (NULL == self)
         return;
 
+    if (self->js_progress_callback) {
+        free(self->js_progress_callback);
+        self->js_progress_callback = NULL;
+    }
     pthread_mutex_destroy(&self->mutex);
     free(self);
 }
@@ -54,6 +60,19 @@ int xm_audio_transcoder_get_progress(XmAudioTranscoder *self) {
     ret = self->progress;
     pthread_mutex_unlock(&self->mutex);
     return ret;
+}
+
+int xm_audio_transcoder_set_progress_callback(
+    XmAudioTranscoder *self, const char *callback) {
+    if (!self || !callback)
+        return -1;
+
+    if (self->js_progress_callback) {
+        free(self->js_progress_callback);
+        self->js_progress_callback = NULL;
+    }
+    self->js_progress_callback = av_strdup(callback);
+    return 0;
 }
 
 int xm_audio_transcoder_start(XmAudioTranscoder *self,
@@ -148,6 +167,8 @@ int xm_audio_transcoder_start(XmAudioTranscoder *self,
         int progress = ((float)cur_size / total_size) * 100;
         if (progress > self->progress) {
             LogInfo("%s progress %d.\n", __func__, progress);
+            js_progress_callback(self->js_progress_callback,
+                progress);
         }
 
         pthread_mutex_lock(&self->mutex);

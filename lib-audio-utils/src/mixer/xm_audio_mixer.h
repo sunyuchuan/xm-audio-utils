@@ -31,6 +31,15 @@ void xm_audio_mixer_stop(XmMixerContext *ctx);
 int xm_audio_mixer_get_progress(XmMixerContext *ctx);
 
 /**
+ * @brief set progress callback
+ *
+ * @param ctx
+ * @param callback callback function name
+ */
+int xm_audio_mixer_set_progress_callback(
+    XmMixerContext *ctx, const char *callback);
+
+/**
  * @brief get mixed frame
  *
  * @param ctx XmMixerContext

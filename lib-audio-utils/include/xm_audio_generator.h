@@ -39,6 +39,15 @@ EM_PORT_API(void) xm_audio_generator_stop(XmAudioGenerator *self);
 EM_PORT_API(int) xm_audio_generator_get_progress(XmAudioGenerator *self);
 
 /**
+ * @brief set callback of progress
+ *
+ * @param self XmAudioGenerator
+ * @param callback callback function name
+ */
+EM_PORT_API(int) xm_audio_generator_set_progress_callback(
+    XmAudioGenerator *self, const char *callback);
+
+/**
  * @brief startup add voice effects and mix voice\bgm\music
  *
  * @param self XmAudioGenerator

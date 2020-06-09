@@ -11,6 +11,7 @@
 #include "tools/fifo.h"
 #include "tools/conversion.h"
 #include "effects/xm_audio_effects.h"
+#include "js_callback.h"
 
 #define DEFAULT_SAMPLE_RATE 44100
 #define DEFAULT_CHANNEL_NUMBER_2 2
@@ -36,6 +37,7 @@ struct XmMixerContext_T {
     char *in_config_path;
     EffectContext *reverb_ctx;
     short *mix_buffer;
+    char *js_progress_callback;
     pthread_mutex_t mutex;
     MixerEffects mixer_effects;
 };
@@ -359,6 +361,10 @@ static void mixer_free_l(XmMixerContext *ctx)
         free(ctx->mix_buffer);
         ctx->mix_buffer = NULL;
     }
+    if (ctx->js_progress_callback) {
+        free(ctx->js_progress_callback);
+        ctx->js_progress_callback = NULL;
+    }
 
     pthread_mutex_lock(&ctx->mutex);
     ctx->abort= false;
@@ -579,6 +585,19 @@ int xm_audio_mixer_get_progress(XmMixerContext *ctx) {
     return ret;
 }
 
+int xm_audio_mixer_set_progress_callback(
+    XmMixerContext *ctx, const char *callback) {
+    if (!ctx || !callback)
+        return -1;
+
+    if (ctx->js_progress_callback) {
+        free(ctx->js_progress_callback);
+        ctx->js_progress_callback = NULL;
+    }
+    ctx->js_progress_callback = av_strdup(callback);
+    return 0;
+}
+
 int xm_audio_mixer_get_frame(XmMixerContext *ctx,
     short *buffer, int buffer_size_in_short) {
     int ret = -1;
@@ -663,7 +682,10 @@ static int xm_audio_mixer_mix_l(XmMixerContext *ctx,
         int progress = ((float)cur_position / file_duration) * 100;
         if (progress > ctx->progress) {
             LogInfo("mixer mix progress %d.\n", progress);
+            js_progress_callback(ctx->js_progress_callback,
+                progress);
         }
+
         pthread_mutex_lock(&ctx->mutex);
         ctx->progress = progress;
         pthread_mutex_unlock(&ctx->mutex);

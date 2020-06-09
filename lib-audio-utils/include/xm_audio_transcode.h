@@ -32,6 +32,15 @@ EM_PORT_API(void) xm_audio_transcoder_stop(XmAudioTranscoder *self);
 EM_PORT_API(int) xm_audio_transcoder_get_progress(XmAudioTranscoder *self);
 
 /**
+ * @brief set callback of progress
+ *
+ * @param self XmAudioTranscoder
+ * @param callback callback of js
+ */
+EM_PORT_API(int) xm_audio_transcoder_set_progress_callback(
+    XmAudioTranscoder *self, const char *callback);
+
+/**
  * @brief transcode audio file to m4a(aac) format
  *
  * @param XmAudioTranscoder transcoder

@@ -100,6 +100,15 @@ int xm_audio_generator_get_progress(XmAudioGenerator *self) {
     return xm_audio_mixer_get_progress(self->mixer_ctx);
 }
 
+int xm_audio_generator_set_progress_callback(
+    XmAudioGenerator *self, const char *callback) {
+    if (!self || !callback)
+        return -1;
+
+    return xm_audio_mixer_set_progress_callback(
+            self->mixer_ctx, callback);
+}
+
 int xm_audio_generator_start(XmAudioGenerator *self,
         const char *in_config_path, const char *out_file_path) {
     LogInfo("%s\n", __func__);
