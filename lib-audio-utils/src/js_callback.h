@@ -6,7 +6,9 @@
 
 #define JS_PROGRESS_CALLBACK "onGeneratorProgress('%s');\n"
 
-static void js_progress_callback(char *callback, int progress) {
+static void js_progress_callback(
+    __attribute__((unused)) char *callback,
+    __attribute__((unused)) int progress) {
 #ifdef __EMSCRIPTEN__
     if (NULL == callback) return;
 

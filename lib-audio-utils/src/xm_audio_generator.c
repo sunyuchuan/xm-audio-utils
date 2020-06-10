@@ -14,6 +14,7 @@ extern void RegisterFFmpeg();
 struct XmAudioGenerator {
     volatile int status;
     XmMixerContext *mixer_ctx;
+    char *js_progress_callback;
     pthread_mutex_t mutex;
 };
 
@@ -54,6 +55,9 @@ static int mixer_mix(XmAudioGenerator *self, const char *in_config_path,
         goto end;
     }
 
+    xm_audio_mixer_set_progress_callback(self->mixer_ctx,
+        self->js_progress_callback);
+
     ret = xm_audio_mixer_mix(self->mixer_ctx, out_file_path, encode_type);
     if (ret < 0) {
 	LogError("%s xm_audio_mixer_mix failed\n", __func__);
@@ -69,6 +73,10 @@ void xm_audio_generator_free(XmAudioGenerator *self) {
     if (NULL == self)
         return;
 
+    if (self->js_progress_callback) {
+        free(self->js_progress_callback);
+        self->js_progress_callback = NULL;
+    }
     if (self->mixer_ctx) {
         xm_audio_mixer_stop(self->mixer_ctx);
         xm_audio_mixer_freep(&(self->mixer_ctx));
@@ -105,8 +113,21 @@ int xm_audio_generator_set_progress_callback(
     if (!self || !callback)
         return -1;
 
-    return xm_audio_mixer_set_progress_callback(
-            self->mixer_ctx, callback);
+    size_t len = strlen(callback) + 1;
+    char *dst = (char *)calloc(1, len);
+    if (NULL == dst) {
+        LogError("%s alloc strings failed.\n", __func__);
+        return -1;
+    } else {
+        memcpy(dst, callback, len);
+    }
+
+    if (self->js_progress_callback) {
+        free(self->js_progress_callback);
+        self->js_progress_callback = NULL;
+    }
+    self->js_progress_callback = dst;
+    return 0;
 }
 
 int xm_audio_generator_start(XmAudioGenerator *self,
