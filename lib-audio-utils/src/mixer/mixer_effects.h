@@ -1,5 +1,5 @@
-#ifndef _VOICE_MIXER_STRUCT_
-#define _VOICE_MIXER_STRUCT_
+#ifndef _MIXER_EFFECTS_
+#define _MIXER_EFFECTS_
 #include "source/audio_source_queue.h"
 
 // Limit the maximum duration of a mix

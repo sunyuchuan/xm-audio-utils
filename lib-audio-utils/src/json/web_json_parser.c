@@ -168,8 +168,7 @@ static int parse_audio_source(cJSON *json, AudioSourceQueue *queue) {
         }
 
 end:
-        if (effects_childs != NULL)
-        {
+        if (effects_childs != NULL) {
             cJSON_Delete(effects_childs);
         }
         effects_childs = NULL;
@@ -209,10 +208,6 @@ int web_json_parse(MixerEffects *mixer_effects, const char *json_file_addr) {
     if (!json_file_addr || !mixer_effects) {
         return ret;
     }
-    if (!mixer_effects->source || !mixer_effects->sourceQueue) {
-        LogError("%s source or sourceQueue is NULL\n", __func__);
-        return ret;
-    }
 
     char *content = NULL;
     cJSON *root_json = NULL;
@@ -238,8 +233,7 @@ int web_json_parse(MixerEffects *mixer_effects, const char *json_file_addr) {
 
     for (int i = 0; i < MAX_NB_TRACKS; i++) {
         tracks[i] = cJSON_GetObjectItemCaseSensitive(root_json, tracks_name[i]);
-        if (!tracks[i])
-        {
+        if (!tracks[i]) {
             LogWarning("%s get %s failed, continue.\n",
                 __func__, tracks_name[i]);
             continue;
@@ -283,10 +277,8 @@ fail:
     {
         cJSON_Delete(root_json);
     }
-    for (int i = 0; i < MAX_NB_TRACKS; i++)
-    {
-        if (tracks_childs[i] != NULL)
-        {
+    for (int i = 0; i < MAX_NB_TRACKS; i++) {
+        if (tracks_childs[i] != NULL) {
             cJSON_Delete(tracks_childs[i]);
         }
     }

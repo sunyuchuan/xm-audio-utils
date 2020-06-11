@@ -3,7 +3,7 @@
 #include "json/web_json_parser.h"
 #include "codec/audio_muxer.h"
 #include <pthread.h>
-#include "voice_mixer_struct.h"
+#include "mixer_effects.h"
 #include "side_chain_compress.h"
 #include "error_def.h"
 #include "log.h"
@@ -21,13 +21,10 @@ struct XmMixerContext_T {
     volatile bool abort;
     int mix_status;
     int progress;
-    // input pcm sample rate and number channels
-    int pcm_sample_rate;
-    int pcm_channels;
-    int bits_per_sample;
     // output sample rate and number channels
     int dst_sample_rate;
     int dst_channels;
+    int bits_per_sample;
     // input pcm file seek position
     int seek_time_ms;
     // input pcm read location
