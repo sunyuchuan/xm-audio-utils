@@ -10,6 +10,13 @@ struct TrackBuffer {
 };
 
 typedef struct AudioSource {
+    // source file type
+    bool is_pcm;
+    // loop source
+    bool is_loop;
+    // pcm file parameters
+    int sample_rate;
+    int nb_channels;
     // cutting parameters
     int crop_start_time_ms;
     int crop_end_time_ms;

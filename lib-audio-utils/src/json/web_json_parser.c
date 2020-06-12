@@ -5,8 +5,13 @@
 #include <stdlib.h>
 #include "codec/ffmpeg_utils.h"
 
-static const char *tracks_name[MAX_NB_TRACKS] = {
+static const char *web_tracks_name[MAX_NB_TRACKS] = {
     "track0", "track1", "track2", "track3", "track4"
+};
+
+#define PHONE_NB_TRACKS 4
+static const char *phone_tracks_name[PHONE_NB_TRACKS] = {
+    "record", "bgm", "music", "effects"
 };
 
 #define KEY_FILE_PATH "file_path"
@@ -17,6 +22,9 @@ static const char *tracks_name[MAX_NB_TRACKS] = {
 #define KEY_CROP_END_TIME "cropEndTimeMs"
 #define KEY_FADE_IN_TIME "fadeInTimeMs"
 #define KEY_FADE_OUT_TIME "fadeOutTimeMs"
+#define KEY_IS_PCM "isPcm"
+#define KEY_SAMPLE_RATE "sampleRate"
+#define KEY_NB_CHANNELS "nbChannels"
 #define KEY_SIDE_CHAIN "sideChain"
 #define KEY_MAKE_UP_GAIN "makeUpGain"
 #define KEY_EFFECTS "effects"
@@ -79,7 +87,8 @@ static int parse_voice_effects(cJSON *effects, AudioSource *source)
     return 0;
 }
 
-static int parse_audio_source(cJSON *json, AudioSourceQueue *queue) {
+static int parse_audio_source(cJSON *json, AudioSourceQueue *queue,
+        bool loop) {
     int ret = -1;
     if (!json || !queue) {
         return ret;
@@ -104,6 +113,11 @@ static int parse_audio_source(cJSON *json, AudioSourceQueue *queue) {
             cJSON_GetObjectItemCaseSensitive(sub, KEY_FADE_IN_TIME);
         cJSON *fade_out_time =
             cJSON_GetObjectItemCaseSensitive(sub, KEY_FADE_OUT_TIME);
+        cJSON *is_pcm = cJSON_GetObjectItemCaseSensitive(sub, KEY_IS_PCM);
+        cJSON *sample_rate =
+            cJSON_GetObjectItemCaseSensitive(sub, KEY_SAMPLE_RATE);
+        cJSON *nb_channels =
+            cJSON_GetObjectItemCaseSensitive(sub, KEY_NB_CHANNELS);
         cJSON *side_chain = cJSON_GetObjectItemCaseSensitive(
             sub, KEY_SIDE_CHAIN);
 
@@ -128,6 +142,17 @@ static int parse_audio_source(cJSON *json, AudioSourceQueue *queue) {
             cJSON_IsNumber(fade_in_time) ? fade_in_time->valuedouble : 0;
         source.fade_io.fade_out_time_ms =
             cJSON_IsNumber(fade_out_time) ? fade_out_time->valuedouble : 0;
+        if (cJSON_IsString(is_pcm) &&
+            (0 == strcasecmp(is_pcm->valuestring, "True")))
+            source.is_pcm = true;
+        else
+            source.is_pcm = false;
+        source.is_loop = loop;
+        source.sample_rate =
+            cJSON_IsNumber(sample_rate) ? sample_rate->valuedouble : 0;
+        source.nb_channels =
+            cJSON_IsNumber(nb_channels) ? nb_channels->valuedouble : 0;
+
         source.left_factor = 1.0f;
         source.right_factor = 1.0f;
         if (cJSON_IsString(side_chain) && side_chain->valuestring &&
@@ -203,60 +228,129 @@ end:
     return 0;
 }
 
-int web_json_parse(MixerEffects *mixer_effects, const char *json_file_addr) {
+static int phone_json_parse(cJSON *json, MixerEffects *mixer_effects) {
+    LogInfo("%s\n", __func__);
     int ret = -1;
-    if (!json_file_addr || !mixer_effects) {
+    if (!json || !mixer_effects) {
         return ret;
     }
 
-    char *content = NULL;
-    cJSON *root_json = NULL;
-    cJSON *tracks[MAX_NB_TRACKS];
-    cJSON *tracks_childs[MAX_NB_TRACKS];
+    cJSON *root_json = json;
+    cJSON *tracks[PHONE_NB_TRACKS];
+    cJSON *tracks_childs[PHONE_NB_TRACKS];
     memset(tracks, 0, sizeof(tracks));
     memset(tracks_childs, 0, sizeof(tracks_childs));
 
-    content = ae_read_file_to_string(json_file_addr);
-    if (NULL == content) {
-        ret = -1;
-        LogError("%s json_file_addr %s read file failed\n",
-            __func__, json_file_addr);
-        goto fail;
-    }
-
-    root_json = cJSON_Parse(content);
-    if (root_json == NULL) {
-        LogError("%s cJSON_Parse failed\n", __func__);
-        ret = -1;
-        goto fail;
-    }
-
-    for (int i = 0; i < MAX_NB_TRACKS; i++) {
-        tracks[i] = cJSON_GetObjectItemCaseSensitive(root_json, tracks_name[i]);
+    for (int i = 0; i < PHONE_NB_TRACKS; i++) {
+        tracks[i] = cJSON_GetObjectItemCaseSensitive(
+                root_json, phone_tracks_name[i]);
         if (!tracks[i]) {
-            LogWarning("%s get %s failed, continue.\n",
-                __func__, tracks_name[i]);
             continue;
         }
+
         if (NULL != tracks[i]->valuestring) {
             LogInfo("%s %s valuestring %s\n", __func__,
-                tracks_name[i], tracks[i]->valuestring);
+                phone_tracks_name[i], tracks[i]->valuestring);
         }
 
         if (tracks[i]->child == NULL && NULL != tracks[i]->valuestring) {
             tracks_childs[i] = cJSON_Parse(tracks[i]->valuestring);
             if (tracks_childs[i] == NULL) {
                 LogError("%s cJSON_Parse %s valuestring failed, continue.\n",
-                    __func__, tracks_name[i]);
+                    __func__, phone_tracks_name[i]);
+                continue;
+            }
+            tracks[i] = tracks_childs[i];
+        }
+
+        if (0 != strcasecmp(phone_tracks_name[i], "effects")) {
+            bool loop = true;
+            if (!strcasecmp(phone_tracks_name[i], "record")) loop = false;
+            if (parse_audio_source(
+                    tracks[i], mixer_effects->sourceQueue[i], loop) < 0) {
+                LogError("%s parse %s source failed, continue.\n",
+                    __func__, phone_tracks_name[i]);
+                continue;
+            }
+
+            int end_time_ms = AudioSourceQueue_get_end_time_ms(
+                mixer_effects->sourceQueue[i]);
+            if (mixer_effects->duration_ms < end_time_ms) {
+                mixer_effects->duration_ms = end_time_ms;
+            }
+        } else {
+            AudioSource source;
+            int size = AudioSourceQueue_size(mixer_effects->sourceQueue[0]);
+            for (int j = 0; j < size; j++) {
+                memset(&source, 0, sizeof(AudioSource));
+                AudioSourceQueue_get(mixer_effects->sourceQueue[0], &source);
+                if ((ret = parse_voice_effects(tracks[i], &source)) < 0) {
+                    LogError("%s parse_voice_effects failed\n", __func__);
+                    source.has_effects = false;
+                } else {
+                    source.has_effects = true;
+                }
+                AudioSourceQueue_put(mixer_effects->sourceQueue[0], &source);
+            }
+        }
+    }
+
+    for (int i = 0; i < PHONE_NB_TRACKS; i++) {
+        if (AudioSourceQueue_size(mixer_effects->sourceQueue[i]) > 0) {
+            ret = 0;
+            break;
+        } else {
+            ret = -1;
+        }
+    }
+
+    for (int i = 0; i < PHONE_NB_TRACKS; i++) {
+        if (tracks_childs[i] != NULL) {
+            cJSON_Delete(tracks_childs[i]);
+        }
+    }
+    return ret;
+}
+
+static int web_json_parse(cJSON *json, MixerEffects *mixer_effects) {
+    LogInfo("%s\n", __func__);
+    int ret = -1;
+    if (!json || !mixer_effects) {
+        return ret;
+    }
+
+    cJSON *root_json = json;
+    cJSON *tracks[MAX_NB_TRACKS];
+    cJSON *tracks_childs[MAX_NB_TRACKS];
+    memset(tracks, 0, sizeof(tracks));
+    memset(tracks_childs, 0, sizeof(tracks_childs));
+
+    for (int i = 0; i < MAX_NB_TRACKS; i++) {
+        tracks[i] = cJSON_GetObjectItemCaseSensitive(
+                root_json, web_tracks_name[i]);
+        if (!tracks[i]) {
+            continue;
+        }
+
+        if (NULL != tracks[i]->valuestring) {
+            LogInfo("%s %s valuestring %s\n", __func__,
+                web_tracks_name[i], tracks[i]->valuestring);
+        }
+
+        if (tracks[i]->child == NULL && NULL != tracks[i]->valuestring) {
+            tracks_childs[i] = cJSON_Parse(tracks[i]->valuestring);
+            if (tracks_childs[i] == NULL) {
+                LogError("%s cJSON_Parse %s valuestring failed, continue.\n",
+                    __func__, web_tracks_name[i]);
                 continue;
             }
             tracks[i] = tracks_childs[i];
         }
 
         if (parse_audio_source(
-                tracks[i], mixer_effects->sourceQueue[i]) < 0) {
+                tracks[i], mixer_effects->sourceQueue[i], false) < 0) {
             LogError("%s parse %s source failed, continue.\n",
-                __func__, tracks_name[i]);
+                __func__, web_tracks_name[i]);
             continue;
         }
 
@@ -267,8 +361,68 @@ int web_json_parse(MixerEffects *mixer_effects, const char *json_file_addr) {
         }
     }
 
-    ret = 0;
-fail:
+    for (int i = 0; i < MAX_NB_TRACKS; i++) {
+        if (AudioSourceQueue_size(mixer_effects->sourceQueue[i]) > 0) {
+            ret = 0;
+            break;
+        } else {
+            ret = -1;
+        }
+    }
+
+    for (int i = 0; i < MAX_NB_TRACKS; i++) {
+        if (tracks_childs[i] != NULL) {
+            cJSON_Delete(tracks_childs[i]);
+        }
+    }
+    return ret;
+}
+
+int json_parse(MixerEffects *mixer_effects, const char *json_file_addr) {
+    int ret = -1;
+    if (!json_file_addr || !mixer_effects) {
+        return ret;
+    }
+
+    char *content = NULL;
+    cJSON *root_json = NULL;
+    cJSON *tracks[MAX_NB_TRACKS];
+    memset(tracks, 0, sizeof(tracks));
+
+    content = ae_read_file_to_string(json_file_addr);
+    if (NULL == content) {
+        ret = -1;
+        LogError("%s json_file_addr %s read file failed\n",
+            __func__, json_file_addr);
+        goto end;
+    }
+
+    root_json = cJSON_Parse(content);
+    if (root_json == NULL) {
+        LogError("%s cJSON_Parse failed\n", __func__);
+        ret = -1;
+        goto end;
+    }
+
+    bool is_web_json = false;
+    for (int i = 0; i < MAX_NB_TRACKS; i++) {
+        tracks[i] = cJSON_GetObjectItemCaseSensitive(
+            root_json, web_tracks_name[i]);
+        if (!tracks[i]) {
+            continue;
+        } else {
+            is_web_json = true;
+            break;
+        }
+    }
+
+    if (is_web_json) {
+        ret = web_json_parse(root_json, mixer_effects);
+    } else {
+        ret = phone_json_parse(root_json, mixer_effects);
+    }
+
+end:
     if (content != NULL)
     {
         free(content);
@@ -276,11 +430,6 @@ fail:
     if (root_json != NULL)
     {
         cJSON_Delete(root_json);
-    }
-    for (int i = 0; i < MAX_NB_TRACKS; i++) {
-        if (tracks_childs[i] != NULL) {
-            cJSON_Delete(tracks_childs[i]);
-        }
     }
     return ret;
 }

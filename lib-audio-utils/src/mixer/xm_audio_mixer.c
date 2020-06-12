@@ -133,7 +133,7 @@ static int get_pcm_from_decoder(AudioSource *source,
             buffer, buffer_size_in_short);
     } else {
         ret = IAudioDecoder_get_pcm_frame(source->decoder,
-            buffer, buffer_size_in_short, false);
+            buffer, buffer_size_in_short, source->is_loop);
     }
 
     return ret;
@@ -151,8 +151,17 @@ static IAudioDecoder *open_source_decoder(AudioSource *source,
     if (source->has_effects) {
         decoder_out_channels = DEFAULT_CHANNEL_NUMBER_1;
     }
-    decoder = audio_decoder_create(source->file_path, 0, 0,
-        dst_sample_rate, decoder_out_channels, source->volume, DECODER_FFMPEG);
+
+    enum DecoderType decoder_type = DECODER_NONE;
+    if (source->is_pcm) {
+        decoder_type = DECODER_PCM;
+    } else {
+        decoder_type = DECODER_FFMPEG;
+    }
+    decoder = audio_decoder_create(source->file_path,
+        source->sample_rate, source->nb_channels,
+        dst_sample_rate, decoder_out_channels,
+        source->volume, decoder_type);
     if (!decoder) {
         LogError("%s malloc source decoder failed.\n", __func__);
         return NULL;
@@ -628,9 +637,9 @@ int xm_audio_mixer_seekTo(XmMixerContext *ctx,
     ctx->cur_size = 0;
 
     int ret = -1;
-    if ((ret = web_json_parse(
+    if ((ret = json_parse(
             &(ctx->mixer_effects), ctx->in_config_path)) < 0) {
-        LogError("%s web_json_parse %s failed\n",
+        LogError("%s json_parse %s failed\n",
             __func__, ctx->in_config_path);
         return ret;
     }
@@ -767,8 +776,8 @@ int xm_audio_mixer_init(XmMixerContext *ctx,
         goto fail;
     }
 
-    if ((ret = web_json_parse(&(ctx->mixer_effects), in_config_path)) < 0) {
-        LogError("%s web_json_parse %s failed\n", __func__, in_config_path);
+    if ((ret = json_parse(&(ctx->mixer_effects), in_config_path)) < 0) {
+        LogError("%s json_parse %s failed\n", __func__, in_config_path);
         goto fail;
     }
 
