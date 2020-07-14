@@ -43,6 +43,7 @@ configure_ffmpeg() {
     --enable-cross-compile \
     --target-os=none \
     --arch=x86_64 \
+    --enable-x86asm \
     --cpu=generic \
     --enable-static
 
