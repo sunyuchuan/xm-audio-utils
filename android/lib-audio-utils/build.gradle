@@ -34,6 +34,9 @@ android {
     tasks.withType(JavaCompile) {
         compileTask -> compileTask.dependsOn ndkBuild
     }
+    lintOptions {
+        abortOnError false
+    }
 }
 
 //获取NDK目录路径

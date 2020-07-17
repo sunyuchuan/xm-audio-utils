@@ -132,7 +132,7 @@
     </LinearLayout>
 
     <TextView
-        android:id="@+id/tv_equalizer"
+        android:id="@+id/tv_audition"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:paddingTop="10dp"
