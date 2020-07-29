@@ -38,20 +38,6 @@ int main(int argc, char **argv) {
     if (ret < 0) goto end;
 
     LogWarning("%s", show_usage(ctx));
-
-    /******** set noise_suppression params(if not set, use default) ********/
-    set_effect(ctx, "low2mid_in_Hz", "4300", 0);
-    set_effect(ctx, "mid2high_in_Hz", "21500", 0);
-    set_effect(ctx, "all_band_gain_threshold", "0.0", 0);
-    set_effect(ctx, "low_gain", "1.0", 0);
-    set_effect(ctx, "mid_gain", "0.75", 0);
-    set_effect(ctx, "high_gain", "0.4", 0);
-    set_effect(ctx, "mid_freq_gain", "0.5", 0);
-    set_effect(ctx, "is_enhance_mid_freq", "0", 0);
-    /****************************************************/
-
-    set_effect(ctx, "return_max_nb_samples", "True", 0);
-
     // open noise_suppression switch
     set_effect(ctx, "Switch", "On", 0);
 

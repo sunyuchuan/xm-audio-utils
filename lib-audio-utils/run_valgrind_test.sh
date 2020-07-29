@@ -17,7 +17,7 @@ valgrind --leak-check=full --log-file=valgrind_log/test_logger.log ./tests/test_
 echo -e "\033[1;43;30m\ntest_beautify...\033[0m"
 valgrind --leak-check=full --log-file=valgrind_log/test_beautify.log ./tests/test_beautify ../data/pcm_mono_44kHz_0035.pcm test_beautify.pcm
 echo -e "\033[1;43;30m\ntest_noise_suppressionr...\033[0m"
-valgrind --leak-check=full --log-file=valgrind_log/test_noise_suppression.log ./tests/test_noise_suppression ../data/pcm_mono_44kHz_0035.pcm test_noise_suppression.pcm
+valgrind --leak-check=full --log-file=valgrind_log/test_noise_suppression.log ./tests/test_noise_suppression ../data/ns_input.pcm test_noise_suppression.pcm
 echo -e "\033[1;43;30m\ntest_volume_limiter...\033[0m"
 valgrind --leak-check=full --log-file=valgrind_log/test_volume_limiter.log ./tests/test_volume_limiter ../data/pcm_mono_44kHz_0035.pcm test_volume_limiter.pcm
 echo -e "\033[1;43;30m\ntest_reverb...\033[0m"

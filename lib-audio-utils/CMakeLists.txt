@@ -133,7 +133,10 @@ src/effects/beautify/multiband_compressor.c
 src/effects/beautify.c
 
 src/effects/math/junior_func.c
-src/effects/noise_suppression/noise_estimation.c
+src/effects/noise_suppression/ns/fft4g.c
+src/effects/noise_suppression/ns/splitting_filter.c
+src/effects/noise_suppression/ns/ns_core.c
+src/effects/noise_suppression/noise_suppression.c
 src/effects/noise_suppression.c
 src/effects/volume_limiter.c
 src/effects/voice_effect.c
