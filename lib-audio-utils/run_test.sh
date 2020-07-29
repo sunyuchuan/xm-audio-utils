@@ -20,7 +20,7 @@ echo -e "\033[1;43;30m\ntest_beautify...\033[0m"
 ./tests/test_beautify ../data/pcm_mono_44kHz_0035.pcm test_beautify.pcm
 
 echo -e "\033[1;43;30m\ntest_noise_suppression...\033[0m"
-./tests/test_noise_suppression ../data/pcm_mono_44kHz_0035.pcm test_noise_suppression.pcm
+./tests/test_noise_suppression ../data/ns_input.pcm test_noise_suppression.pcm
 
 echo -e "\033[1;43;30m\ntest_volume_limiter...\033[0m"
 ./tests/test_volume_limiter ../data/pcm_mono_44kHz_0035.pcm test_volume_limiter.pcm
