@@ -12,6 +12,7 @@
 #define JNI_CLASS_AUDIO_GENERATOR "com/xmly/audio/utils/XmAudioGenerator"
 
 extern void SetFFmpegLogLevel(int log_level);
+extern bool J4A_ExceptionCheck__catchAll(JNIEnv *env);
 
 typedef struct xm_audio_generator_fields_t {
     pthread_mutex_t mutex;

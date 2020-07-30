@@ -360,7 +360,7 @@ int xm_audio_utils_pcm_resampler_resample(
 }
 
 bool xm_audio_utils_pcm_resampler_init(
-    XmAudioUtils *self, char *in_audio_path, bool is_pcm, int src_sample_rate,
+    XmAudioUtils *self, const char *in_audio_path, bool is_pcm, int src_sample_rate,
     int src_nb_channels, double dst_sample_rate, int dst_nb_channels) {
     LogInfo("%s\n", __func__);
     if (!self || !in_audio_path
