@@ -5,6 +5,12 @@
 #ifndef AUDIO_EFFECT_ERROR_DEF_H_
 #define AUDIO_EFFECT_ERROR_DEF_H_
 
+enum GeneratorStatus {
+    GS_ERROR = -1,
+    GS_COMPLETED,
+    GS_STOPPED,
+};
+
 #define AUDIO_EFFECT_SUCCESS 0
 #define AUDIO_EFFECT_EOF -1
 #define AEERROR_NULL_POINT -1008

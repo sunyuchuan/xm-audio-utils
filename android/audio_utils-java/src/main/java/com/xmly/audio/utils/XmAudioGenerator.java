@@ -21,6 +21,10 @@ public class XmAudioGenerator {
     private static boolean mIsLibLoaded = false;
     //本地XmAudioGenerator对象
     private long mNativeXmAudioGenerator = 0;
+    //start接口的返回值类型 与本地的enum GeneratorStatus一一对应
+    public static final int GS_ERROR = -1;
+    public static final int GS_COMPLETED = 0;
+    public static final int GS_STOPPED = 1;
 
     private static final LibLoader sLocalLibLoader = new LibLoader() {
         @Override
@@ -90,7 +94,7 @@ public class XmAudioGenerator {
      * @param encoderType 编码器类型:
      *                    ENCODER_FFMPEG 软件编码
      *                    ENCODER_MEDIA_CODEC 硬件编码
-     * @return 小于0表示出错
+     * @return GS_ERROR GS_COMPLETED GS_STOPPED
      */
     public int start(String inConfigFilePath, String outM4aPath, int encoderType) {
         int ret = -1;

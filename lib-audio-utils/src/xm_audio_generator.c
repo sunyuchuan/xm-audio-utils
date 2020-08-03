@@ -19,7 +19,9 @@ struct XmAudioGenerator {
 static int chk_st_l(int state)
 {
     if (state == GENERATOR_STATE_INITIALIZED ||
-            state == GENERATOR_STATE_COMPLETED) {
+            state == GENERATOR_STATE_COMPLETED ||
+            state == GENERATOR_STATE_STOP ||
+            state == GENERATOR_STATE_ERROR) {
         return 0;
     }
 
@@ -119,6 +121,9 @@ void xm_audio_generator_stop(XmAudioGenerator *self) {
         return;
 
     xm_audio_mixer_stop(self->mixer_ctx);
+    pthread_mutex_lock(&self->mutex);
+    self->status = GENERATOR_STATE_STOP;
+    pthread_mutex_unlock(&self->mutex);
 }
 
 int xm_audio_generator_get_progress(XmAudioGenerator *self) {
@@ -128,27 +133,34 @@ int xm_audio_generator_get_progress(XmAudioGenerator *self) {
     return xm_audio_mixer_get_progress(self->mixer_ctx);
 }
 
-int xm_audio_generator_start(XmAudioGenerator *self,
-        const char *in_config_path, const char *out_file_path, int encode_type) {
+enum GeneratorStatus xm_audio_generator_start(
+    XmAudioGenerator *self, const char *in_config_path,
+    const char *out_file_path, int encode_type) {
     LogInfo("%s\n", __func__);
-    int ret = -1;
+    enum GeneratorStatus ret = GS_ERROR;
     if (!self || !in_config_path || !out_file_path) {
-        return ret;
+        return GS_ERROR;
     }
 
     if (chk_st_l(self->status) < 0) {
-        return AEERROR_INVALID_STATE;
+        return GS_ERROR;
     }
     pthread_mutex_lock(&self->mutex);
     self->status = GENERATOR_STATE_STARTED;
     pthread_mutex_unlock(&self->mutex);
 
-    if ((ret = mixer_mix(self, in_config_path, out_file_path, encode_type)) < 0) {
+    if (mixer_mix(self, in_config_path, out_file_path,
+        encode_type) < 0) {
         LogError("%s mixer_mix failed\n", __func__);
-        goto end;
+        ret = GS_ERROR;
+    } else {
+        ret = GS_COMPLETED;
     }
 
-end:
+    if ((self->status == GENERATOR_STATE_STOP)
+        && (ret == GS_COMPLETED)) {
+        ret = GS_STOPPED;
+    }
     pthread_mutex_lock(&self->mutex);
     self->status = GENERATOR_STATE_COMPLETED;
     pthread_mutex_unlock(&self->mutex);

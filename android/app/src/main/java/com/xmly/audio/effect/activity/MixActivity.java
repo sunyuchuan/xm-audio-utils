@@ -265,8 +265,11 @@ public class MixActivity extends AppCompatActivity implements View.OnClickListen
             public void run() {
                 JsonUtils.createOutputFile(encoderOutput);
                 long startTime = System.currentTimeMillis();
-                if (mAudioGenerator.start(config, encoderOutput, XmAudioUtils.ENCODER_FFMPEG) < 0) {
+                int ret = mAudioGenerator.start(config, encoderOutput, XmAudioUtils.ENCODER_FFMPEG);
+                if (ret == XmAudioGenerator.GS_ERROR) {
                     Log.e(TAG, "mix error");
+                } else if (ret == XmAudioGenerator.GS_STOPPED) {
+                    Log.w(TAG, "mix stopped");
                 }
                 long endTime = System.currentTimeMillis();
                 Log.i(TAG, "mix cost time "+(float)(endTime - startTime)/(float)1000);
