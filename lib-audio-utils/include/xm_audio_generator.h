@@ -6,8 +6,9 @@ typedef struct XmAudioGenerator XmAudioGenerator;
 #define GENERATOR_STATE_UNINIT  0
 #define GENERATOR_STATE_INITIALIZED  1
 #define GENERATOR_STATE_STARTED  2
-#define GENERATOR_STATE_COMPLETED  3
-#define GENERATOR_STATE_ERROR  4
+#define GENERATOR_STATE_STOP  3
+#define GENERATOR_STATE_COMPLETED  4
+#define GENERATOR_STATE_ERROR  5
 
 /**
  * @brief free XmAudioGenerator
@@ -43,10 +44,11 @@ int xm_audio_generator_get_progress(XmAudioGenerator *self);
  * @param self XmAudioGenerator
  * @param in_config_path Config file about audio mix parameter
  * @param out_file_path Output audio file path
- * @return Less than 0 means failure
+ * @return GeneratorStatus
  */
-int xm_audio_generator_start(XmAudioGenerator *self,
-    const char *in_config_path, const char *out_file_path);
+enum GeneratorStatus xm_audio_generator_start(
+    XmAudioGenerator *self, const char *in_config_path,
+    const char *out_file_path);
 
 /**
  * @brief create XmAudioGenerator
