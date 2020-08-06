@@ -4,6 +4,12 @@
 
 typedef struct XmAudioGenerator XmAudioGenerator;
 
+enum GeneratorStatus {
+    GS_ERROR = -1,
+    GS_COMPLETED,
+    GS_STOPPED,
+};
+
 #define GENERATOR_STATE_UNINIT  0
 #define GENERATOR_STATE_INITIALIZED  1
 #define GENERATOR_STATE_STARTED  2
