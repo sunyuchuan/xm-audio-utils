@@ -41,6 +41,12 @@ static int parse_voice_effects(cJSON *effects, VoiceEffects *voice_effects)
         } else if (0 == strcasecmp(name->valuestring, "Beautify")) {
             LogInfo("%s effect Beautify\n", __func__);
             voice_effects->effects_info[Beautify] = av_strdup(info->valuestring);
+        } else if (0 == strcasecmp(name->valuestring, "Minions")) {
+            LogInfo("%s effect Minions\n", __func__);
+            voice_effects->effects_info[Minions] = av_strdup(info->valuestring);
+        } else if (0 == strcasecmp(name->valuestring, "VoiceMorph")) {
+            LogInfo("%s effect VoiceMorph\n", __func__);
+            voice_effects->effects_info[VoiceMorph] = av_strdup(info->valuestring);
         } else if (0 == strcasecmp(name->valuestring, "Reverb")) {
             LogInfo("%s effect Reverb\n", __func__);
             voice_effects->effects_info[Reverb] = av_strdup(info->valuestring);

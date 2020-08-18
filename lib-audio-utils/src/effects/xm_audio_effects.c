@@ -74,6 +74,20 @@ static int voice_effects_init(XmEffectContext *ctx) {
                 init_effect(voice->effects[VolumeLimiter], 0, NULL);
                 set_effect(voice->effects[VolumeLimiter], "Switch", voice->effects_info[i], 0);
                 break;
+            case Minions:
+                voice->effects[Minions] = create_effect(find_effect("minions"),
+                        ctx->dst_sample_rate, ctx->dst_channels);
+                init_effect(voice->effects[Minions], 0, NULL);
+                set_effect(voice->effects[Minions], "Switch",
+                    voice->effects_info[i], 0);
+                break;
+            case VoiceMorph:
+                voice->effects[VoiceMorph] = create_effect(find_effect("voice_morph"),
+                        ctx->dst_sample_rate, ctx->dst_channels);
+                init_effect(voice->effects[VoiceMorph], 0, NULL);
+                set_effect(voice->effects[VoiceMorph], "mode",
+                    voice->effects_info[i], 0);
+                break;
             default:
                 LogWarning("%s unsupported effect %s\n", __func__, voice->effects_info[i]);
                 break;
