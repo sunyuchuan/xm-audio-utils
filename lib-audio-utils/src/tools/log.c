@@ -284,5 +284,6 @@ void AeSetLogMode(const LogMode mode) {
 void AeSetLogLevel(const LogLevel level) {
     pthread_mutex_lock(&self_log_lock);
     self_log_level = level;
+    SetFFmpegLogLevel(LOG_LEVEL_WARNING);
     pthread_mutex_unlock(&self_log_lock);
 }

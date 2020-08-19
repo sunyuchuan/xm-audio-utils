@@ -119,7 +119,7 @@ int OpenInputMediaFile(AVFormatContext** fmt_ctx, const char* filename) {
         goto end;
     }
 
-    av_dump_format(*fmt_ctx, 0, filename, 0);
+    //av_dump_format(*fmt_ctx, 0, filename, 0);
 
 end:
     return ret;
