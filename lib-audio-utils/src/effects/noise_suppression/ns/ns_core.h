@@ -113,6 +113,10 @@ typedef struct NSinst_t_ {
   short *shInH;
   short *shOutL;
   short *shOutH;
+  int filter_state1[6];
+  int filter_state12[6];
+  int Synthesis_state1[6];
+  int Synthesis_state12[6];
 } NSinst_t;
 
 
