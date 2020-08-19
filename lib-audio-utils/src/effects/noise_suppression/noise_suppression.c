@@ -105,15 +105,10 @@ static void NS_Process_H(NsHandle *pNS_inst,short *shBufferIn,short *shBufferOut
 	memset(p->shOutL, 0, BUFFER_LEN_320 * sizeof(short));
 	memset(p->shOutH, 0, BUFFER_LEN_320 * sizeof(short));
 
-	static int filter_state1[6] = { 0 };
-	static int filter_state12[6] = { 0 };
-	static int Synthesis_state1[6] = { 0 };
-	static int Synthesis_state12[6] = { 0 };
-
-	WebRtcSpl_AnalysisQMF(shBufferIn, p->shInL, p->shInH, filter_state1, filter_state12);
+	WebRtcSpl_AnalysisQMF(shBufferIn, p->shInL, p->shInH, p->filter_state1, p->filter_state12);
 	if (!Ns_Process_in(pNS_inst, p->shInL, p->shInH, p->shOutL, p->shOutH)) {
 		short tmpout[BUFFER_LEN_320] = { 0 };
-		WebRtcSpl_SynthesisQMF(p->shOutL, p->shOutH, tmpout, Synthesis_state1, Synthesis_state12);
+		WebRtcSpl_SynthesisQMF(p->shOutL, p->shOutH, tmpout, p->Synthesis_state1, p->Synthesis_state12);
 		memcpy(shBufferOut, tmpout, BUFFER_LEN_320 * sizeof(short));
 	}
 }
