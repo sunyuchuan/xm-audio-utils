@@ -95,8 +95,9 @@ public class EffectActivity extends AppCompatActivity implements View.OnClickLis
         mCapturer = new AudioCapturer();
         mCapturer.setOnAudioFrameCapturedListener(EffectActivity.this);
 
-        ((RadioGroup) findViewById(R.id.voice_group)).setOnCheckedChangeListener(this);
+        ((RadioGroup) findViewById(R.id.reverb_group)).setOnCheckedChangeListener(this);
         ((RadioGroup) findViewById(R.id.eq_group)).setOnCheckedChangeListener(this);
+        ((RadioGroup) findViewById(R.id.morph_group)).setOnCheckedChangeListener(this);
     }
 
     @Override
@@ -168,7 +169,7 @@ public class EffectActivity extends AppCompatActivity implements View.OnClickLis
                     return;
                 }
 
-                ret = mAudioUtils.add_effects_seekTo(10000);
+                ret = mAudioUtils.add_effects_seekTo(0);
                 if (ret < 0) {
                     Log.e(TAG, "add_effects_seekTo failed");
                     return;
@@ -377,20 +378,34 @@ public class EffectActivity extends AppCompatActivity implements View.OnClickLis
             addEffectsToMap("Reverb", "Church");
         } else if (checkedId == R.id.rb_echo_live) {
             addEffectsToMap("Reverb", "Live");
-        } else if (checkedId == R.id.rb_eq_none) {
+        } else if (checkedId == R.id.eq_none) {
             addEffectsToMap("Beautify", "None");
-        } else if (checkedId == R.id.rb_eq_clean_voice) {
+        } else if (checkedId == R.id.eq_clean_voice) {
             addEffectsToMap("Beautify", "CleanVoice");
-        } else if (checkedId == R.id.rb_eq_bass) {
+        } else if (checkedId == R.id.eq_bass) {
             addEffectsToMap("Beautify", "Bass");
-        } else if (checkedId == R.id.rb_eq_low_voice) {
+        } else if (checkedId == R.id.eq_low_voice) {
             addEffectsToMap("Beautify", "LowVoice");
-        } else if (checkedId == R.id.rb_eq_penetrating) {
+        } else if (checkedId == R.id.eq_penetrating) {
             addEffectsToMap("Beautify", "Penetrating");
-        } else if (checkedId == R.id.rb_eq_magnetic) {
+        } else if (checkedId == R.id.eq_magnetic) {
             addEffectsToMap("Beautify", "Magnetic");
-        } else if (checkedId == R.id.rb_eq_soft_pitch) {
+        } else if (checkedId == R.id.eq_soft_pitch) {
             addEffectsToMap("Beautify", "SoftPitch");
+        } else if (checkedId == R.id.morph_none) {
+            addEffectsToMap("VoiceMorph", "Original");
+        } else if (checkedId == R.id.morph_man) {
+            addEffectsToMap("VoiceMorph", "Man");
+            addEffectsToMap("Minions", "Off");
+        } else if (checkedId == R.id.morph_women) {
+            addEffectsToMap("VoiceMorph", "Women");
+            addEffectsToMap("Minions", "Off");
+        } else if (checkedId == R.id.morph_robot) {
+            addEffectsToMap("VoiceMorph", "Robot");
+            addEffectsToMap("Minions", "Off");
+        } else if (checkedId == R.id.morph_minions) {
+            addEffectsToMap("Minions", "On");
+            addEffectsToMap("VoiceMorph", "Original");
         }
     }
 

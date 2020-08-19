@@ -9,7 +9,7 @@
     tools:context=".MainActivity">
 
     <TextView
-        android:id="@+id/tv_morph_filter"
+        android:id="@+id/tv_mixer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="多轨合成实时处理"
@@ -27,7 +27,7 @@
     </LinearLayout>
 
     <TextView
-        android:id="@+id/tv_equalizer"
+        android:id="@+id/tv_generator"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:paddingTop="10dp"
@@ -56,7 +56,7 @@
     </LinearLayout>
 
     <TextView
-        android:id="@+id/fade_equalizer"
+        android:id="@+id/tv_fade"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:paddingTop="10dp"

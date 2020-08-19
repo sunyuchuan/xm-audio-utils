@@ -9,14 +9,14 @@
     tools:context=".MainActivity">
 
     <TextView
-        android:id="@+id/tv_morph_filter"
+        android:id="@+id/tv_reverb"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="混响特效"
         android:textSize="18sp" />
 
     <RadioGroup
-        android:id="@+id/voice_group"
+        android:id="@+id/reverb_group"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal">
@@ -59,7 +59,7 @@
         android:orientation="horizontal">
 
         <RadioButton
-            android:id="@+id/rb_eq_none"
+            android:id="@+id/eq_none"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -67,46 +67,97 @@
             android:text="原声" />
 
         <RadioButton
-            android:id="@+id/rb_eq_clean_voice"
+            android:id="@+id/eq_clean_voice"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="清晰" />
 
         <RadioButton
-            android:id="@+id/rb_eq_bass"
+            android:id="@+id/eq_bass"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="沉稳" />
 
         <RadioButton
-            android:id="@+id/rb_eq_low_voice"
+            android:id="@+id/eq_low_voice"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="低音" />
 
         <RadioButton
-            android:id="@+id/rb_eq_penetrating"
+            android:id="@+id/eq_penetrating"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="明亮" />
 
         <RadioButton
-            android:id="@+id/rb_eq_magnetic"
+            android:id="@+id/eq_magnetic"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="磁性" />
 
         <RadioButton
-            android:id="@+id/rb_eq_soft_pitch"
+            android:id="@+id/eq_soft_pitch"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="柔和" />
+    </RadioGroup>
+
+    <TextView
+        android:id="@+id/tv_morph"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingTop="10dp"
+        android:text="变声"
+        android:textSize="18sp" />
+
+    <RadioGroup
+        android:id="@+id/morph_group"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <RadioButton
+            android:id="@+id/morph_none"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:checked="true"
+            android:text="原声" />
+
+        <RadioButton
+            android:id="@+id/morph_man"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="男声" />
+
+        <RadioButton
+            android:id="@+id/morph_women"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="女声" />
+
+        <RadioButton
+            android:id="@+id/morph_robot"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="机器人" />
+
+        <RadioButton
+            android:id="@+id/morph_minions"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="小黄人" />
     </RadioGroup>
 
     <LinearLayout
@@ -168,7 +219,7 @@
     </LinearLayout>
 
     <TextView
-        android:id="@+id/utils_pcmtowav"
+        android:id="@+id/tv_pcmtowav"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:paddingTop="10dp"
