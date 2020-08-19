@@ -3,13 +3,13 @@
         { "file_path":"../data/side_chain_test.wav","volume":80,"cropStartTimeMs":118000,"cropEndTimeMs":150000,"startTimeMs":140000,"endTimeMs":200000,
             "effects": [
                 { "name":"NoiseSuppression","info":"On"},
-                { "name":"Beautify","info":"Magnetic"}
+                { "name":"Beautify","info":"CleanVoice"}
             ]
         },
         { "file_path":"../data/side_chain_test.wav","volume":80,"cropStartTimeMs":10000,"cropEndTimeMs":118000,"startTimeMs":10000,"endTimeMs":120000,
             "effects": [
                 { "name":"NoiseSuppression","info":"On"},
-                { "name":"Beautify","info":"Magnetic"}
+                { "name":"Beautify","info":"CleanVoice"}
             ]
         }
     ],

@@ -7,7 +7,7 @@ ROOT_DIR=$PWD
 BUILD_DIR=$ROOT_DIR/build
 FFMPEG_BUILD_DIR=$ROOT_DIR/../ffmpeg-3.4.7/build
 EM_TOOLCHAIN_FILE=/home/sunyc/work/emscripten/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake
-PTHREAD_FLAGS='-s USE_PTHREADS=1'
+PTHREAD_FLAGS='-s USE_PTHREADS=0'
 export CFLAGS=$PTHREAD_FLAGS
 export CPPFLAGS=$PTHREAD_FLAGS
 export LDFLAGS=$PTHREAD_FLAGS
@@ -35,15 +35,13 @@ build_audio_utils_js() {
     -I. -I${FFMPEG_BUILD_DIR}/include -I${BUILD_DIR}/install/include \
     -L${FFMPEG_BUILD_DIR}/lib  -L${BUILD_DIR}/install/lib \
     -I./src -I./src/effects \
-    -Qunused-arguments -Oz \
+    -Qunused-arguments -O2 \
     -o $2 src/tools/log.c src/xm_wav_utils.c src/xm_duration_parser.c src/xm_audio_utils.c src/xm_audio_generator.c src/xm_audio_transcode.c \
     -laudio_utils -lavfilter -lavformat -lavcodec -lswresample -lavutil \
     -Wno-deprecated-declarations -Wno-pointer-sign -Wno-implicit-int-float-conversion -Wno-switch -Wno-parentheses \
     -s USE_SDL=2 \
     $PTHREAD_FLAGS \
     -s INVOKE_RUN=0 \
-    -s PTHREAD_POOL_SIZE=8 \
-    -s PROXY_TO_PTHREAD=1 \
     -s SINGLE_FILE=$1 \
     -s EXTRA_EXPORTED_RUNTIME_METHODS="[ccall, cwrap, FS]" \
     -s TOTAL_MEMORY=67108864 \
