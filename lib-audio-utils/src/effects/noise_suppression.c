@@ -28,7 +28,7 @@ static int noise_suppression_close(EffectContext *ctx) {
     if (ctx->priv) {
         priv_t *priv = (priv_t *)ctx->priv;
         if (priv->ns) {
-            Ns_Free(priv->ns);
+            XmNs_Free(priv->ns);
             priv->ns = NULL;
         }
         if (priv->fifo_in) fifo_delete(&priv->fifo_in);
@@ -59,13 +59,13 @@ static int noise_suppression_init(EffectContext *ctx,
 
     int ret = 0;
 
-    if ((ret = Ns_Create(&priv->ns)) < 0) {
+    if ((ret = XmNs_Create(&priv->ns)) < 0) {
         goto end;
     }
-    if ((ret = Ns_Init(priv->ns, ctx->in_signal.sample_rate)) < 0) {
+    if ((ret = XmNs_Init(priv->ns, ctx->in_signal.sample_rate)) < 0) {
         goto end;
     }
-    if ((ret = Ns_set_policy(priv->ns, NS_MODE_LEVEL_3)) < 0) {
+    if ((ret = XmNs_set_policy(priv->ns, NS_MODE_LEVEL_3)) < 0) {
         goto end;
     }
 
@@ -143,7 +143,8 @@ static int noise_suppression_receive(EffectContext *ctx,
         while (fifo_occupancy(priv->fifo_in) > 0) {
             ret = fifo_read(priv->fifo_in, priv->in_buf, NB_SAMPLES);
             if (ret > 0) {
-                ret = NS_Process(priv->ns, priv->in_buf, ret, priv->out_buf, NB_SAMPLES);
+                ret = XmNS_Process(priv->ns, priv->in_buf, ret,
+                    priv->out_buf, NB_SAMPLES);
                 if (ret > 0)
                     fifo_write(priv->fifo_out, priv->out_buf, ret);
             }

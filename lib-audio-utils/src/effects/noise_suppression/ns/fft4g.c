@@ -302,7 +302,7 @@ static void dstsub(int n, float *a, int nc, float *c)
 #endif
 
 
-void WebRtc_cdft(int n, int isgn, float *a, int *ip, float *w)
+void XmWebRtc_cdft(int n, int isgn, float *a, int *ip, float *w)
 {
     if (n > (ip[0] << 2)) {
         makewt(n >> 2, ip, w);
@@ -321,7 +321,7 @@ void WebRtc_cdft(int n, int isgn, float *a, int *ip, float *w)
 }
 
 
-void WebRtc_rdft(int n, int isgn, float *a, int *ip, float *w)
+void XmWebRtc_rdft(int n, int isgn, float *a, int *ip, float *w)
 {
     int nw, nc;
     float xi;

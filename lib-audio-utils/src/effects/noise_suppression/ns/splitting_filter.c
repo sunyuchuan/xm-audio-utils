@@ -43,7 +43,7 @@ static const uint16_t WebRtcSpl_kAllPassFilter2[3] = {21333, 49062, 63010};
 //                            |data_length|
 //
 
-void WebRtcSpl_AllPassQMF(int32_t* in_data, int16_t data_length,
+static void WebRtcSpl_AllPassQMF(int32_t* in_data, int16_t data_length,
                           int32_t* out_data, const uint16_t* filter_coefficients,
                           int32_t* filter_state)
 {
@@ -116,7 +116,7 @@ void WebRtcSpl_AllPassQMF(int32_t* in_data, int16_t data_length,
     filter_state[5] = out_data[data_length - 1]; // y[N-1], becomes y[-1] next time
 }
 
-void WebRtcSpl_AnalysisQMF(const int16_t* in_data, int16_t* low_band,
+void XmWebRtcSpl_AnalysisQMF(const int16_t* in_data, int16_t* low_band,
                            int16_t* high_band, int32_t* filter_state1,
                            int32_t* filter_state2)
 {
@@ -155,7 +155,7 @@ void WebRtcSpl_AnalysisQMF(const int16_t* in_data, int16_t* low_band,
     }
 }
 
-void WebRtcSpl_SynthesisQMF(const int16_t* low_band, const int16_t* high_band,
+void XmWebRtcSpl_SynthesisQMF(const int16_t* low_band, const int16_t* high_band,
                             int16_t* out_data, int32_t* filter_state1,
                             int32_t* filter_state2)
 {
