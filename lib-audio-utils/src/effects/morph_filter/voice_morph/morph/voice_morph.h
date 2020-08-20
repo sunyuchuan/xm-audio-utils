@@ -38,6 +38,8 @@ typedef struct VoiceMorph {
     int rate_supervisor;
     int resample_initialized;
     refactor rebuild_factor;
+	float morph_factor;
+	bool robot_status;
 } VoiceMorph;
 
 /**************************************************************************

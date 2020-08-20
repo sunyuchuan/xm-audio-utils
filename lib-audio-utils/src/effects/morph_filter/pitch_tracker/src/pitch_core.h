@@ -13,7 +13,7 @@ float SelectBestPitchCand(float *intens_seq, float *freq_seq, short cand_num,
                           short *final_pitch_flag, float freq_min,
                           float freq_max, short pitch_ready,
                           float pitch_average,
-						  float *seg_pitch_primary, float *seg_pitch_new, float *pitch_cand_buf);
+						  float *seg_pitch_primary, float *seg_pitch_new, float *pitch_cand_buf,int *un_confidence);
 void LongTermPitchEsitmate(float best_cand, short *seg_counting_flag,
                            short *seg_pitch_count,
                            short *pitch_avail_inbuf_count,

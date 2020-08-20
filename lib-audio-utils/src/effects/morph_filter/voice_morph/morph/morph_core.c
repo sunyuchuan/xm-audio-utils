@@ -91,7 +91,6 @@ void copyRise(float *in, double tmin, double tmax, float *out, double tmaxTarget
 	imin = (long)ceil(tmin *SAMPLE_FREQUENCY) + 1;   //计算左时间边界的绝对采样点位置
 	if (imin < 1) imin = 1;
 	imax = (long)ceil(tmax*SAMPLE_FREQUENCY);   //计算右时间边界的绝对采样点位置
-	static long count_test = 0;
 
 	//imin = imax - (imax - imin)*formant_ratio;
 

@@ -154,10 +154,8 @@ int PitchTracker_Process(PitchTracker* self,
 	short local_peak_pos;
     int to_send_size;
 	int zero_pass_count = 0;
-	static int mute_count = 0;
 
 	short low_pass_buf[PITCH_FRAME_SHIFT] = { 0 };
-	static int count = 0;
     if (in_len < 0 || in == NULL || in_len > 3920) {
         return -1;
     }
@@ -182,7 +180,6 @@ int PitchTracker_Process(PitchTracker* self,
 
     // process data
     for (i = 0; i < shift_count; i++) {
-		count++;
         self->cand_num = 0;
         for (n = 0; n < (PITCH_FRAME_SHIFT - self->shift_buf_pos); n++) {
             d = ((float)in[n + in_pos]) * 0.000030517578f;
@@ -207,10 +204,10 @@ int PitchTracker_Process(PitchTracker* self,
 
 		zero_pass_count=zero_pass(self->frame_shift_buf, PITCH_FRAME_SHIFT);
 		local_peak = FindLocalPitchPeak(self->pitch_buf, PITCH_FRAME_SHIFT);
-		mute_count++;
+		self->mute_count++;
         if ((local_peak > self->local_peak_thrd) && zero_pass_count<200) {
 			self->local_peak_thrd = (self->local_peak_thrd*2*0.95+ local_peak * 0.05)*0.5;
-			mute_count = 0;
+			self->mute_count = 0;
             DedirectAndWindow(self->pitch_buf, PITCH_BUFFER_LENGTH, self->win_pitch_frame,
                                 &win_frame_len);
             AutoCorrelation(self->win_pitch_frame, self->autocorr_buf);
@@ -218,15 +215,15 @@ int PitchTracker_Process(PitchTracker* self,
                             self->max_lag, self->min_lag, self->voice_thrd, self->intens_thrd,
                             self->sample_rate, MAX_CAND_NUM, &self->cand_num, self->win_pitch_frame);
         }
-		if (mute_count == 100)
+		if (self->mute_count == 100)
 		{
 			self->local_peak_thrd = self->local_peak_thrd * 0.5;
-			mute_count = 0;
+			self->mute_count = 0;
 		}
         best_cand = SelectBestPitchCand(
             self->intensity_cand_seq, self->freq_cand_seq, self->cand_num, &self->prev_pitch,
             &self->successive_confidence, &self->last_pitch_flag, self->min_freq, self->max_freq,
-            self->long_term_pitch_ready, self->long_term_pitch, seg_pitch_primary,seg_pitch_new, self->pitch_cand_buf);
+            self->long_term_pitch_ready, self->long_term_pitch, seg_pitch_primary,seg_pitch_new, self->pitch_cand_buf, &self->un_confidence);
 		//peak_avg = Peak_avg_update(best_cand, &peak_count, peak_record, local_peak, &peak_sum);
         self->pitch_cand_buf[self->pitch_cand_buf_len] = best_cand;
         self->pitch_cand_buf_len++;

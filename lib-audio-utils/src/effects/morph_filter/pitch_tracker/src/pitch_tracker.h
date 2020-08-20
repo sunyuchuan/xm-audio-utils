@@ -37,6 +37,8 @@ typedef struct PitchTracker {
     float peak_sum;
     short peak_count;
     float peak_avg;
+	int mute_count;
+	int un_confidence;
 } PitchTracker;
 
 PitchTracker* PitchTracker_Create();

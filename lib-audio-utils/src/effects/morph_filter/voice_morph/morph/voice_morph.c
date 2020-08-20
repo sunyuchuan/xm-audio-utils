@@ -141,11 +141,9 @@ int VoiceMorph_Process(VoiceMorph *self, void *raw, short in_size,
 	short i, k, j, total_len,
         shift_count = 0, in_pos = 0, res_len, swr_total_len, swr_res_len,
         swr_outsize, loop_count, buf_pos = 0, in_len, *in = (short *)raw;
-	static float morph_factor = 0;
-	static bool robot_status = 0;
 	int output_size_rsmp = 0;
 	char morph_out_rsmp[10000] = { 0 };
-	if ((morph_factor != 0 && morph_factor != self->formant_ratio) || (morph_factor != 0 && robot_status != robot))
+	if ((self->morph_factor != 0 && self->morph_factor != self->formant_ratio) || (self->morph_factor != 0 && self->robot_status != robot))
 	{
 		int link_out_size = 0;
 		memset(self->seg_pitch_primary, 0, sizeof(float) * 7);
@@ -175,13 +173,12 @@ int VoiceMorph_Process(VoiceMorph *self, void *raw, short in_size,
 		*morph_out_size += link_out_size * 2;
 		memset(morph_out, 0, *morph_out_size);
 	}
-	morph_factor = self->formant_ratio;
-	robot_status = robot;
+	self->morph_factor = self->formant_ratio;
+	self->robot_status = robot;
     int src_rate = (int)(LOCAL_SAMPLE_RATE_FLOAT * self->formant_ratio);
     if (in_size < 0) {
         return -1;
     }
-	static long test_count = 0;
     in_len = in_size >> 1;
 
     if (PitchTracker_Process(self->pitch, in, in_len, self->morph_inbuf_float,
