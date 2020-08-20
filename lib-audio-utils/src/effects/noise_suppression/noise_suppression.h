@@ -39,7 +39,7 @@ typedef enum NsMode {
  * Return value         :  0 - Ok
  *                        -1 - Error
  */
-int Ns_Create(NsHandle** NS_inst);
+int XmNs_Create(NsHandle** NS_inst);
 
 
 /*
@@ -52,7 +52,7 @@ int Ns_Create(NsHandle** NS_inst);
  * Return value         :  0 - Ok
  *                        -1 - Error
  */
-int Ns_Free(NsHandle* NS_inst);
+int XmNs_Free(NsHandle* NS_inst);
 
 
 /*
@@ -69,7 +69,7 @@ int Ns_Free(NsHandle* NS_inst);
  * Return value         :  0 - Ok
  *                        -1 - Error
  */
-int Ns_Init(NsHandle* NS_inst, uint32_t fs);
+int XmNs_Init(NsHandle* NS_inst, uint32_t fs);
 
 
 /*
@@ -85,7 +85,7 @@ int Ns_Init(NsHandle* NS_inst, uint32_t fs);
  * Return value         :  0 - Ok
  *                        -1 - Error
  */
-int Ns_set_policy(NsHandle* NS_inst, enum NsMode mode);
+int XmNs_set_policy(NsHandle* NS_inst, enum NsMode mode);
 
 
 /*
@@ -103,7 +103,7 @@ int Ns_set_policy(NsHandle* NS_inst, enum NsMode mode);
  * Return value         : The length of the data obtained
  *                        Less than 0 - Error or in_len < 80
  */
-int NS_Process(NsHandle *pNS_inst, short *shBufferIn, int in_len,
+int XmNS_Process(NsHandle *pNS_inst, short *shBufferIn, int in_len,
     short *shBufferOut, int out_len);
 
 
@@ -120,7 +120,7 @@ int NS_Process(NsHandle *pNS_inst, short *shBufferIn, int in_len,
  * Return value         : The length of the data obtained
  *                        Less than 0 - end
  */
-int Ns_Flush(NsHandle *pNS_inst, short *shBufferOut, int out_len);
+int XmNs_Flush(NsHandle *pNS_inst, short *shBufferOut, int out_len);
 
 
 #ifdef __cplusplus

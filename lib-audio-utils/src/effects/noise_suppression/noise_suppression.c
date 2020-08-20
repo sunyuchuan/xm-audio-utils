@@ -20,31 +20,30 @@
 #define BUFFER_LEN_320 320
 #define BUFFER_LEN_160 160
 
-int Ns_Create(NsHandle** NS_inst) {
+int XmNs_Create(NsHandle** NS_inst) {
 	*NS_inst = (NsHandle*) calloc(1, sizeof(NSinst_t));
 	if (*NS_inst != NULL) {
-		(*(NSinst_t**)NS_inst)->initFlag = 0;
-		int size = BUFFER_LEN_320 * sizeof(short);
-		(*(NSinst_t**)NS_inst)->shInL = (short *)calloc(1, size);
-		(*(NSinst_t**)NS_inst)->shInH = (short *)calloc(1, size);
-		(*(NSinst_t**)NS_inst)->shOutL = (short *)calloc(1, size);
-		(*(NSinst_t**)NS_inst)->shOutH = (short *)calloc(1, size);
-		return 0;
-	}
+        (*(NSinst_t**)NS_inst)->initFlag = 0;
+        int size = BUFFER_LEN_320 * sizeof(short);
+        (*(NSinst_t**)NS_inst)->shInL = (short *)calloc(1, size);
+        (*(NSinst_t**)NS_inst)->shInH = (short *)calloc(1, size);
+        (*(NSinst_t**)NS_inst)->shOutL = (short *)calloc(1, size);
+        (*(NSinst_t**)NS_inst)->shOutH = (short *)calloc(1, size);
+        return 0;
+    }
 
 	return -1;
 }
 
-int Ns_Init(NsHandle* NS_inst, uint32_t fs) {
+int XmNs_Init(NsHandle* NS_inst, uint32_t fs) {
 	return WebRtcNs_InitCore((NSinst_t *) NS_inst, fs);
 }
 
-int Ns_set_policy(NsHandle* NS_inst, enum NsMode mode) {
+int XmNs_set_policy(NsHandle* NS_inst, enum NsMode mode) {
 	return WebRtcNs_set_policy_core((NSinst_t *) NS_inst, mode);
 }
 
-int Ns_Flush(NsHandle *pNS_inst,short *shBufferOut, int out_len)
-{
+int XmNs_Flush(NsHandle *pNS_inst,short *shBufferOut, int out_len) {
 	int ret = 0;
 	NSinst_t *p = (NSinst_t *)pNS_inst;
 	short *data = NULL;
@@ -61,7 +60,7 @@ int Ns_Flush(NsHandle *pNS_inst,short *shBufferOut, int out_len)
 	return ret;
 }
 
-int Ns_Free(NsHandle* NS_inst) {
+int XmNs_Free(NsHandle* NS_inst) {
 	NSinst_t *p = (NSinst_t *)NS_inst;
 	if (p->f_in) fifo_delete(&(p->f_in));
 	if (p->f_out) fifo_delete(&(p->f_out));
@@ -91,30 +90,32 @@ int Ns_Free(NsHandle* NS_inst) {
  * Return value         :  0 - OK
  *                        -1 - Error
  */
-static int Ns_Process_in(NsHandle* NS_inst, short* spframe, short* spframe_H,
-        short* outframe, short* outframe_H) {
+static int Ns_Process_in(NsHandle* NS_inst, short* spframe,
+	short* spframe_H, short* outframe, short* outframe_H) {
 	return WebRtcNs_ProcessCore(
 		(NSinst_t*) NS_inst, spframe, spframe_H, outframe, outframe_H);
 }
 
-static void NS_Process_H(NsHandle *pNS_inst,short *shBufferIn,short *shBufferOut)
-{
+static void NS_Process_H(NsHandle *pNS_inst,
+	short *shBufferIn, short *shBufferOut) {
 	NSinst_t *p = (NSinst_t *)pNS_inst;
 	memset(p->shInL, 0, BUFFER_LEN_320 * sizeof(short));
 	memset(p->shInH, 0, BUFFER_LEN_320 * sizeof(short));
 	memset(p->shOutL, 0, BUFFER_LEN_320 * sizeof(short));
 	memset(p->shOutH, 0, BUFFER_LEN_320 * sizeof(short));
 
-	WebRtcSpl_AnalysisQMF(shBufferIn, p->shInL, p->shInH, p->filter_state1, p->filter_state12);
+	XmWebRtcSpl_AnalysisQMF(shBufferIn, p->shInL, p->shInH,
+		p->filter_state1, p->filter_state12);
 	if (!Ns_Process_in(pNS_inst, p->shInL, p->shInH, p->shOutL, p->shOutH)) {
 		short tmpout[BUFFER_LEN_320] = { 0 };
-		WebRtcSpl_SynthesisQMF(p->shOutL, p->shOutH, tmpout, p->Synthesis_state1, p->Synthesis_state12);
+		XmWebRtcSpl_SynthesisQMF(p->shOutL, p->shOutH,
+			tmpout, p->Synthesis_state1, p->Synthesis_state12);
 		memcpy(shBufferOut, tmpout, BUFFER_LEN_320 * sizeof(short));
 	}
 }
 
 static void NS_Process_L(NsHandle *pNS_inst,
-		short *shBufferIn, short *shBufferOut, int in_size) {
+	short *shBufferIn, short *shBufferOut, int in_size) {
 	NSinst_t *p = (NSinst_t *)pNS_inst;
 	memset(p->shInL, 0, BUFFER_LEN_320 * sizeof(short));
 	memset(p->shInH, 0, BUFFER_LEN_320 * sizeof(short));
@@ -128,9 +129,8 @@ static void NS_Process_L(NsHandle *pNS_inst,
 	}
 }
 
-int NS_Process(NsHandle *pNS_inst, short *shBufferIn,
-		int in_len, short *shBufferOut, int out_len)
-{
+int XmNS_Process(NsHandle *pNS_inst, short *shBufferIn,
+	int in_len, short *shBufferOut, int out_len) {
 	int ret = 0;
 	short buffer_in[BUFFER_LEN_320] = { 0 };
 	short buffer_out[BUFFER_LEN_320] = { 0 };
