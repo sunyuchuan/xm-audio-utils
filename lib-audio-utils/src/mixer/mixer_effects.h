@@ -11,6 +11,7 @@ typedef struct MixerEffects {
     int nb_tracks;
     AudioSource *source[MAX_NB_TRACKS];
     AudioSourceQueue *sourceQueue[MAX_NB_TRACKS];
+    AudioSourceQueue *sourceQueueBackup[MAX_NB_TRACKS];
 } MixerEffects;
 
 #endif

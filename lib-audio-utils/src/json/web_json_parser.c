@@ -309,6 +309,12 @@ static int phone_json_parse(cJSON *json, MixerEffects *mixer_effects) {
             cJSON_Delete(tracks_childs[i]);
         }
     }
+    if (ret >= 0) {
+        for (int i = 0; i < MAX_NB_TRACKS; i++) {
+            AudioSourceQueue_copy(mixer_effects->sourceQueue[i],
+                mixer_effects->sourceQueueBackup[i]);
+        }
+    }
     return ret;
 }
 
@@ -373,6 +379,13 @@ static int web_json_parse(cJSON *json, MixerEffects *mixer_effects) {
     for (int i = 0; i < MAX_NB_TRACKS; i++) {
         if (tracks_childs[i] != NULL) {
             cJSON_Delete(tracks_childs[i]);
+        }
+    }
+
+    if (ret >= 0) {
+        for (int i = 0; i < MAX_NB_TRACKS; i++) {
+            AudioSourceQueue_copy(mixer_effects->sourceQueue[i],
+                mixer_effects->sourceQueueBackup[i]);
         }
     }
     return ret;

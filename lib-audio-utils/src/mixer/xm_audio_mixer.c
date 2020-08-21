@@ -61,6 +61,9 @@ static void mixer_effects_free(MixerEffects *mixer) {
         if (mixer->sourceQueue[i]) {
             AudioSourceQueue_freep(&mixer->sourceQueue[i]);
         }
+        if (mixer->sourceQueueBackup[i]) {
+            AudioSourceQueue_freep(&mixer->sourceQueueBackup[i]);
+        }
     }
 }
 
@@ -110,7 +113,14 @@ static int mixer_effects_init(MixerEffects *mixer) {
 
         mixer->sourceQueue[i] = AudioSourceQueue_create();
         if (NULL == mixer->sourceQueue[i]) {
-            LogError("%s alloc AudioSourceQueue failed.\n", __func__);
+            LogError("%s alloc sourceQueue failed.\n", __func__);
+            ret = -1;
+            goto fail;
+        }
+
+        mixer->sourceQueueBackup[i] = AudioSourceQueue_create();
+        if (NULL == mixer->sourceQueueBackup[i]) {
+            LogError("%s alloc sourceQueueBackup failed.\n", __func__);
             ret = -1;
             goto fail;
         }
@@ -636,20 +646,15 @@ int xm_audio_mixer_seekTo(XmMixerContext *ctx,
     if (ctx->audio_fifo) fifo_clear(ctx->audio_fifo);
     ctx->cur_size = 0;
 
-    int ret = -1;
-    if ((ret = json_parse(
-            &(ctx->mixer_effects), ctx->in_config_path)) < 0) {
-        LogError("%s json_parse %s failed\n",
-            __func__, ctx->in_config_path);
-        return ret;
-    }
-
     for (int i = 0; i < MAX_NB_TRACKS; i++) {
+        AudioSourceQueue_copy(
+            ctx->mixer_effects.sourceQueueBackup[i],
+            ctx->mixer_effects.sourceQueue[i]);
         audio_source_seekTo(ctx->mixer_effects.sourceQueue[i],
             ctx->mixer_effects.source[i], ctx->dst_sample_rate,
             ctx->dst_channels, ctx->seek_time_ms);
     }
-    return ret;
+    return 0;
 }
 
 static int xm_audio_mixer_mix_l(XmMixerContext *ctx,
