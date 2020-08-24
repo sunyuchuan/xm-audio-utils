@@ -8,6 +8,7 @@
 #include "libavcodec/avcodec.h"
 #include "error_def.h"
 #include "log.h"
+#include "codec/ffmpeg_utils.h"
 
 typedef struct Encoder_Opaque {
     AVCodecContext *codec_ctx;
@@ -33,6 +34,10 @@ static int sw_encoder_config(Encoder *encoder, AVDictionary *opt) {
                 break;
             } else if (!strcasecmp(e->value, MIME_AUDIO_AAC)){
                 codec_id = AV_CODEC_ID_AAC;
+                opaque->type = FF_AVMEDIA_TYPE_AUDIO;
+                break;
+            } else if (!strcasecmp(e->value, MIME_AUDIO_WAV)){
+                codec_id = AV_CODEC_ID_PCM_S16LE;
                 opaque->type = FF_AVMEDIA_TYPE_AUDIO;
                 break;
             } else {
@@ -145,7 +150,12 @@ static int sw_encoder_config(Encoder *encoder, AVDictionary *opt) {
             LogError("Could not allocate frame%s.\n", av_err2str(ret));
             goto fail;
         }
-        opaque->frame->nb_samples     = ctx->frame_size;
+        if (ctx->codec->capabilities & AV_CODEC_CAP_VARIABLE_FRAME_SIZE) {
+            opaque->frame->nb_samples = FRAME_SIZE;
+            opaque->frame_byte_size = FRAME_SIZE * ctx->channels * av_get_bytes_per_sample(AV_SAMPLE_FMT_S16);
+        } else {
+            opaque->frame->nb_samples = ctx->frame_size;
+        }
         opaque->frame->format         = ctx->sample_fmt;
         opaque->frame->channel_layout = ctx->channel_layout;
         ret = av_frame_get_buffer(opaque->frame, 0);
@@ -171,10 +181,16 @@ static int sw_encoder_get_frame_size(Encoder *encoder)
     return opaque->frame_byte_size;
 }
 
-static void S16toFLTP(int16_t* in, float** out, int size)
+static void S16toFLTP(int16_t* in, float** out, int size, int out_channels)
 {
     for (int i = 0; i < size; i++) {
-        ((float**)out)[i % 2][i >> 1] = (float)(in[i]) / 32768.0f;
+        if (out_channels == 2) {
+            ((float**)out)[i % 2][i >> 1] = (float)(in[i]) / 32768.0f;
+        } else if (out_channels == 1) {
+            ((float**)out)[0][i] = (float)(in[i]) / 32768.0f;
+        } else {
+            LogError("out_channels invalid.\n");
+        }
     }
 }
 
@@ -184,11 +200,16 @@ static int sw_encoder_encode_frame(Encoder *encoder, AVFrame *frame, AVPacket *p
     int ret = -1;
     if (opaque->type == FF_AVMEDIA_TYPE_AUDIO) {
         if (frame != NULL && frame->format == AV_SAMPLE_FMT_S16) {
-            AVFrame *floatframe = opaque->frame;
-            S16toFLTP((int16_t *)frame->data[0], (float **)floatframe->data, ctx->frame_size * ctx->channels);
-            floatframe->format = AV_SAMPLE_FMT_FLTP;
-            floatframe->pts = frame->pts;
-            ret = avcodec_encode_audio2(ctx, pkt, floatframe, got_packet_ptr);
+            if (opaque->codec->id == AV_CODEC_ID_PCM_S16LE) {
+                ret = avcodec_encode_audio2(ctx, pkt, frame, got_packet_ptr);
+            } else {
+                AVFrame *floatframe = opaque->frame;
+                S16toFLTP((int16_t *)frame->data[0], (float **)floatframe->data,
+                    ctx->frame_size * ctx->channels, ctx->channels);
+                floatframe->format = AV_SAMPLE_FMT_FLTP;
+                floatframe->pts = frame->pts;
+                ret = avcodec_encode_audio2(ctx, pkt, floatframe, got_packet_ptr);
+            }
         } else {
             ret = avcodec_encode_audio2(ctx, pkt, frame, got_packet_ptr);
         }

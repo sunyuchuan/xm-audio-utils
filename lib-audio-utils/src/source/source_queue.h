@@ -1,8 +1,25 @@
 #include "audio_source_queue.h"
-#include "audio_record_source_queue.h"
 #include <stdlib.h>
 #include <string.h>
 #include "log.h"
+#include <limits.h>
+
+static size_t max_alloc_size = INT_MAX;
+
+static void *av_realloc(void *ptr, size_t size) {
+    if (size > (max_alloc_size - 32)) return NULL;
+    return realloc(ptr, size + !size);
+}
+
+static char *av_strdup(const char *s) {
+    char *ptr = NULL;
+    if (s) {
+        size_t len = strlen(s) + 1;
+        ptr = av_realloc(NULL, len);
+        if (ptr) memcpy(ptr, s, len);
+    }
+    return ptr;
+}
 
 #define DECLARE_FUNC_IS_VALID(n)                            \
 static bool n##_isValid(n *source)                          \
@@ -11,6 +28,35 @@ static bool n##_isValid(n *source)                          \
         return false;                                       \
                                                             \
     return true;                                            \
+}                                                           \
+
+#define DECLARE_FUNC_COPY(n)                                \
+void n##Queue_copy(n##Queue *src, n##Queue *dst)            \
+{                                                           \
+    if(!src || !dst)                                        \
+        return;                                             \
+                                                            \
+    n##List *sourceList, *next;                             \
+    n source;                                               \
+    n##Queue_flush(dst);                                    \
+                                                            \
+    for(sourceList = src->mFirst; sourceList != NULL;       \
+            sourceList = next) {                            \
+        pthread_mutex_lock(&src->mLock);                    \
+        next = sourceList->next;                            \
+        source = sourceList->source;                        \
+        source.file_path =                                  \
+            av_strdup(sourceList->source.file_path);        \
+        for(int i = 0; i < MAX_NB_EFFECTS; ++i) {           \
+            source.effects_info[i] =                        \
+                av_strdup(sourceList->source.effects_info[i]);\
+        }                                                   \
+        source.buffer.buffer = NULL;                        \
+        source.decoder = NULL;                              \
+        source.effects_ctx = NULL;                          \
+        pthread_mutex_unlock(&src->mLock);                  \
+        n##Queue_put(dst, &source);                         \
+    }                                                       \
 }                                                           \
 
 #define DECLARE_FUNC_GET_END_TIME_MS(n)                     \

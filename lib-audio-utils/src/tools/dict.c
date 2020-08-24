@@ -176,7 +176,7 @@ int ae_dict_copy(AEDictionary **dst, const AEDictionary *src, int flags) {
     return 0;
 }
 
-int avpriv_dict_set_timestamp(AEDictionary **dict, const char *key,
+int aepriv_dict_set_timestamp(AEDictionary **dict, const char *key,
                               int64_t timestamp) {
     time_t seconds = timestamp / 1000000;
     struct tm *ptm, tmbuf;

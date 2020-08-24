@@ -57,6 +57,7 @@ void RegisterFFmpeg() {
     if (!init) {
         init = true;
         av_register_all();
+        avformat_network_init();
     }
 }
 
@@ -358,6 +359,9 @@ int FindAndOpenAudioEncoder(AVCodecContext** enc_ctx,
         LogError("Could not open output codec(%s), error code(%d)\n",
                 av_err2str(ret), ret);
         goto end;
+    }
+    if (codec->capabilities & AV_CODEC_CAP_VARIABLE_FRAME_SIZE) {
+        (*enc_ctx)->frame_size = FRAME_SIZE;
     }
 
 end:

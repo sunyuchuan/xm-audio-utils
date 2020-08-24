@@ -13,6 +13,7 @@
 #ifndef MAX_NB_SAMPLES
 #define MAX_NB_SAMPLES 1024
 #endif
+#define FRAME_SIZE 1024
 
 extern void SetFFmpegLogLevel(int log_level);
 

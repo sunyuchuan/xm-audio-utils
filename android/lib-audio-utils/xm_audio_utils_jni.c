@@ -92,10 +92,6 @@ XMAudioUtils_get_effects_frame(JNIEnv *env, jobject thiz,
 
     jshort *buffer_ = (*env)->GetShortArrayElements(env, buffer, NULL);
     switch(action_type) {
-        case ADD_EFFECTS:
-            ret = xm_audio_utils_effect_get_frame(ctx, buffer_,
-                buffer_size_in_short);
-            break;
         case MIXER_MIX:
             ret = xm_audio_utils_mixer_get_frame(ctx, buffer_,
                 buffer_size_in_short);
@@ -121,9 +117,6 @@ XMAudioUtils_effects_seekTo(JNIEnv *env, jobject thiz,
     JNI_CHECK_GOTO(ctx, env, "java/lang/IllegalStateException", "AUjni: mixer seekTo: null ctx", LABEL_RETURN);
 
     switch(action_type) {
-        case ADD_EFFECTS:
-            ret = xm_audio_utils_effect_seekTo(ctx, seekTimeMs);
-            break;
         case MIXER_MIX:
             ret = xm_audio_utils_mixer_seekTo(ctx, seekTimeMs);
             break;
@@ -151,9 +144,6 @@ XMAudioUtils_effects_init(JNIEnv *env, jobject thiz,
         in_config_path = (*env)->GetStringUTFChars(env, inConfigFilePath, 0);
 
     switch(action_type) {
-        case ADD_EFFECTS:
-            ret = xm_audio_utils_effect_init(ctx, in_config_path);
-            break;
         case MIXER_MIX:
             ret = xm_audio_utils_mixer_init(ctx, in_config_path);
             break;

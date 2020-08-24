@@ -9,7 +9,6 @@
 #include "codec/audio_decoder_factory.h"
 #include "mixer/fade_in_out.h"
 #include "mixer/xm_audio_mixer.h"
-#include "effects/xm_audio_effects.h"
 
 typedef struct PcmResampler {
     int src_sample_rate;
@@ -34,7 +33,6 @@ typedef struct Fade {
 struct XmAudioUtils {
     volatile int ref_count;
     IAudioDecoder *decoder;
-    XmEffectContext *effects_ctx;
     XmMixerContext *mixer_ctx;
     Fade *fade;
     PcmResampler *pcm_resampler;
@@ -103,10 +101,6 @@ void xm_audio_utils_free(XmAudioUtils *self) {
         xm_audio_mixer_stop(self->mixer_ctx);
         xm_audio_mixer_freep(&(self->mixer_ctx));
     }
-    if (self->effects_ctx) {
-        xm_audio_effect_stop(self->effects_ctx);
-        xm_audio_effect_freep(&(self->effects_ctx));
-    }
 }
 
 void xm_audio_utils_freep(XmAudioUtils **au) {
@@ -119,54 +113,6 @@ void xm_audio_utils_freep(XmAudioUtils **au) {
     pthread_mutex_destroy(&self->mutex);
     free(*au);
     *au = NULL;
-}
-
-int xm_audio_utils_effect_get_frame(XmAudioUtils *self,
-    short *buffer, int buffer_size_in_short) {
-    if (!self || !buffer || buffer_size_in_short <= 0) {
-        return -1;
-    }
-
-    return xm_audio_effect_get_frame(self->effects_ctx,
-        buffer, buffer_size_in_short);
-}
-
-int xm_audio_utils_effect_seekTo(XmAudioUtils *self,
-    int seek_time_ms) {
-    LogInfo("%s seek_time_ms %d\n", __func__, seek_time_ms);
-    if (!self) {
-        return -1;
-    }
-
-    return xm_audio_effect_seekTo(self->effects_ctx, seek_time_ms);
-}
-
-int xm_audio_utils_effect_init(XmAudioUtils *self,
-        const char *in_config_path) {
-    LogInfo("%s\n", __func__);
-    int ret = -1;
-    if (!self || !in_config_path) {
-        return -1;
-    }
-
-    xm_audio_effect_stop(self->effects_ctx);
-    xm_audio_effect_freep(&(self->effects_ctx));
-
-    self->effects_ctx = xm_audio_effect_create();
-    if (!self->effects_ctx) {
-        LogError("%s xm_audio_effect_create failed\n", __func__);
-        ret = -1;
-        goto end;
-    }
-
-    ret = xm_audio_effect_init(self->effects_ctx, in_config_path);
-    if (ret < 0) {
-        LogError("%s xm_audio_effect_init failed\n", __func__);
-        goto end;
-    }
-
-end:
-    return ret;
 }
 
 int xm_audio_utils_mixer_get_frame(XmAudioUtils *self,

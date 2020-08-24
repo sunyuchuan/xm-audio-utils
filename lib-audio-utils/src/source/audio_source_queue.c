@@ -1,6 +1,7 @@
 #include "source_queue.h"
 
 DECLARE_FUNC_IS_VALID(AudioSource)
+DECLARE_FUNC_COPY(AudioSource)
 DECLARE_FUNC_GET_END_TIME_MS(AudioSource)
 DECLARE_FUNC_BUBBLE_SORT(AudioSource)
 DECLARE_FUNC_SIZE(AudioSource)

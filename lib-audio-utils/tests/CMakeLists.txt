@@ -35,20 +35,11 @@ target_link_libraries(test_wav_crop ${PROJECT_NAME})
 add_executable(test_wav_concat test_wav_concat.c)
 target_link_libraries(test_wav_concat ${PROJECT_NAME})
 
-add_executable(test_xm_audio_effects test_xm_audio_effects.c)
-target_link_libraries(test_xm_audio_effects ${PROJECT_NAME} m pthread)
-
-add_executable(test_xm_audio_mixer test_xm_audio_mixer.c)
-target_link_libraries(test_xm_audio_mixer ${PROJECT_NAME} m pthread)
-
 add_executable(test_xm_audio_utils_decode test_xm_audio_utils_decode.c)
 target_link_libraries(test_xm_audio_utils_decode ${PROJECT_NAME} m pthread)
 
 add_executable(test_xm_audio_utils_mix test_xm_audio_utils_mix.c)
 target_link_libraries(test_xm_audio_utils_mix ${PROJECT_NAME} m pthread)
-
-add_executable(test_xm_audio_utils_effects test_xm_audio_utils_effects.c)
-target_link_libraries(test_xm_audio_utils_effects ${PROJECT_NAME} m pthread)
 
 add_executable(test_xm_audio_generator test_xm_audio_generator.c)
 target_link_libraries(test_xm_audio_generator ${PROJECT_NAME} m pthread)

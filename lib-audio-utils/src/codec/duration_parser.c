@@ -8,9 +8,14 @@
 
 #define fftime_to_milliseconds(ts) (av_rescale(ts, 1000, AV_TIME_BASE))
 
+extern void RegisterFFmpeg();
+
 int get_audio_file_duration_ms(const char *file_addr) {
     int ret = -1;
     if (!file_addr) return -1;
+    LogInfo("%s file_addr %s.\n", __func__, file_addr);
+
+    RegisterFFmpeg();
 
     AVFormatContext *fmt_ctx = NULL;
     ret = OpenInputMediaFile(&fmt_ctx, file_addr);
@@ -40,11 +45,12 @@ int get_pcm_file_duration_ms(const char *file_addr,
     int bits_per_sample, int src_sample_rate_in_Hz, int src_nb_channels) {
     int ret = -1;
     if (!file_addr) return -1;
+    LogInfo("%s file_addr %s.\n", __func__, file_addr);
 
     FILE *reader = NULL;
     if ((ret = ae_open_file(&reader, file_addr, false)) < 0) {
-	LogError("%s open file_addr %s failed\n", __func__, file_addr);
-	goto end;
+        LogError("%s open file_addr %s failed\n", __func__, file_addr);
+        goto end;
     }
 
     fseek(reader, 0, SEEK_END);
