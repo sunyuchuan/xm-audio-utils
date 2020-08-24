@@ -9,7 +9,7 @@
 #include "log.h"
 
 #ifndef MAX_NB_SAMPLES
-#define MAX_NB_SAMPLES 1024
+#define MAX_NB_SAMPLES (1024 << 3)
 #endif
 
 #define REVERB_PARAMS "1.5 50.0 100.0 0.0 -6.0"
