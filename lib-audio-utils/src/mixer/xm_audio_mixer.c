@@ -33,7 +33,7 @@ struct XmMixerContext_T {
     AudioMuxer *muxer;
     char *in_config_path;
     EffectContext *reverb_ctx;
-    short *mix_buffer;
+    short *zero_buffer;
     char *js_progress_callback;
     pthread_mutex_t mutex;
     MixerEffects mixer_effects;
@@ -373,9 +373,9 @@ static void mixer_free_l(XmMixerContext *ctx)
     if (ctx->audio_fifo) {
         fifo_delete(&ctx->audio_fifo);
     }
-    if (ctx->mix_buffer) {
-        free(ctx->mix_buffer);
-        ctx->mix_buffer = NULL;
+    if (ctx->zero_buffer) {
+        free(ctx->zero_buffer);
+        ctx->zero_buffer = NULL;
     }
     if (ctx->js_progress_callback) {
         free(ctx->js_progress_callback);
@@ -415,21 +415,14 @@ static void add_reverb_and_write_fifo(XmMixerContext *ctx,
 }
 
 static short *mixer_combine(AudioSource *source,
-    int mix_len, short *prev_buffer, short *dst_buffer,
-    int sample_rate, int channels) {
+    int mix_len, short *prev_buffer,
+    short *dst_buffer, int channels) {
     if (!source || !source->buffer.buffer
         || !prev_buffer || !dst_buffer)
         return NULL;
     if (mix_len <= 0) {
         LogError("%s mix_len is %d.\n", __func__, mix_len);
         return NULL;
-    }
-
-    if (source->side_chain_enable) {
-        side_chain_compress(prev_buffer, source->buffer.buffer,
-            &(source->yl_prev), mix_len, sample_rate, channels,
-            SIDE_CHAIN_THRESHOLD, SIDE_CHAIN_RATIO, SIDE_CHAIN_ATTACK_MS,
-            SIDE_CHAIN_RELEASE_MS, source->makeup_gain);
     }
 
     MixBufferS16(prev_buffer, source->buffer.buffer,
@@ -547,10 +540,26 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
 
         if (!source->buffer.mute) {
             if (prev_buffer != NULL) {
+                if (source->side_chain_enable) {
+                    side_chain_compress(prev_buffer,
+                        source->buffer.buffer, &(source->yl_prev),
+                        read_len, ctx->dst_sample_rate, ctx->dst_channels,
+                        SIDE_CHAIN_THRESHOLD, SIDE_CHAIN_RATIO,
+                        SIDE_CHAIN_ATTACK_MS, SIDE_CHAIN_RELEASE_MS,
+                        source->makeup_gain);
+                }
                 prev_buffer = mixer_combine(source, read_len,
                     prev_buffer, source->buffer.buffer,
-                    ctx->dst_sample_rate, ctx->dst_channels);
+                    ctx->dst_channels);
             } else {
+                if (source->side_chain_enable) {
+                    side_chain_compress(ctx->zero_buffer,
+                        source->buffer.buffer, &(source->yl_prev),
+                        read_len, ctx->dst_sample_rate, ctx->dst_channels,
+                        SIDE_CHAIN_THRESHOLD, SIDE_CHAIN_RATIO,
+                        SIDE_CHAIN_ATTACK_MS, SIDE_CHAIN_RELEASE_MS,
+                        source->makeup_gain);
+                }
                 prev_buffer = source->buffer.buffer;
             }
         }
@@ -558,7 +567,7 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
 
     ctx->cur_size += (read_len * sizeof(short));
     if (!prev_buffer) {
-        fifo_write(ctx->audio_fifo, ctx->mix_buffer, read_len);
+        fifo_write(ctx->audio_fifo, ctx->zero_buffer, read_len);
         return read_len;
     }
 
@@ -794,9 +803,9 @@ int xm_audio_mixer_init(XmMixerContext *ctx,
         goto fail;
     }
 
-    ctx->mix_buffer = (short *)calloc(sizeof(short), MAX_NB_SAMPLES);
-    if (!ctx->mix_buffer) {
-        LogError("%s calloc mix_buffer failed.\n", __func__);
+    ctx->zero_buffer = (short *)calloc(sizeof(short), MAX_NB_SAMPLES);
+    if (!ctx->zero_buffer) {
+        LogError("%s calloc zero_buffer failed.\n", __func__);
         ret = AEERROR_NOMEM;
         goto fail;
     }
