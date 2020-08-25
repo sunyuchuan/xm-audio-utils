@@ -9,9 +9,9 @@ static const char *web_tracks_name[MAX_NB_TRACKS] = {
     "track0", "track1", "track2", "track3", "track4"
 };
 
-#define PHONE_NB_TRACKS 4
+#define PHONE_NB_TRACKS 3
 static const char *phone_tracks_name[PHONE_NB_TRACKS] = {
-    "record", "bgm", "music", "effects"
+    "record", "bgm", "music"
 };
 
 #define KEY_FILE_PATH "file_path"
@@ -271,35 +271,19 @@ static int phone_json_parse(cJSON *json, MixerEffects *mixer_effects) {
             tracks[i] = tracks_childs[i];
         }
 
-        if (0 != strcasecmp(phone_tracks_name[i], "effects")) {
-            bool loop = true;
-            if (!strcasecmp(phone_tracks_name[i], "record")) loop = false;
-            if (parse_audio_source(
-                    tracks[i], mixer_effects->sourceQueue[i], loop) < 0) {
-                LogError("%s parse %s source failed, continue.\n",
-                    __func__, phone_tracks_name[i]);
-                continue;
-            }
+        bool loop = true;
+        if (!strcasecmp(phone_tracks_name[i], "record")) loop = false;
+        if (parse_audio_source(
+                tracks[i], mixer_effects->sourceQueue[i], loop) < 0) {
+            LogError("%s parse %s source failed, continue.\n",
+                __func__, phone_tracks_name[i]);
+            continue;
+        }
 
-            int end_time_ms = AudioSourceQueue_get_end_time_ms(
-                mixer_effects->sourceQueue[i]);
-            if (mixer_effects->duration_ms < end_time_ms) {
-                mixer_effects->duration_ms = end_time_ms;
-            }
-        } else {
-            AudioSource source;
-            int size = AudioSourceQueue_size(mixer_effects->sourceQueue[0]);
-            for (int j = 0; j < size; j++) {
-                memset(&source, 0, sizeof(AudioSource));
-                AudioSourceQueue_get(mixer_effects->sourceQueue[0], &source);
-                if ((ret = parse_voice_effects(tracks[i], &source)) < 0) {
-                    LogError("%s parse_voice_effects failed\n", __func__);
-                    source.has_effects = false;
-                } else {
-                    source.has_effects = true;
-                }
-                AudioSourceQueue_put(mixer_effects->sourceQueue[0], &source);
-            }
+        int end_time_ms = AudioSourceQueue_get_end_time_ms(
+            mixer_effects->sourceQueue[i]);
+        if (mixer_effects->duration_ms < end_time_ms) {
+            mixer_effects->duration_ms = end_time_ms;
         }
     }
 
