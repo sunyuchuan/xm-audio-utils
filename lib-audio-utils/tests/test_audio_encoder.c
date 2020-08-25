@@ -57,6 +57,7 @@ int main(int argc, char **argv) {
     config.dst_sample_rate_in_Hz = DEFAULT_SAMPLE_RATE;
     config.dst_nb_channels = DEFAULT_CHANNEL_NUMBER;
     config.mime = MIME_AUDIO_AAC;
+    config.muxer_name = MUXER_AUDIO_MP4;
     config.output_filename = argv[4];
     config.src_sample_fmt = AV_SAMPLE_FMT_S16;
     config.codec_id = AV_CODEC_ID_AAC;
