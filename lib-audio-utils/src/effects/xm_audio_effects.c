@@ -35,6 +35,7 @@ static void flush(XmEffectContext *ctx) {
     if (!ctx)
         return;
 
+    short *buffer = ctx->buffer[EffectsPcm];
     while (1) {
         int receive_len = 0;
         for (int i = 0; i < MAX_NB_EFFECTS; ++i) {
@@ -44,19 +45,19 @@ static void flush(XmEffectContext *ctx) {
 
             bool is_last_effect = true;
             receive_len = receive_samples(ctx->effects[i],
-                ctx->buffer, MAX_NB_SAMPLES);
+                buffer, MAX_NB_SAMPLES);
             while (receive_len > 0) {
                 for (short j = i + 1; j < MAX_NB_EFFECTS; ++j) {
                     if (NULL != ctx->effects[j]) {
                         receive_len = send_samples(ctx->effects[j],
-                            ctx->buffer, receive_len);
+                            buffer, receive_len);
                         if (receive_len < 0) {
                             LogError("%s send_samples to the next effect failed\n",__func__);
                             goto end;
                         }
                         is_last_effect = false;
                         receive_len = receive_samples(ctx->effects[i],
-                            ctx->buffer, MAX_NB_SAMPLES);
+                            buffer, MAX_NB_SAMPLES);
                         break;
                     }
                 }
@@ -65,7 +66,12 @@ static void flush(XmEffectContext *ctx) {
         }
 
         if (receive_len > 0) {
-            int ret = fifo_write(ctx->audio_fifo, ctx->buffer, receive_len);
+            if (ctx->dst_channels == 2) {
+                MonoToStereoS16(ctx->buffer[FifoPcm], buffer, receive_len);
+                receive_len = receive_len << 1;
+                buffer = ctx->buffer[FifoPcm];
+            }
+            int ret = fifo_write(ctx->audio_fifo, buffer, receive_len);
             if (ret < 0) goto end;
         } else {
             goto end;
