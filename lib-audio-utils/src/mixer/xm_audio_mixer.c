@@ -412,8 +412,8 @@ static void add_reverb_and_write_fifo(XmMixerContext *ctx,
 }
 
 static short *mixer_combine(AudioSource *source,
-    int mix_len, short *prev_buffer, short *dst_buffer,
-    int sample_rate, int channels) {
+    int mix_len, short *prev_buffer,
+    short *dst_buffer, int channels) {
     if (!source || !source->buffer.buffer
         || !prev_buffer || !dst_buffer)
         return NULL;
@@ -547,7 +547,7 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
                 }
                 prev_buffer = mixer_combine(source, read_len,
                     prev_buffer, source->buffer.buffer,
-                    ctx->dst_sample_rate, ctx->dst_channels);
+                    ctx->dst_channels);
             } else {
                 if (source->side_chain_enable) {
                     side_chain_compress(ctx->zero_buffer,
