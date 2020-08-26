@@ -1,5 +1,4 @@
 #if defined(__ANDROID__) || defined (__linux__)
-
 #include "audio_muxer.h"
 #include "log.h"
 #include "error_def.h"
@@ -8,6 +7,9 @@
 #include "mediacodec/audio_encoder_mediacodec.h"
 #include "xm_android_jni.h"
 #include <jni.h>
+#endif
+#if defined(__APPLE__)
+#include "hw/audio_encoder_ios_hw.h"
 #endif
 
 #define MONO_BIT_RATE 64000
@@ -358,8 +360,8 @@ static int create_audio_encoder(AudioMuxer *am) {
             ret = -1;
             goto end;
         }
-    } else {
 #if defined(__ANDROID__)
+    } else if (am->config.encoder_type == ENCODER_MEDIA_CODEC) {
         am->audio_encoder = ff_encoder_mediacodec_create();
         if (NULL == am->audio_encoder) {
             LogError("%s ff_encoder_mediacodec_create failed.\n", __func__);
@@ -367,6 +369,19 @@ static int create_audio_encoder(AudioMuxer *am) {
             goto end;
         }
 #endif
+#if defined(__APPLE__)
+    } else if (am->config.encoder_type == ENCODER_IOS_HW) {
+        am->audio_encoder = ff_encoder_ios_hw_create();
+        if (NULL == am->audio_encoder) {
+            LogError("%s ff_encoder_ios_hw_create failed.\n", __func__);
+            ret = -1;
+            goto end;
+        }
+#endif
+    } else {
+        LogError("%s unsupport encoder_type %d.\n", __func__, am->config.encoder_type);
+        ret = -1;
+        goto end;
     }
 
     av_dict_set(&audio_opt, "mime", am->config.mime, 0);

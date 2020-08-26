@@ -7,7 +7,8 @@
 enum EncoderType {
     ENCODER_NONE = -1,
     ENCODER_FFMPEG,
-    ENCODER_MEDIA_CODEC
+    ENCODER_MEDIA_CODEC,
+    ENCODER_IOS_HW,
 };
 
 typedef struct MuxerConfig {

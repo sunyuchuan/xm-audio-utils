@@ -56,8 +56,8 @@ int xm_audio_mixer_seekTo(XmMixerContext *ctx,
  * @brief mix bgm\music and output m4a
  *
  * @param ctx XmMixerContext
- * @param out_file_path output mp4 file path
- * @param encoder_type Support ffmpeg and MediaCodec
+ * @param out_file_path output file path
+ * @param encoder_type Support ffmpeg and HW
  * @return Less than 0 means failure
  */
 int xm_audio_mixer_mix(XmMixerContext *ctx,
