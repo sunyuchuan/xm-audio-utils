@@ -8,11 +8,9 @@
 #include "log.h"
 #include "error_def.h"
 #include "tools/util.h"
+#include "codec/muxer_config.h"
 
 extern void RegisterFFmpeg();
-
-#define ENCODER_FFMPEG 0
-#define ENCODER_IOS_HW 1
 
 struct XmAudioGenerator {
     volatile int status;
@@ -126,14 +124,14 @@ enum GeneratorStatus xm_audio_generator_start(
     self->status = GENERATOR_STATE_STARTED;
     pthread_mutex_unlock(&self->mutex);
 
-    int encoder_type = -1;
+    int encode_type = ENCODER_NONE;
 #if defined(__APPLE__)
-    encoder_type = ENCODER_IOS_HW;
+    encode_type = ENCODER_IOS_HW;
 #else
-    encoder_type = ENCODER_FFMPEG;
+    encode_type = ENCODER_FFMPEG;
 #endif
     if (mixer_mix(self, in_config_path, out_file_path,
-        encoder_type) < 0) {
+        encode_type) < 0) {
         LogError("%s mixer_mix failed\n", __func__);
         ret = GS_ERROR;
     } else {

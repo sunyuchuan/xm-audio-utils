@@ -12,6 +12,7 @@ typedef struct IAudioDecoder_Opaque {
     int seek_pos_ms;
     bool seek_req;
     int duration_ms;
+    bool decode_completed;
 
     // play-out volume.
     short volume_fix;
@@ -339,6 +340,7 @@ static void init_decoder_params(IAudioDecoder_Opaque *decoder,
     decoder->duration_ms = 0;
     decoder->volume_flp = volume_flp;
     decoder->volume_fix = (short)(32767 * volume_flp);
+    decoder->decode_completed = false;
 }
 
 static void init_timings_params(IAudioDecoder_Opaque *decoder,
@@ -456,6 +458,7 @@ static int FFmpegDecoder_get_pcm_frame(
     int ret = -1;
     if (!decoder || !buffer || buffer_size_in_short < 0)
         return ret;
+    if (decoder->decode_completed) return PCM_FILE_EOF;
 
     while (av_audio_fifo_size(decoder->audio_fifo) * decoder->dst_nb_channels <
            buffer_size_in_short) {
@@ -481,6 +484,7 @@ static int FFmpegDecoder_get_pcm_frame(
             } else if (ret == AVERROR_EOF && 0 != av_audio_fifo_size(decoder->audio_fifo)) {
                 break;
             } else {
+                decoder->decode_completed = true;
                 goto end;
             }
         }
@@ -498,6 +502,7 @@ static int FFmpegDecoder_seekTo(IAudioDecoder_Opaque *decoder,
     if (NULL == decoder)
         return -1;
 
+    decoder->decode_completed = false;
     decoder->seek_req = true;
     decoder->seek_pos_ms = seek_pos_ms < 0 ? 0 : seek_pos_ms;
     int file_duration = decoder->duration_ms;

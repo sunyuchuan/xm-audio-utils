@@ -7,7 +7,6 @@
 #include "error_def.h"
 #include "log.h"
 
-#define ENCODER_FFMPEG 0
 static volatile bool abort_request = false;
 
 void *get_progress(void *arg) {

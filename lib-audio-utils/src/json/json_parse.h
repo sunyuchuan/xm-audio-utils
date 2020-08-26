@@ -1,7 +1,6 @@
-#ifndef JSON_PARSE_H_
-#define JSON_PARSE_H_
-#include "voice_mixer_struct.h"
+#ifndef _JSON_PARSE_H_
+#define _JSON_PARSE_H_
+#include "mixer/mixer_effects.h"
 
-int mixer_parse(MixerEffects *mixer_effects, const char *json_file_addr);
-int effects_parse(VoiceEffects *voice_effects, const char *json_file_addr);
+int json_parse(MixerEffects *mixer_effects, const char *json_file_addr);
 #endif

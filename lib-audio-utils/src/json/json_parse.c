@@ -5,125 +5,98 @@
 #include <stdlib.h>
 #include "codec/ffmpeg_utils.h"
 
-static int parse_voice_effects(cJSON *effects, VoiceEffects *voice_effects)
+static const char *web_tracks_name[MAX_NB_TRACKS] = {
+    "track0", "track1", "track2", "track3", "track4"
+};
+
+#define PHONE_NB_TRACKS 3
+static const char *phone_tracks_name[PHONE_NB_TRACKS] = {
+    "record", "bgm", "music"
+};
+
+#define KEY_FILE_PATH "file_path"
+#define KEY_START_TIME "startTimeMs"
+#define KEY_END_TIME "endTimeMs"
+#define KEY_VOLUME "volume"
+#define KEY_CROP_START_TIME "cropStartTimeMs"
+#define KEY_CROP_END_TIME "cropEndTimeMs"
+#define KEY_FADE_IN_TIME "fadeInTimeMs"
+#define KEY_FADE_OUT_TIME "fadeOutTimeMs"
+#define KEY_IS_PCM "isPcm"
+#define KEY_SAMPLE_RATE "sampleRate"
+#define KEY_NB_CHANNELS "nbChannels"
+#define KEY_SIDE_CHAIN "sideChain"
+#define KEY_MAKE_UP_GAIN "makeUpGain"
+#define KEY_EFFECTS "effects"
+#define KEY_EFFECTS_NAME "name"
+#define KEY_EFFECTS_INFO "info"
+
+#define NOISE_SUPPRESSION "NoiseSuppression"
+#define BEAUTIFY "Beautify"
+#define REVERB "Reverb"
+#define VOLUME_LIMITER "VolumeLimiter"
+#define MINIONS "Minions"
+#define VOICE_MORPH "VoiceMorph"
+
+static int parse_voice_effects(cJSON *effects, AudioSource *source)
 {
-    int ret = -1;
-    if (!effects || !voice_effects) {
-        return ret;
+    if (!effects || !source) {
+        return -1;
     }
 
     for (int i = 0; i < MAX_NB_EFFECTS; ++i) {
-        if (voice_effects->effects_info[i]) {
-            free(voice_effects->effects_info[i]);
-            voice_effects->effects_info[i] = NULL;
+        if (source->effects_info[i]) {
+            free(source->effects_info[i]);
+            source->effects_info[i] = NULL;
         }
     }
 
     const cJSON *effect = NULL;
     cJSON_ArrayForEach(effect, effects)
     {
-        cJSON *name = cJSON_GetObjectItemCaseSensitive(effect, "name");
-        cJSON *info = cJSON_GetObjectItemCaseSensitive(effect, "info");
+        cJSON *name = cJSON_GetObjectItemCaseSensitive(
+            effect, KEY_EFFECTS_NAME);
+        cJSON *info = cJSON_GetObjectItemCaseSensitive(
+            effect, KEY_EFFECTS_INFO);
 
         if (!cJSON_IsString(name) || !cJSON_IsString(info)
             || name->valuestring == NULL || info->valuestring == NULL)
         {
-            LogError("%s get effect failed\n", __func__);
-            ret = -1;
-            goto fail;
+            LogError("%s get effect failed, continue.\n", __func__);
+            continue;
         }
         LogInfo("%s name->valuestring %s\n", __func__, name->valuestring);
         LogInfo("%s info->valuestring %s\n", __func__, info->valuestring);
 
-        if (0 == strcasecmp(name->valuestring, "NoiseSuppression")) {
+        if (0 == strcasecmp(name->valuestring, NOISE_SUPPRESSION)) {
             LogInfo("%s effect NoiseSuppression\n", __func__);
-            voice_effects->effects_info[NoiseSuppression] = av_strdup(info->valuestring);
-        } else if (0 == strcasecmp(name->valuestring, "Beautify")) {
+            source->effects_info[NoiseSuppression] =
+                av_strdup(info->valuestring);
+        } else if (0 == strcasecmp(name->valuestring, BEAUTIFY)) {
             LogInfo("%s effect Beautify\n", __func__);
-            voice_effects->effects_info[Beautify] = av_strdup(info->valuestring);
-        } else if (0 == strcasecmp(name->valuestring, "Reverb")) {
+            source->effects_info[Beautify] = av_strdup(info->valuestring);
+        } else if (0 == strcasecmp(name->valuestring, REVERB)) {
             LogInfo("%s effect Reverb\n", __func__);
-            voice_effects->effects_info[Reverb] = av_strdup(info->valuestring);
-        } else if (0 == strcasecmp(name->valuestring, "VolumeLimiter")) {
+            source->effects_info[Reverb] = av_strdup(info->valuestring);
+        } else if (0 == strcasecmp(name->valuestring, VOLUME_LIMITER)) {
             LogInfo("%s effect VolumeLimiter\n", __func__);
-            voice_effects->effects_info[VolumeLimiter] = av_strdup(info->valuestring);
+            source->effects_info[VolumeLimiter] = av_strdup(info->valuestring);
+        }  else if (0 == strcasecmp(name->valuestring, MINIONS)) {
+            LogInfo("%s effect Minions\n", __func__);
+            source->effects_info[Minions] = av_strdup(info->valuestring);
+        } else if (0 == strcasecmp(name->valuestring, VOICE_MORPH)) {
+            LogInfo("%s effect VoiceMorph\n", __func__);
+            source->effects_info[VoiceMorph] = av_strdup(info->valuestring);
         } else {
             LogWarning("%s unsupported effect %s\n", __func__, name->valuestring);
         }
     }
 
-    ret = 0;
-fail:
-    return ret;
-}
-
-static int parse_audio_record_source(cJSON *json,
-    AudioRecordSourceQueue *queue) {
-    int ret = -1;
-    if (!json || !queue) {
-        return ret;
-    }
-
-    AudioRecordSourceQueue_flush(queue);
-    AudioRecordSource source;
-    const cJSON *sub = NULL;
-    cJSON_ArrayForEach(sub, json)
-    {
-        cJSON *file_path = cJSON_GetObjectItemCaseSensitive(sub, "file_path");
-        cJSON *vol = cJSON_GetObjectItemCaseSensitive(sub, "volume");
-        cJSON *crop_start = cJSON_GetObjectItemCaseSensitive(sub, "cropStartTimeMs");
-        cJSON *crop_end = cJSON_GetObjectItemCaseSensitive(sub, "cropEndTimeMs");
-        cJSON *start = cJSON_GetObjectItemCaseSensitive(sub, "startTimeMs");
-        cJSON *end = cJSON_GetObjectItemCaseSensitive(sub, "endTimeMs");
-        cJSON *is_pcm = cJSON_GetObjectItemCaseSensitive(sub, "isPcm");
-        cJSON *sample_rate = cJSON_GetObjectItemCaseSensitive(sub, "sampleRate");
-        cJSON *nb_channel = cJSON_GetObjectItemCaseSensitive(sub, "nbChannels");
-        if (!cJSON_IsString(file_path) || !cJSON_IsNumber(vol)
-            || !cJSON_IsNumber(crop_start) || !cJSON_IsNumber(crop_end)
-            || !cJSON_IsNumber(start) || !cJSON_IsNumber(end)
-            || !file_path->valuestring || !cJSON_IsNumber(sample_rate)
-            || !cJSON_IsNumber(nb_channel) || !cJSON_IsString(is_pcm))
-        {
-            LogError("%s failed\n", __func__);
-            ret = -1;
-            goto fail;
-        }
-
-        memset(&source, 0, sizeof(AudioRecordSource));
-        source.file_path = av_strdup(file_path->valuestring);
-        source.volume = vol->valuedouble / (float)100;
-        source.crop_start_time_ms = crop_start->valuedouble;
-        source.crop_end_time_ms = crop_end->valuedouble;
-        source.start_time_ms = start->valuedouble;
-        source.end_time_ms = end->valuedouble;
-        source.sample_rate = sample_rate->valuedouble;
-        source.nb_channels = nb_channel->valuedouble;
-        if (0 == strcasecmp(is_pcm->valuestring, "True"))
-            source.decoder_type = DECODER_PCM;
-        else
-            source.decoder_type = DECODER_FFMPEG;
-
-        AudioRecordSourceQueue_put(queue, &source);
-
-        LogInfo("%s file_path %s\n", __func__, source.file_path);
-        LogInfo("%s volume %f\n", __func__, source.volume);
-        LogInfo("%s crop start time  %d\n", __func__, source.crop_start_time_ms);
-        LogInfo("%s crop end time %d\n", __func__, source.crop_end_time_ms);
-        LogInfo("%s start time  %d\n", __func__, source.start_time_ms);
-        LogInfo("%s end time %d\n", __func__, source.end_time_ms);
-        LogInfo("%s sample_rate %d\n", __func__, source.sample_rate);
-        LogInfo("%s nb_channels %d\n", __func__, source.nb_channels);
-        LogInfo("%s decoder_type %d\n", __func__, source.decoder_type);
-    }
-
-    AudioRecordSourceQueue_bubble_sort(queue);
     return 0;
-fail:
-    AudioRecordSourceQueue_flush(queue);
-    return ret;
 }
 
-static int parse_audio_source(cJSON *json, AudioSourceQueue *queue) {
+static int parse_audio_source(cJSON *json, AudioSourceQueue *queue,
+        bool loop) {
     int ret = -1;
     if (!json || !queue) {
         return ret;
@@ -132,176 +105,329 @@ static int parse_audio_source(cJSON *json, AudioSourceQueue *queue) {
     AudioSourceQueue_flush(queue);
     AudioSource source;
     const cJSON *sub = NULL;
+    cJSON *effects = NULL;
+    cJSON *effects_childs = NULL;
     cJSON_ArrayForEach(sub, json)
     {
-        cJSON *file_path = cJSON_GetObjectItemCaseSensitive(sub, "file_path");
-        cJSON *crop_start = cJSON_GetObjectItemCaseSensitive(sub, "cropStartTimeMs");
-        cJSON *crop_end = cJSON_GetObjectItemCaseSensitive(sub, "cropEndTimeMs");
-        cJSON *start = cJSON_GetObjectItemCaseSensitive(sub, "startTimeMs");
-        cJSON *end = cJSON_GetObjectItemCaseSensitive(sub, "endTimeMs");
-        cJSON *vol = cJSON_GetObjectItemCaseSensitive(sub, "volume");
-        cJSON *fade_in_time = cJSON_GetObjectItemCaseSensitive(sub, "fadeInTimeMs");
-        cJSON *fade_out_time = cJSON_GetObjectItemCaseSensitive(sub, "fadeOutTimeMs");
-        cJSON *side_chain = cJSON_GetObjectItemCaseSensitive(sub, "sideChain");
+        cJSON *file_path = cJSON_GetObjectItemCaseSensitive(sub, KEY_FILE_PATH);
+        cJSON *crop_start =
+            cJSON_GetObjectItemCaseSensitive(sub, KEY_CROP_START_TIME);
+        cJSON *crop_end =
+            cJSON_GetObjectItemCaseSensitive(sub, KEY_CROP_END_TIME);
+        cJSON *start = cJSON_GetObjectItemCaseSensitive(sub, KEY_START_TIME);
+        cJSON *end = cJSON_GetObjectItemCaseSensitive(sub, KEY_END_TIME);
+        cJSON *vol = cJSON_GetObjectItemCaseSensitive(sub, KEY_VOLUME);
+        cJSON *fade_in_time =
+            cJSON_GetObjectItemCaseSensitive(sub, KEY_FADE_IN_TIME);
+        cJSON *fade_out_time =
+            cJSON_GetObjectItemCaseSensitive(sub, KEY_FADE_OUT_TIME);
+        cJSON *is_pcm = cJSON_GetObjectItemCaseSensitive(sub, KEY_IS_PCM);
+        cJSON *sample_rate =
+            cJSON_GetObjectItemCaseSensitive(sub, KEY_SAMPLE_RATE);
+        cJSON *nb_channels =
+            cJSON_GetObjectItemCaseSensitive(sub, KEY_NB_CHANNELS);
+        cJSON *side_chain = cJSON_GetObjectItemCaseSensitive(
+            sub, KEY_SIDE_CHAIN);
 
         if (!cJSON_IsString(file_path) || !cJSON_IsNumber(start)
-            || !cJSON_IsNumber(end) || !file_path->valuestring
-            || !cJSON_IsNumber(crop_start) || !cJSON_IsNumber(crop_end)
-            || !cJSON_IsNumber(fade_in_time) || !cJSON_IsNumber(fade_out_time)
-            || !cJSON_IsNumber(vol) || !cJSON_IsString(side_chain))
+            || !cJSON_IsNumber(end) || !file_path->valuestring)
         {
-            LogError("%s failed\n", __func__);
-            ret = -1;
-            goto fail;
+            LogError("%s failed, parse next source.\n", __func__);
+            continue;
         }
 
         memset(&source, 0, sizeof(AudioSource));
         source.file_path = av_strdup(file_path->valuestring);
-        source.crop_start_time_ms = crop_start->valuedouble;
-        source.crop_end_time_ms = crop_end->valuedouble;
         source.start_time_ms = start->valuedouble;
         source.end_time_ms = end->valuedouble;
-        source.volume = vol->valuedouble / (float)100;
-        source.fade_io.fade_in_time_ms = fade_in_time->valuedouble;
-        source.fade_io.fade_out_time_ms = fade_out_time->valuedouble;
+        source.crop_start_time_ms =
+            cJSON_IsNumber(crop_start) ? crop_start->valuedouble : 0;
+        source.crop_end_time_ms =
+            cJSON_IsNumber(crop_end) ? crop_end->valuedouble : -1;
+        source.volume =
+            cJSON_IsNumber(vol) ? (vol->valuedouble / (float)100) : 1.0f;
+        source.fade_io.fade_in_time_ms =
+            cJSON_IsNumber(fade_in_time) ? fade_in_time->valuedouble : 0;
+        source.fade_io.fade_out_time_ms =
+            cJSON_IsNumber(fade_out_time) ? fade_out_time->valuedouble : 0;
+        if (cJSON_IsString(is_pcm) &&
+            (0 == strcasecmp(is_pcm->valuestring, "True")))
+            source.is_pcm = true;
+        else
+            source.is_pcm = false;
+        source.is_loop = loop;
+        source.sample_rate =
+            cJSON_IsNumber(sample_rate) ? sample_rate->valuedouble : 0;
+        source.nb_channels =
+            cJSON_IsNumber(nb_channels) ? nb_channels->valuedouble : 0;
+
         source.left_factor = 1.0f;
         source.right_factor = 1.0f;
-        if (0 == strcasecmp(side_chain->valuestring, "On")) {
+        if (cJSON_IsString(side_chain) && side_chain->valuestring &&
+                0 == strcasecmp(side_chain->valuestring, "On")) {
             source.side_chain_enable = true;
-            cJSON *makeup_g = cJSON_GetObjectItemCaseSensitive(sub, "makeUpGain");
+            cJSON *makeup_g =
+                cJSON_GetObjectItemCaseSensitive(sub, KEY_MAKE_UP_GAIN);
             if(!cJSON_IsNumber(makeup_g))
-            {
-                LogError("%s makeUpGain parse failed\n", __func__);
-                ret = -1;
-                goto fail;
-            }
-            source.makeup_gain = makeup_g->valuedouble / (float)100;
+                source.makeup_gain = 0.5f;
+            else
+                source.makeup_gain = makeup_g->valuedouble / (float)100;
         } else {
             source.side_chain_enable = false;
             source.makeup_gain = 0.0f;
         }
+
+        effects = cJSON_GetObjectItemCaseSensitive(sub, KEY_EFFECTS);
+        if (effects == NULL) {
+            LogWarning("%s get effects failed.\n", __func__);
+            goto end;
+        }
+        if (NULL != effects->valuestring) {
+            LogInfo("%s effects->valuestring %s\n",
+                __func__, effects->valuestring);
+        }
+        if (effects->child == NULL && NULL != effects->valuestring) {
+            effects_childs = cJSON_Parse(effects->valuestring);
+            if (effects_childs == NULL) {
+                LogError("%s cJSON_Parse effects->valuestring failed\n",
+                    __func__);
+                goto end;
+            }
+            effects = effects_childs;
+        }
+        if ((ret = parse_voice_effects(effects, &source)) < 0) {
+            LogError("%s parse_voice_effects failed\n", __func__);
+            goto end;
+        }
+
+end:
+        if (effects_childs != NULL) {
+            cJSON_Delete(effects_childs);
+        }
+        effects_childs = NULL;
+
+        for (int i = 0; i < MAX_NB_EFFECTS; i++) {
+            if (source.effects_info[i] != NULL) {
+                source.has_effects = true;
+                break;
+            }
+        }
         AudioSourceQueue_put(queue, &source);
 
         LogInfo("%s file_path %s\n", __func__, source.file_path);
-        LogInfo("%s crop start time  %d\n", __func__, source.crop_start_time_ms);
-        LogInfo("%s crop end time %d\n", __func__, source.crop_end_time_ms);
         LogInfo("%s start time  %d\n", __func__, source.start_time_ms);
         LogInfo("%s end time %d\n", __func__, source.end_time_ms);
         LogInfo("%s volume %f\n", __func__, source.volume);
-        LogInfo("%s fade_in_time_ms %d\n", __func__, source.fade_io.fade_in_time_ms);
-        LogInfo("%s fade_out_time_ms %d\n", __func__, source.fade_io.fade_out_time_ms);
-        LogInfo("%s side_chain_enable %d\n", __func__, source.side_chain_enable);
-        LogInfo("%s makeup_gain %f\n", __func__, source.makeup_gain);
+        LogInfo("%s crop start time  %d\n",
+            __func__, source.crop_start_time_ms);
+        LogInfo("%s crop end time %d\n",
+            __func__, source.crop_end_time_ms);
+        LogInfo("%s fade_in_time_ms %d\n",
+            __func__, source.fade_io.fade_in_time_ms);
+        LogInfo("%s fade_out_time_ms %d\n",
+            __func__, source.fade_io.fade_out_time_ms);
+        LogInfo("%s side_chain_enable %d\n",
+            __func__, source.side_chain_enable);
+        LogInfo("%s makeup_gain %f\n",
+            __func__, source.makeup_gain);
     }
 
     AudioSourceQueue_bubble_sort(queue);
     return 0;
-fail:
-    AudioSourceQueue_flush(queue);
+}
+
+static int phone_json_parse(cJSON *json, MixerEffects *mixer_effects) {
+    LogInfo("%s\n", __func__);
+    int ret = -1;
+    if (!json || !mixer_effects) {
+        return ret;
+    }
+
+    cJSON *root_json = json;
+    cJSON *tracks[PHONE_NB_TRACKS];
+    cJSON *tracks_childs[PHONE_NB_TRACKS];
+    memset(tracks, 0, sizeof(tracks));
+    memset(tracks_childs, 0, sizeof(tracks_childs));
+
+    for (int i = 0; i < PHONE_NB_TRACKS; i++) {
+        tracks[i] = cJSON_GetObjectItemCaseSensitive(
+                root_json, phone_tracks_name[i]);
+        if (!tracks[i]) {
+            continue;
+        }
+
+        if (NULL != tracks[i]->valuestring) {
+            LogInfo("%s %s valuestring %s\n", __func__,
+                phone_tracks_name[i], tracks[i]->valuestring);
+        }
+
+        if (tracks[i]->child == NULL && NULL != tracks[i]->valuestring) {
+            tracks_childs[i] = cJSON_Parse(tracks[i]->valuestring);
+            if (tracks_childs[i] == NULL) {
+                LogError("%s cJSON_Parse %s valuestring failed, continue.\n",
+                    __func__, phone_tracks_name[i]);
+                continue;
+            }
+            tracks[i] = tracks_childs[i];
+        }
+
+        bool loop = true;
+        if (!strcasecmp(phone_tracks_name[i], "record")) loop = false;
+        if (parse_audio_source(
+                tracks[i], mixer_effects->sourceQueue[i], loop) < 0) {
+            LogError("%s parse %s source failed, continue.\n",
+                __func__, phone_tracks_name[i]);
+            continue;
+        }
+
+        int end_time_ms = AudioSourceQueue_get_end_time_ms(
+            mixer_effects->sourceQueue[i]);
+        if (mixer_effects->duration_ms < end_time_ms) {
+            mixer_effects->duration_ms = end_time_ms;
+        }
+    }
+
+    for (int i = 0; i < PHONE_NB_TRACKS; i++) {
+        if (AudioSourceQueue_size(mixer_effects->sourceQueue[i]) > 0) {
+            ret = 0;
+            break;
+        } else {
+            ret = -1;
+        }
+    }
+
+    for (int i = 0; i < PHONE_NB_TRACKS; i++) {
+        if (tracks_childs[i] != NULL) {
+            cJSON_Delete(tracks_childs[i]);
+        }
+    }
+    if (ret >= 0) {
+        for (int i = 0; i < MAX_NB_TRACKS; i++) {
+            AudioSourceQueue_copy(mixer_effects->sourceQueue[i],
+                mixer_effects->sourceQueueBackup[i]);
+        }
+    }
     return ret;
 }
 
-int mixer_parse(MixerEffects *mixer_effects, const char *json_file_addr) {
+static int web_json_parse(cJSON *json, MixerEffects *mixer_effects) {
+    LogInfo("%s\n", __func__);
     int ret = -1;
-    if (NULL == json_file_addr || NULL == mixer_effects) {
+    if (!json || !mixer_effects) {
         return ret;
     }
-    if (!mixer_effects->bgmQueue || !mixer_effects->musicQueue) {
-        LogError("%s bgmQueue or musicQueue is NULL\n", __func__);
+
+    cJSON *root_json = json;
+    cJSON *tracks[MAX_NB_TRACKS];
+    cJSON *tracks_childs[MAX_NB_TRACKS];
+    memset(tracks, 0, sizeof(tracks));
+    memset(tracks_childs, 0, sizeof(tracks_childs));
+
+    for (int i = 0; i < MAX_NB_TRACKS; i++) {
+        tracks[i] = cJSON_GetObjectItemCaseSensitive(
+                root_json, web_tracks_name[i]);
+        if (!tracks[i]) {
+            continue;
+        }
+
+        if (NULL != tracks[i]->valuestring) {
+            LogInfo("%s %s valuestring %s\n", __func__,
+                web_tracks_name[i], tracks[i]->valuestring);
+        }
+
+        if (tracks[i]->child == NULL && NULL != tracks[i]->valuestring) {
+            tracks_childs[i] = cJSON_Parse(tracks[i]->valuestring);
+            if (tracks_childs[i] == NULL) {
+                LogError("%s cJSON_Parse %s valuestring failed, continue.\n",
+                    __func__, web_tracks_name[i]);
+                continue;
+            }
+            tracks[i] = tracks_childs[i];
+        }
+
+        if (parse_audio_source(
+                tracks[i], mixer_effects->sourceQueue[i], false) < 0) {
+            LogError("%s parse %s source failed, continue.\n",
+                __func__, web_tracks_name[i]);
+            continue;
+        }
+
+        int end_time_ms = AudioSourceQueue_get_end_time_ms(
+            mixer_effects->sourceQueue[i]);
+        if (mixer_effects->duration_ms < end_time_ms) {
+            mixer_effects->duration_ms = end_time_ms;
+        }
+    }
+
+    for (int i = 0; i < MAX_NB_TRACKS; i++) {
+        if (AudioSourceQueue_size(mixer_effects->sourceQueue[i]) > 0) {
+            ret = 0;
+            break;
+        } else {
+            ret = -1;
+        }
+    }
+
+    for (int i = 0; i < MAX_NB_TRACKS; i++) {
+        if (tracks_childs[i] != NULL) {
+            cJSON_Delete(tracks_childs[i]);
+        }
+    }
+
+    if (ret >= 0) {
+        for (int i = 0; i < MAX_NB_TRACKS; i++) {
+            AudioSourceQueue_copy(mixer_effects->sourceQueue[i],
+                mixer_effects->sourceQueueBackup[i]);
+        }
+    }
+    return ret;
+}
+
+int json_parse(MixerEffects *mixer_effects, const char *json_file_addr) {
+    int ret = -1;
+    if (!json_file_addr || !mixer_effects) {
         return ret;
     }
 
     char *content = NULL;
     cJSON *root_json = NULL;
-    cJSON *bgms = NULL;
-    cJSON *bgms_childs = NULL;
-    cJSON *musics = NULL;
-    cJSON *musics_childs = NULL;
+    cJSON *tracks[MAX_NB_TRACKS];
+    memset(tracks, 0, sizeof(tracks));
+
     content = ae_read_file_to_string(json_file_addr);
     if (NULL == content) {
         ret = -1;
-        LogError("%s json_file_addr %s read file failed\n", __func__, json_file_addr);
-        goto fail;
+        LogError("%s json_file_addr %s read file failed\n",
+            __func__, json_file_addr);
+        goto end;
     }
 
     root_json = cJSON_Parse(content);
     if (root_json == NULL) {
         LogError("%s cJSON_Parse failed\n", __func__);
         ret = -1;
-        goto fail;
+        goto end;
     }
 
-    /*if ((ret = parse_audio_record_source(root_json, mixer_effects->record)) < 0) {
-        LogError("%s parse_audio_record_source failed\n", __func__);
-        goto fail;
-    }
-    IAudioDecoder *record_decoder = mixer_effects->record->decoder;
-    if (record_decoder->out_bits_per_sample <= 0) {
-        record_decoder->out_bits_per_sample = BITS_PER_SAMPLE_16;
-    }
-    mixer_effects->duration_ms = record_decoder->duration_ms;*/
-
-    bgms = cJSON_GetObjectItemCaseSensitive(root_json, "bgm");
-    if (!bgms)
-    {
-        LogError("%s get bgms failed\n", __func__);
-        ret = -1;
-        goto fail;
-    }
-    if (NULL != bgms->valuestring) {
-        LogInfo("%s bgms->valuestring %s\n", __func__, bgms->valuestring);
-    }
-
-    if (bgms->child == NULL && NULL != bgms->valuestring) {
-        bgms_childs = cJSON_Parse(bgms->valuestring);
-        if (bgms_childs == NULL) {
-            LogError("%s cJSON_Parse bgms_childs->valuestring failed\n", __func__);
-            ret = -1;
-            goto fail;
+    bool is_web_json = false;
+    for (int i = 0; i < MAX_NB_TRACKS; i++) {
+        tracks[i] = cJSON_GetObjectItemCaseSensitive(
+            root_json, web_tracks_name[i]);
+        if (!tracks[i]) {
+            continue;
+        } else {
+            is_web_json = true;
+            break;
         }
-        bgms= bgms_childs;
     }
 
-    if ((ret = parse_audio_source(bgms, mixer_effects->bgmQueue)) < 0) {
-        LogError("%s parse bgms source failed\n", __func__);
-        goto fail;
-    }
-    int end_time_ms = AudioSourceQueue_get_end_time_ms(mixer_effects->bgmQueue);
-    if (mixer_effects->duration_ms < end_time_ms) {
-        mixer_effects->duration_ms = end_time_ms;
+    if (is_web_json) {
+        ret = web_json_parse(root_json, mixer_effects);
+    } else {
+        ret = phone_json_parse(root_json, mixer_effects);
     }
 
-    musics = cJSON_GetObjectItemCaseSensitive(root_json, "music");
-    if (musics == NULL) {
-        LogError("%s get musics failed\n", __func__);
-        ret = -1;
-        goto fail;
-    }
-    if (NULL != musics->valuestring) {
-        LogInfo("%s musics->valuestring %s\n", __func__, musics->valuestring);
-    }
-
-    if (musics->child == NULL && NULL != musics->valuestring) {
-        musics_childs = cJSON_Parse(musics->valuestring);
-        if (musics_childs == NULL) {
-            LogError("%s cJSON_Parse musics->valuestring failed\n", __func__);
-            ret = -1;
-            goto fail;
-        }
-        musics = musics_childs;
-    }
-
-    if ((ret = parse_audio_source(musics, mixer_effects->musicQueue)) < 0) {
-        LogError("%s parse musics source failed\n", __func__);
-        goto fail;
-    }
-    end_time_ms = AudioSourceQueue_get_end_time_ms(mixer_effects->musicQueue);
-    if (mixer_effects->duration_ms < end_time_ms) {
-        mixer_effects->duration_ms = end_time_ms;
-    }
-
-    ret = 0;
-fail:
+end:
     if (content != NULL)
     {
         free(content);
@@ -310,112 +436,5 @@ fail:
     {
         cJSON_Delete(root_json);
     }
-    if (bgms_childs != NULL)
-    {
-        cJSON_Delete(bgms_childs);
-    }
-    if (musics_childs != NULL)
-    {
-        cJSON_Delete(musics_childs);
-    }
     return ret;
 }
-
-int effects_parse(VoiceEffects *voice_effects, const char *json_file_addr) {
-    int ret = -1;
-    if (!json_file_addr || !voice_effects) {
-        return ret;
-    }
-
-    char *content = NULL;
-    cJSON *root_json = NULL;
-    cJSON *record_json = NULL;
-    cJSON *record_childs = NULL;
-    cJSON *effects = NULL;
-    cJSON *effects_childs = NULL;
-    content = ae_read_file_to_string(json_file_addr);
-    if (NULL == content) {
-        ret = -1;
-        LogError("%s json_file_addr %s read file failed\n", __func__, json_file_addr);
-        goto fail;
-    }
-
-    root_json = cJSON_Parse(content);
-    if (root_json == NULL) {
-        LogError("%s cJSON_Parse failed\n", __func__);
-        ret = -1;
-        goto fail;
-    }
-
-    record_json = cJSON_GetObjectItemCaseSensitive(root_json, "record");
-    if (!record_json)
-    {
-        LogError("%s get record_json failed\n", __func__);
-        ret = -1;
-        goto fail;
-    }
-    if (NULL != record_json->valuestring) {
-        LogInfo("%s record_json->valuestring %s\n", __func__, record_json->valuestring);
-    }
-
-    if (record_json->child == NULL && NULL != record_json->valuestring) {
-        record_childs = cJSON_Parse(record_json->valuestring);
-        if (record_childs == NULL) {
-            LogError("%s cJSON_Parse record_json->valuestring failed\n", __func__);
-            ret = -1;
-            goto fail;
-        }
-        record_json= record_childs;
-    }
-
-    if ((ret = parse_audio_record_source(record_json, voice_effects->recordQueue)) < 0) {
-        LogError("%s parse_audio_record_source failed\n", __func__);
-        goto fail;
-    }
-    voice_effects->duration_ms = AudioRecordSourceQueue_get_end_time_ms(voice_effects->recordQueue);
-
-    effects = cJSON_GetObjectItemCaseSensitive(root_json, "effects");
-    if (effects == NULL) {
-        LogError("%s get effects failed\n", __func__);
-        ret = -1;
-        goto fail;
-    }
-    if (NULL != effects->valuestring) {
-        LogInfo("%s effects->valuestring %s\n", __func__, effects->valuestring);
-    }
-
-    if (effects->child == NULL && NULL != effects->valuestring) {
-        effects_childs = cJSON_Parse(effects->valuestring);
-        if (effects_childs == NULL) {
-            LogError("%s cJSON_Parse effects->valuestring failed\n", __func__);
-            ret = -1;
-            goto fail;
-        }
-        effects = effects_childs;
-    }
-
-    if ((ret = parse_voice_effects(effects, voice_effects)) < 0) {
-        LogError("%s parse_voice_effects failed\n", __func__);
-        goto fail;
-    }
-
-    ret = 0;
-fail:
-    if (content != NULL)
-    {
-        free(content);
-    }
-    if (root_json != NULL)
-    {
-        cJSON_Delete(root_json);
-    }
-    if (record_childs != NULL) {
-        cJSON_Delete(record_childs);
-    }
-    if (effects_childs != NULL)
-    {
-        cJSON_Delete(effects_childs);
-    }
-    return ret;
-}
-

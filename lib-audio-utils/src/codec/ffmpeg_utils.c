@@ -55,6 +55,7 @@ void RegisterFFmpeg() {
     if (!init) {
         init = true;
         av_register_all();
+        avformat_network_init();
     }
 }
 

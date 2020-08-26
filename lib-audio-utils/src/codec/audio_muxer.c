@@ -2,6 +2,11 @@
 #include "log.h"
 #include "error_def.h"
 #include "sw/audio_encoder_sw.h"
+#if defined(__ANDROID__)
+#include "mediacodec/audio_encoder_mediacodec.h"
+#include "xm_android_jni.h"
+#include <jni.h>
+#endif
 #if defined(__APPLE__)
 #include "hw/audio_encoder_ios_hw.h"
 #endif
@@ -354,8 +359,17 @@ static int create_audio_encoder(AudioMuxer *am) {
             ret = -1;
             goto end;
         }
+#if defined(__ANDROID__)
+    } else if (am->config.encoder_type == ENCODER_MEDIA_CODEC) {
+        am->audio_encoder = ff_encoder_mediacodec_create();
+        if (NULL == am->audio_encoder) {
+            LogError("%s ff_encoder_mediacodec_create failed.\n", __func__);
+            ret = -1;
+            goto end;
+        }
+#endif
 #if defined(__APPLE__)
-    } if (am->config.encoder_type == ENCODER_HW) {
+    } else if (am->config.encoder_type == ENCODER_IOS_HW) {
         am->audio_encoder = ff_encoder_ios_hw_create();
         if (NULL == am->audio_encoder) {
             LogError("%s ff_encoder_ios_hw_create failed.\n", __func__);
@@ -489,7 +503,7 @@ static int init_encoder_muxer(AudioMuxer *am, MuxerConfig *config)
     release(am);
     am->config = *config;
     am->config.mime = av_strdup(config->mime);
-    am->config.muxer_name= av_strdup(config->muxer_name);
+    am->config.muxer_name = av_strdup(config->muxer_name);
     am->config.output_filename = av_strdup(config->output_filename);
     am->config.dst_bit_rate = config->dst_nb_channels >= 2 ? STEREO_BIT_RATE : MONO_BIT_RATE;
     am->max_nb_copy_samples = MAX_NB_SAMPLES;
