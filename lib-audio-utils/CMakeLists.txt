@@ -35,12 +35,14 @@ elseif(${CMAKE_C_COMPILER_ID} MATCHES "^(GNU|.*Clang)$")
     message(STATUS "gcc/clang cflags debug ${CMAKE_C_FLAGS_DEBUG}")
     message(STATUS "gcc/clang cflags release ${CMAKE_C_FLAGS_RELEASE}")
 endif()
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ftree-vectorize -ffast-math -O3 -Wno-unused-variable -Wno-unused-parameter")
 
 message(STATUS "CMAKE_BUILD_TYPE: ${CMAKE_BUILD_TYPE}")
 
 include_directories(${PROJECT_SOURCE_DIR}/include)
 include_directories(${PROJECT_SOURCE_DIR}/src)
 include_directories(${PROJECT_SOURCE_DIR}/src/effects)
+include_directories(${PROJECT_SOURCE_DIR}/src/effects/morph_filter)
 
 # ffmpeg
 if(${CMAKE_SYSTEM_NAME} STREQUAL "Android")
@@ -145,6 +147,17 @@ src/effects/beautify/limiter.c
 src/effects/beautify/multiband_compressor.c
 src/effects/beautify.c
 
+src/effects/morph_filter/pitch_tracker/src/low_pass.c
+src/effects/morph_filter/pitch_tracker/src/pitch_core.c
+src/effects/morph_filter/pitch_tracker/src/pitch_tracker.c
+src/effects/morph_filter/voice_morph/morph/morph_core.c
+src/effects/morph_filter/voice_morph/morph/voice_morph.c
+src/effects/morph_filter/voice_morph/resample/resample.c
+src/effects/morph_filter.c
+
+src/effects/resample/resample.c
+src/effects/minions.c
+
 src/effects/math/junior_func.c
 src/effects/noise_suppression/ns/fft4g.c
 src/effects/noise_suppression/ns/splitting_filter.c
@@ -160,7 +173,7 @@ src/mixer/side_chain_compress.c
 src/mixer/xm_audio_mixer.c
 
 src/json/cJSON.c
-src/json/web_json_parser.c
+src/json/json_parse.c
 
 src/source/audio_source.c
 src/source/audio_source_queue.c

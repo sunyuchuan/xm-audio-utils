@@ -25,4 +25,12 @@ static __inline float _reciprocal_sqrt(float x) {
 }
 float round_float(float in);
 
+#ifndef min
+#define min(a,b)            (((a) < (b)) ? (a) : (b))
+#endif
+
+#ifndef max
+#define max(a,b)            (((a) > (b)) ? (a) : (b))
+#endif
+
 #endif

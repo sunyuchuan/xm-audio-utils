@@ -1,4 +1,4 @@
-#include "web_json_parser.h"
+#include "json_parse.h"
 #include "cJSON.h"
 #include "tools/util.h"
 #include <string.h>
@@ -35,6 +35,8 @@ static const char *phone_tracks_name[PHONE_NB_TRACKS] = {
 #define BEAUTIFY "Beautify"
 #define REVERB "Reverb"
 #define VOLUME_LIMITER "VolumeLimiter"
+#define MINIONS "Minions"
+#define VOICE_MORPH "VoiceMorph"
 
 static int parse_voice_effects(cJSON *effects, AudioSource *source)
 {
@@ -79,6 +81,12 @@ static int parse_voice_effects(cJSON *effects, AudioSource *source)
         } else if (0 == strcasecmp(name->valuestring, VOLUME_LIMITER)) {
             LogInfo("%s effect VolumeLimiter\n", __func__);
             source->effects_info[VolumeLimiter] = av_strdup(info->valuestring);
+        }  else if (0 == strcasecmp(name->valuestring, MINIONS)) {
+            LogInfo("%s effect Minions\n", __func__);
+            source->effects_info[Minions] = av_strdup(info->valuestring);
+        } else if (0 == strcasecmp(name->valuestring, VOICE_MORPH)) {
+            LogInfo("%s effect VoiceMorph\n", __func__);
+            source->effects_info[VoiceMorph] = av_strdup(info->valuestring);
         } else {
             LogWarning("%s unsupported effect %s\n", __func__, name->valuestring);
         }

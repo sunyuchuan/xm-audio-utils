@@ -19,6 +19,8 @@ enum BuffersType {
 enum EffectType {
     NoiseSuppression = 0,
     Beautify,
+    Minions,
+    VoiceMorph,
     Reverb,
     VolumeLimiter,
     MAX_NB_EFFECTS

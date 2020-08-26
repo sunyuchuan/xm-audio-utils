@@ -79,6 +79,7 @@ int xm_audio_transcoder_start(XmAudioTranscoder *self,
     const char *in_audio_path, const char *out_m4a_path) {
     LogInfo("%s\n", __func__);
     int ret = -1;
+    short *buffer = NULL;
     if (!self || !in_audio_path || !out_m4a_path) {
         return ret;
     }
@@ -127,7 +128,7 @@ int xm_audio_transcoder_start(XmAudioTranscoder *self,
         goto end;
     }
 
-    short *buffer = (short *)calloc(sizeof(short), buffer_size_in_short);
+    buffer = (short *)calloc(sizeof(short), buffer_size_in_short);
     if (!buffer) {
         LogError("%s calloc buffer failed.\n", __func__);
         ret = AEERROR_NOMEM;
