@@ -24,7 +24,7 @@ typedef struct {
     pthread_mutex_t mutex;
 } priv_t;
 
-enum MorphType { NONE_MORPH = 0, ROBOT, BRIGHT, MAN, WOMEN };
+enum MorphType { NONE_MORPH = 0, ROBOT, BRIGHT, MAN, WOMAN };
 
 static void morph_core_free(VoiceMorph **morph) {
     if (!morph || !(*morph)) return;
@@ -122,7 +122,7 @@ static int morph_core_set_type(priv_t *priv,
             pitch_coeff = 0.8f;
             priv->robot = false;
             break;
-        case WOMEN:
+        case WOMAN:
             pitch_coeff = 1.5f;
             priv->robot = false;
             break;
@@ -137,7 +137,7 @@ static int morph_core_set_type(priv_t *priv,
 }
 
 static void voice_morph_set_mode(priv_t *priv, const char *mode) {
-    if (0 == strcasecmp(mode, "original")) {
+    if (0 == strcasecmp(mode, "None")) {
         LogInfo("%s set original.\n", __func__);
         morph_core_set_type(priv, NONE_MORPH);
         priv->is_morph_on = false;
@@ -153,9 +153,9 @@ static void voice_morph_set_mode(priv_t *priv, const char *mode) {
         LogInfo("%s set man.\n", __func__);
         morph_core_set_type(priv, MAN);
         priv->is_morph_on = true;
-    } else if (0 == strcasecmp(mode, "women")) {
-        LogInfo("%s set women.\n", __func__);
-        morph_core_set_type(priv, WOMEN);
+    } else if (0 == strcasecmp(mode, "woman")) {
+        LogInfo("%s set woman.\n", __func__);
+        morph_core_set_type(priv, WOMAN);
         priv->is_morph_on = true;
     }
 }

@@ -37,6 +37,12 @@ static const char *phone_tracks_name[PHONE_NB_TRACKS] = {
 #define VOLUME_LIMITER "VolumeLimiter"
 #define MINIONS "Minions"
 #define VOICE_MORPH "VoiceMorph"
+static const char *voice_morph_name[3] = {
+    "robot", "man", "woman"
+};
+static const char *beautify_name[6] = {
+    "CleanVoice", "Bass", "LowVoice", "Penetrating", "Magnetic", "SoftPitch"
+};
 
 static int parse_voice_effects(cJSON *effects, AudioSource *source)
 {
@@ -72,9 +78,19 @@ static int parse_voice_effects(cJSON *effects, AudioSource *source)
             LogInfo("%s effect NoiseSuppression\n", __func__);
             source->effects_info[NoiseSuppression] =
                 av_strdup(info->valuestring);
+            if (!strcasecmp(info->valuestring, "On")) {
+                source->has_effects = true;
+            }
         } else if (0 == strcasecmp(name->valuestring, BEAUTIFY)) {
             LogInfo("%s effect Beautify\n", __func__);
             source->effects_info[Beautify] = av_strdup(info->valuestring);
+            int len = sizeof(beautify_name) / sizeof(char *);
+            for (int i = 0; i < len; i++) {
+                if (!strcasecmp(info->valuestring, beautify_name[i])) {
+                    source->has_effects = true;
+                    break;
+                }
+            }
         } else if (0 == strcasecmp(name->valuestring, REVERB)) {
             LogInfo("%s effect Reverb\n", __func__);
             source->effects_info[Reverb] = av_strdup(info->valuestring);
@@ -84,9 +100,19 @@ static int parse_voice_effects(cJSON *effects, AudioSource *source)
         }  else if (0 == strcasecmp(name->valuestring, MINIONS)) {
             LogInfo("%s effect Minions\n", __func__);
             source->effects_info[Minions] = av_strdup(info->valuestring);
+            if (!strcasecmp(info->valuestring, "On")) {
+                source->has_effects = true;
+            }
         } else if (0 == strcasecmp(name->valuestring, VOICE_MORPH)) {
             LogInfo("%s effect VoiceMorph\n", __func__);
             source->effects_info[VoiceMorph] = av_strdup(info->valuestring);
+            int len = sizeof(voice_morph_name) / sizeof(char *);
+            for (int i = 0; i < len; i++) {
+                if (!strcasecmp(info->valuestring, voice_morph_name[i])) {
+                    source->has_effects = true;
+                    break;
+                }
+            }
         } else {
             LogWarning("%s unsupported effect %s\n", __func__, name->valuestring);
         }
@@ -206,12 +232,6 @@ end:
         }
         effects_childs = NULL;
 
-        for (int i = 0; i < MAX_NB_EFFECTS; i++) {
-            if (source.effects_info[i] != NULL) {
-                source.has_effects = true;
-                break;
-            }
-        }
         AudioSourceQueue_put(queue, &source);
 
         LogInfo("%s file_path %s\n", __func__, source.file_path);
