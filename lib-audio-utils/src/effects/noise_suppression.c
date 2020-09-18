@@ -172,6 +172,7 @@ const EffectHandler *effect_noise_suppression_fn(void) {
                                     .set = noise_suppression_set,
                                     .send = noise_suppression_send,
                                     .receive = noise_suppression_receive,
+                                    .flush = NULL,
                                     .close = noise_suppression_close};
     return &handler;
 }

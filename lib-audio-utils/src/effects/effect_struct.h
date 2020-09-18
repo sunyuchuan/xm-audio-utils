@@ -13,8 +13,8 @@
 #endif
 
 #define REVERB_PARAMS "1.5 50.0 100.0 0.0 -6.0"
+#define COMPAND_PARAMS "0.3,1 6:-70,-60,-20 -5 -90 0.2"
 
-typedef float sample_type;
 typedef struct EffectContext_T EffectContext;
 typedef struct EffectHandler_T EffectHandler;
 typedef const EffectHandler *(*effect_fn)(void);
@@ -29,6 +29,7 @@ struct EffectHandler_T {
     int (*send)(EffectContext *ctx, const void *samples,
                 const size_t nb_samples);
     int (*receive)(EffectContext *ctx, void *samples, const size_t nb_samples);
+    int (*flush)(EffectContext *ctx, void *samples, const size_t nb_samples);
     int (*close)(EffectContext *ctx);
 };
 

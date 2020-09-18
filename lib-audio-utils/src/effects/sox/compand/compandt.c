@@ -15,66 +15,13 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "sox_i.h"
-
 #include "compandt.h"
+#include "log.h"
+#include "tools/util.h"
+#include <stdlib.h>
 #include <string.h>
 
 #define LOG_TO_LOG10(x) ((x) * 20 / M_LN10)
-
-sox_bool lsx_compandt_show(sox_compandt_t * t, sox_plot_t plot)
-{
-  int i;
-
-  for (i = 1; t->segments[i-1].x; ++i)
-    lsx_debug("TF: %g %g %g %g",
-       LOG_TO_LOG10(t->segments[i].x),
-       LOG_TO_LOG10(t->segments[i].y),
-       LOG_TO_LOG10(t->segments[i].a),
-       LOG_TO_LOG10(t->segments[i].b));
-
-  if (plot == sox_plot_octave) {
-    printf(
-      "%% GNU Octave file (may also work with MATLAB(R) )\n"
-      "in=linspace(-99.5,0,200);\n"
-      "out=[");
-    for (i = -199; i <= 0; ++i) {
-      double in = i/2.;
-      double in_lin = pow(10., in/20);
-      printf("%g ", in + 20 * log10(lsx_compandt(t, in_lin)));
-    }
-    printf(
-      "];\n"
-      "plot(in,out)\n"
-      "title('SoX effect: compand')\n"
-      "xlabel('Input level (dB)')\n"
-      "ylabel('Output level (dB)')\n"
-      "grid on\n"
-      "disp('Hit return to continue')\n"
-      "pause\n");
-    return sox_false;
-  }
-  if (plot == sox_plot_gnuplot) {
-    printf(
-      "# gnuplot file\n"
-      "set title 'SoX effect: compand'\n"
-      "set xlabel 'Input level (dB)'\n"
-      "set ylabel 'Output level (dB)'\n"
-      "set grid xtics ytics\n"
-      "set key off\n"
-      "plot '-' with lines\n");
-    for (i = -199; i <= 0; ++i) {
-      double in = i/2.;
-      double in_lin = pow(10., in/20);
-      printf("%g %g\n", in, in + 20 * log10(lsx_compandt(t, in_lin)));
-    }
-    printf(
-      "e\n"
-      "pause -1 'Hit return to continue'\n");
-    return sox_false;
-  }
-  return sox_true;
-}
 
 static void prepare_transfer_fn(sox_compandt_t * t)
 {
@@ -136,28 +83,28 @@ static void prepare_transfer_fn(sox_compandt_t * t)
   t->out_min_lin= exp(t->segments[1].y);
 }
 
-static sox_bool parse_transfer_value(char const * text, double * value)
+static bool parse_transfer_value(char const * text, double * value)
 {
   char dummy;     /* To check for extraneous chars. */
 
   if (!text) {
-    lsx_fail("syntax error trying to read transfer function value");
-    return sox_false;
+    LogError("syntax error trying to read transfer function value.\n");
+    return false;
   }
   if (!strcmp(text, "-inf"))
     *value = -20 * log10(-(double)SOX_SAMPLE_MIN);
   else if (sscanf(text, "%lf %c", value, &dummy) != 1) {
-    lsx_fail("syntax error trying to read transfer function value");
-    return sox_false;
+    LogError("syntax error trying to read transfer function value.\n");
+    return false;
   }
   else if (*value > 0) {
-    lsx_fail("transfer function values are relative to maximum volume so can't exceed 0dB");
-    return sox_false;
+    LogError("transfer function values are relative to maximum volume so can't exceed 0dB.\n");
+    return false;
   }
-  return sox_true;
+  return true;
 }
 
-sox_bool lsx_compandt_parse(sox_compandt_t * t, char * points, char * gain)
+bool lsx_compandt_parse(sox_compandt_t * t, char * points, char * gain)
 {
   char const * text = points;
   unsigned i, j, num, pairs, commas = 0;
@@ -173,20 +120,20 @@ sox_bool lsx_compandt_parse(sox_compandt_t * t, char * points, char * gain)
   ++pairs;    /* allow room for extra pair at the beginning */
   pairs *= 2; /* allow room for the auto-curves */
   ++pairs;    /* allow room for 0,0 at end */
-  t->segments = lsx_calloc(pairs, sizeof(*t->segments));
+  t->segments = calloc(pairs, sizeof(*t->segments));
 
 #define s(n) t->segments[2*((n)+1)]
   for (i = 0, text = strtok(points, ","); text != NULL; ++i) {
     if (!parse_transfer_value(text, &s(i).x))
-      return sox_false;
+      return false;
     if (i && s(i-1).x > s(i).x) {
-      lsx_fail("transfer function input values must be strictly increasing");
-      return sox_false;
+      LogError("transfer function input values must be strictly increasing.\n");
+      return false;
     }
     if (i || (commas & 1)) {
       text = strtok(NULL, ",");
       if (!parse_transfer_value(text, &s(i).y))
-        return sox_false;
+        return false;
       s(i).y -= s(i).x;
     }
     text = strtok(NULL, ",");
@@ -198,8 +145,8 @@ sox_bool lsx_compandt_parse(sox_compandt_t * t, char * points, char * gain)
 #undef s
 
   if (gain && sscanf(gain, "%lf %c", &t->outgain_dB, &dummy) != 1) {
-    lsx_fail("syntax error trying to read post-processing gain value");
-    return sox_false;
+    LogError("syntax error trying to read post-processing gain value.\n");
+    return false;
   }
 
 #define s(n) t->segments[2*(n)]
@@ -219,7 +166,7 @@ sox_bool lsx_compandt_parse(sox_compandt_t * t, char * points, char * gain)
 #undef s
 
   prepare_transfer_fn(t);
-  return sox_true;
+  return true;
 }
 
 void lsx_compandt_kill(sox_compandt_t * p)

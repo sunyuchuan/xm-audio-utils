@@ -18,6 +18,8 @@ int send_samples(EffectContext *ctx, const void *samples,
                  const size_t nb_samples);
 int receive_samples(EffectContext *ctx, void *samples,
                     const size_t max_nb_samples);
+int flush_effect(EffectContext *ctx, void *samples,
+                    const size_t max_nb_samples);
 void free_effect(EffectContext *ctx);
 
 #endif  // AUDIO_EFFECTS_H_

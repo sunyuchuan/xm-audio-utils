@@ -176,6 +176,7 @@ const EffectHandler *effect_limiter_fn(void) {
                                     .set = limiter_set,
                                     .send = limiter_send,
                                     .receive = limiter_receive,
+                                    .flush = NULL,
                                     .close = limiter_close};
     return &handler;
 }

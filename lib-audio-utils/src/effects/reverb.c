@@ -9,6 +9,7 @@
 #include "tools/conversion.h"
 
 #define MAX_SAMPLE_SIZE 2048
+typedef float sample_type;
 
 typedef struct {
     size_t size;
@@ -373,6 +374,7 @@ const EffectHandler *effect_reverb_fn(void) {
                                     .set = reverb_set,
                                     .send = reverb_send,
                                     .receive = reverb_receive,
+                                    .flush = NULL,
                                     .close = reverb_close};
     return &handler;
 }

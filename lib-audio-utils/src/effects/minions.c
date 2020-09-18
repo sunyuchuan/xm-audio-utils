@@ -309,6 +309,7 @@ const EffectHandler *effect_minions_fn(void) {
                                     .set = minions_set,
                                     .send = minions_send,
                                     .receive = minions_receive,
+                                    .flush = NULL,
                                     .close = minions_close};
     return &handler;
 }

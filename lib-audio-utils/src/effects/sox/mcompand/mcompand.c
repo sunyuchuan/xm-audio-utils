@@ -42,7 +42,6 @@
 #undef NDEBUG /* Must undef above assert.h or other that might include it. */
 #endif
 
-#include "sox_i.h"
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>

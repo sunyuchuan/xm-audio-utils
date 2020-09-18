@@ -168,6 +168,10 @@ src/effects/volume_limiter.c
 src/effects/voice_effect.c
 src/effects/xm_audio_effects.c
 
+src/effects/sox/compand/compand.c
+src/effects/sox/compand/compandt.c
+#src/effects/sox/mcompand/mcompand.c
+
 src/mixer/fade_in_out.c
 src/mixer/side_chain_compress.c
 src/mixer/xm_audio_mixer.c

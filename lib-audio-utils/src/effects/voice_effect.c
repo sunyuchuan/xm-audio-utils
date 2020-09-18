@@ -89,6 +89,15 @@ int receive_samples(EffectContext *ctx, void *samples,
     return ctx->handler.receive(ctx, samples, max_nb_samples);
 }
 
+int flush_effect(EffectContext *ctx, void *samples,
+                    const size_t max_nb_samples) {
+    if(NULL == ctx) {
+        return -1;
+    }
+
+    return ctx->handler.flush(ctx, samples, max_nb_samples);
+}
+
 void free_effect(EffectContext *ctx) {
     if (NULL == ctx) return;
     ctx->handler.close(ctx);

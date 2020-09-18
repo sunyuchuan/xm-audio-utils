@@ -235,6 +235,7 @@ const EffectHandler *effect_voice_morph_fn(void) {
                                     .set = voice_morph_set,
                                     .send = voice_morph_send,
                                     .receive = voice_morph_receive,
+                                    .flush = NULL,
                                     .close = voice_morph_close};
     return &handler;
 }

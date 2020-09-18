@@ -42,6 +42,7 @@
 #define DELAY_BUFSIZ (50 * 50U * 1024)
 #define MAX_ECHOS 7 /* 24 bit x ( 1 + MAX_ECHOS ) = */
                     /* 24 bit x 8 = 32 bit !!!      */
+typedef float sample_type;
 
 typedef struct {
     fifo *fifo_in;
@@ -314,6 +315,7 @@ const EffectHandler *effect_echos_fn(void) {
         .set = echos_set,
         .send = echos_send,
         .receive = echos_receive,
+        .flush = NULL,
         .close = echos_close};
     return &handler;
 }

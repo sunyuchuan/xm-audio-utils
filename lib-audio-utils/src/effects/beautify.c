@@ -265,6 +265,7 @@ const EffectHandler *effect_beautify_fn(void) {
                                     .set = beautify_set,
                                     .send = beautify_send,
                                     .receive = beautify_receive,
+                                    .flush = NULL,
                                     .close = beautify_close};
     return &handler;
 }

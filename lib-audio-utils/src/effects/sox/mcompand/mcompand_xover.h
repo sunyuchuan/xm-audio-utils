@@ -15,6 +15,13 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
+#ifndef MCOMPAND_XOVER_H
+#define MCOMPAND_XOVER_H
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #define N 4          /* 4th order Linkwitz-Riley IIRs */
 #define CONVOLVE _ _ _ _
 
@@ -104,3 +111,8 @@ static int crossover_flow(sox_effect_t * effp, crossover_t * p, sox_sample_t
   return SOX_SUCCESS;
 }
 
+#if defined(__cplusplus)
+}
+#endif
+
+#endif /* MCOMPAND_XOVER_H */

@@ -14,8 +14,17 @@
  * along with this library; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
+#ifndef COMPANDT_H
+#define COMPANDT_H
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
 #include <math.h>
+#include <stdbool.h>
+#include "effect_struct.h"
+#include "sox/sox.h"
 
 typedef struct {
   struct sox_compandt_segment {
@@ -28,8 +37,7 @@ typedef struct {
   double curve_dB;
 } sox_compandt_t;
 
-sox_bool lsx_compandt_parse(sox_compandt_t * t, char * points, char * gain);
-sox_bool lsx_compandt_show(sox_compandt_t * t, sox_plot_t plot);
+bool lsx_compandt_parse(sox_compandt_t * t, char * points, char * gain);
 void    lsx_compandt_kill(sox_compandt_t * p);
 
 /* Place in header to allow in-lining */
@@ -50,3 +58,9 @@ static double lsx_compandt(sox_compandt_t * t, double in_lin)
 
   return exp(out_log);
 }
+
+#if defined(__cplusplus)
+}
+#endif
+
+#endif /* COMPANDT_H */

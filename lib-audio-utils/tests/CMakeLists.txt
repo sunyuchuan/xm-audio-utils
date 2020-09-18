@@ -5,6 +5,9 @@ target_link_libraries(test_fifo ${PROJECT_NAME})
 add_executable(test_logger test_logger.c)
 target_link_libraries(test_logger ${PROJECT_NAME} pthread)
 
+add_executable(test_compand test_compand.c)
+target_link_libraries(test_compand ${PROJECT_NAME} m pthread)
+
 add_executable(test_effects test_effects.c)
 target_link_libraries(test_effects ${PROJECT_NAME} m pthread)
 
