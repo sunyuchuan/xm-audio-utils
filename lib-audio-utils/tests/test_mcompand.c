@@ -41,10 +41,10 @@ int main(int argc, char **argv) {
     }
 
     // create effects
-    ctx = create_effect(find_effect("compand"), 44100, 1);
+    ctx = create_effect(find_effect("mcompand"), 44100, 1);
     ret = init_effect(ctx, 0, NULL);
     if (ret < 0) goto end;
-    ret = set_effect(ctx, "compand", COMPAND_PARAMS, 0);
+    ret = set_effect(ctx, "mcompand", MCOMPAND_PARAMS, 0);
     if (ret < 0) goto end;
 
     while (1) {

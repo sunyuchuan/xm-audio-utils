@@ -43,10 +43,20 @@
 #endif
 
 #include <assert.h>
-#include <string.h>
-#include <stdlib.h>
-#include "compandt.h"
+#include "sox/compand/compandt.h"
 #include "mcompand_xover.h"
+#include "libavutil/mem.h"
+#include "tools/fifo.h"
+#include "tools/sdl_mutex.h"
+
+#define mcompand_usage \
+    "quoted_compand_args [crossover_frequency[k] quoted_compand_args [...]]\n" \
+    "\n" \
+    "quoted_compand_args are as for the compand effect:\n" \
+    "\n" \
+    "  attack1,decay1[,attack2,decay2...]\n" \
+    "                 in-dB1,out-dB1[,in-dB2,out-dB2...]\n" \
+    "                [ gain [ initial-volume [ delay ] ] ]"
 
 typedef struct {
   sox_compandt_t transfer_fn;
@@ -59,15 +69,21 @@ typedef struct {
   double delay;         /* Delay to apply before companding */
   double topfreq;       /* upper bound crossover frequency */
   crossover_t filter;
-  sox_sample_t *delay_buf;   /* Old samples, used for delay processing */
+  sample_type *delay_buf;   /* Old samples, used for delay processing */
   size_t delay_size;    /* lookahead for this band (in samples) - function of delay, above */
   ptrdiff_t delay_buf_ptr; /* Index into delay_buf */
   size_t delay_buf_cnt; /* No. of active entries in delay_buf */
 } comp_band_t;
 
 typedef struct {
+  fifo *fifo_in;
+  fifo *fifo_out;
+  SdlMutex *sdl_mutex;
+  bool effect_on;
+  sample_type *in_buf;
+  sample_type *out_buf;
   size_t nBands;
-  sox_sample_t *band_buf1, *band_buf2, *band_buf3;
+  sample_type *band_buf1, *band_buf2, *band_buf3;
   size_t band_buf_len;
   size_t delay_buf_size;/* Size of delay_buf in samples */
   comp_band_t *bands;
@@ -94,14 +110,14 @@ static int sox_mcompand_getopts_1(comp_band_t * l, size_t n, char **argv)
       if (commas % 2 == 0) /* There must be an even number of
                               attack/decay parameters */
       {
-        lsx_fail("compander: Odd number of attack & decay rate parameters");
-        return (SOX_EOF);
+        LogError("compander: Odd number of attack & decay rate parameters.\n");
+        return (AUDIO_EFFECT_EOF);
       }
 
       rates = 1 + commas/2;
-      l->attackRate = lsx_malloc(sizeof(double) * rates);
-      l->decayRate  = lsx_malloc(sizeof(double) * rates);
-      l->volume = lsx_malloc(sizeof(double) * rates);
+      l->attackRate = malloc(sizeof(double) * rates);
+      l->decayRate  = malloc(sizeof(double) * rates);
+      l->volume = malloc(sizeof(double) * rates);
       l->expectedChannels = rates;
       l->delay_buf = NULL;
 
@@ -116,7 +132,7 @@ static int sox_mcompand_getopts_1(comp_band_t * l, size_t n, char **argv)
       } while (s != NULL);
 
       if (!lsx_compandt_parse(&l->transfer_fn, argv[1], n>2 ? argv[2] : 0))
-        return SOX_EOF;
+        return AUDIO_EFFECT_EOF;
 
       /* Set the initial "volume" to be attibuted to the input channels.
          Unless specified, choose 1.0 (maximum) otherwise clipping will
@@ -129,7 +145,7 @@ static int sox_mcompand_getopts_1(comp_band_t * l, size_t n, char **argv)
         if (n >= 5) l->delay = atof(argv[4]);
         else l->delay = 0.0;
       }
-    return (SOX_SUCCESS);
+    return (AUDIO_EFFECT_SUCCESS);
 }
 
 static int parse_subarg(char *s, char **subargv, size_t *subargc) {
@@ -152,21 +168,21 @@ static int parse_subarg(char *s, char **subargv, size_t *subargc) {
 
   if (*subargc < 2 || *subargc > 5)
     {
-      lsx_fail("Wrong number of parameters for the compander effect within mcompand; usage:\n"
+      LogError("Wrong number of parameters for the compander effect within mcompand; usage:\n"
   "\tattack1,decay1{,attack2,decay2} [soft-knee-dB:]in-dB1[,out-dB1]{,in-dB2,out-dB2} [gain [initial-volume-dB [delay]]]\n"
   "\twhere {} means optional and repeatable and [] means optional.\n"
-  "\tdB values are floating point or -inf'; times are in seconds.");
-      return (SOX_EOF);
+  "\tdB values are floating point or -inf'; times are in seconds.\n");
+      return (AUDIO_EFFECT_EOF);
     } else
-      return SOX_SUCCESS;
+      return AUDIO_EFFECT_SUCCESS;
 }
 
-static int getopts(sox_effect_t * effp, int argc, char **argv)
+static int getopts(EffectContext * ctx, int argc, const char **argv)
 {
   char *subargv[6], *cp;
   size_t subargc, i;
 
-  priv_t * c = (priv_t *) effp->priv;
+  priv_t * c = (priv_t *) ctx->priv;
   --argc, ++argv;
 
   c->band_buf1 = c->band_buf2 = c->band_buf3 = 0;
@@ -174,20 +190,20 @@ static int getopts(sox_effect_t * effp, int argc, char **argv)
 
   /* how many bands? */
   if (! (argc&1)) {
-    lsx_fail("mcompand accepts only an odd number of arguments:\argc"
-            "  mcompand quoted_compand_args [crossover_freq quoted_compand_args [...]]");
-    return SOX_EOF;
+    LogError("mcompand accepts only an odd number of arguments:\argc"
+            "  mcompand quoted_compand_args [crossover_freq quoted_compand_args [...]].\n");
+    return AUDIO_EFFECT_EOF;
   }
   c->nBands = (argc+1)>>1;
 
-  c->bands = lsx_calloc(c->nBands, sizeof(comp_band_t));
+  c->bands = calloc(c->nBands, sizeof(comp_band_t));
 
   for (i=0;i<c->nBands;++i) {
-    c->arg = lsx_strdup(argv[i<<1]);
-    if (parse_subarg(c->arg,subargv,&subargc) != SOX_SUCCESS)
-      return SOX_EOF;
-    if (sox_mcompand_getopts_1(&c->bands[i], subargc, &subargv[0]) != SOX_SUCCESS)
-      return SOX_EOF;
+    c->arg = av_strdup(argv[i<<1]);
+    if (parse_subarg(c->arg,subargv,&subargc) != AUDIO_EFFECT_SUCCESS)
+      return AUDIO_EFFECT_EOF;
+    if (sox_mcompand_getopts_1(&c->bands[i], subargc, &subargv[0]) != AUDIO_EFFECT_SUCCESS)
+      return AUDIO_EFFECT_EOF;
     free(c->arg);
     c->arg = NULL;
     if (i == (c->nBands-1))
@@ -195,33 +211,33 @@ static int getopts(sox_effect_t * effp, int argc, char **argv)
     else {
       c->bands[i].topfreq = lsx_parse_frequency(argv[(i<<1)+1],&cp);
       if (*cp) {
-        lsx_fail("bad frequency in args to mcompand");
-        return SOX_EOF;
+        LogError("bad frequency in args to mcompand.\n");
+        return AUDIO_EFFECT_EOF;
       }
       if ((i>0) && (c->bands[i].topfreq < c->bands[i-1].topfreq)) {
-        lsx_fail("mcompand crossover frequencies must be in ascending order.");
-        return SOX_EOF;
+        LogError("mcompand crossover frequencies must be in ascending order.\n");
+        return AUDIO_EFFECT_EOF;
       }
     }
   }
 
-  return SOX_SUCCESS;
+  return AUDIO_EFFECT_SUCCESS;
 }
 
 /*
  * Prepare processing.
  * Do all initializations.
  */
-static int start(sox_effect_t * effp)
+static int start(EffectContext * ctx)
 {
-  priv_t * c = (priv_t *) effp->priv;
+  priv_t * c = (priv_t *) ctx->priv;
   comp_band_t * l;
   size_t i;
   size_t band;
 
   for (band=0;band<c->nBands;++band) {
     l = &c->bands[band];
-    l->delay_size = c->bands[band].delay * effp->out_signal.rate * effp->out_signal.channels;
+    l->delay_size = c->bands[band].delay * ctx->in_signal.sample_rate * ctx->in_signal.channels;
     if (l->delay_size > c->delay_buf_size)
       c->delay_buf_size = l->delay_size;
   }
@@ -231,28 +247,28 @@ static int start(sox_effect_t * effp)
     /* Convert attack and decay rates using number of samples */
 
     for (i = 0; i < l->expectedChannels; ++i) {
-      if (l->attackRate[i] > 1.0/effp->out_signal.rate)
+      if (l->attackRate[i] > 1.0/ctx->in_signal.sample_rate)
         l->attackRate[i] = 1.0 -
-          exp(-1.0/(effp->out_signal.rate * l->attackRate[i]));
+          exp(-1.0/(ctx->in_signal.sample_rate * l->attackRate[i]));
       else
         l->attackRate[i] = 1.0;
-      if (l->decayRate[i] > 1.0/effp->out_signal.rate)
+      if (l->decayRate[i] > 1.0/ctx->in_signal.sample_rate)
         l->decayRate[i] = 1.0 -
-          exp(-1.0/(effp->out_signal.rate * l->decayRate[i]));
+          exp(-1.0/(ctx->in_signal.sample_rate * l->decayRate[i]));
       else
         l->decayRate[i] = 1.0;
     }
 
     /* Allocate the delay buffer */
     if (c->delay_buf_size > 0)
-      l->delay_buf = lsx_calloc(sizeof(long), c->delay_buf_size);
+      l->delay_buf = calloc(sizeof(long), c->delay_buf_size);
     l->delay_buf_ptr = 0;
     l->delay_buf_cnt = 0;
 
     if (l->topfreq != 0)
-      crossover_setup(effp, &l->filter, l->topfreq);
+      crossover_setup(ctx, &l->filter, l->topfreq);
   }
-  return (SOX_SUCCESS);
+  return (AUDIO_EFFECT_SUCCESS);
 }
 
 /*
@@ -262,7 +278,7 @@ static int start(sox_effect_t * effp)
 
 static void doVolume(double *v, double samp, comp_band_t * l, size_t chan)
 {
-  double s = samp/(~((sox_sample_t)1<<31));
+  double s = -samp / SOX_SAMPLE_MIN;
   double delta = s - *v;
 
   if (delta > 0.0) /* increase volume according to attack rate */
@@ -271,7 +287,7 @@ static void doVolume(double *v, double samp, comp_band_t * l, size_t chan)
     *v += delta * l->decayRate[chan];
 }
 
-static int sox_mcompand_flow_1(sox_effect_t * effp, priv_t * c, comp_band_t * l, const sox_sample_t *ibuf, sox_sample_t *obuf, size_t len, size_t filechans)
+static int sox_mcompand_flow_1(EffectContext * ctx, priv_t * c, comp_band_t * l, const sample_type *ibuf, sample_type *obuf, size_t len, size_t filechans)
 {
   size_t idone, odone;
 
@@ -303,7 +319,7 @@ static int sox_mcompand_flow_1(sox_effect_t * effp, priv_t * c, comp_band_t * l,
 
       if (c->delay_buf_size <= 0) {
         checkbuf = ibuf[chan] * level_out_lin;
-        SOX_SAMPLE_CLIP_COUNT(checkbuf, effp->clips);
+        SOX_SAMPLE_CLIP(checkbuf);
         obuf[odone++] = checkbuf;
         idone++;
       } else {
@@ -322,7 +338,7 @@ static int sox_mcompand_flow_1(sox_effect_t * effp, priv_t * c, comp_band_t * l,
 
         if (l->delay_buf_cnt >= l->delay_size) {
           checkbuf = l->delay_buf[(l->delay_buf_ptr + c->delay_buf_size - l->delay_size)%c->delay_buf_size] * level_out_lin;
-          SOX_SAMPLE_CLIP_COUNT(checkbuf, effp->clips);
+          SOX_SAMPLE_CLIP(checkbuf);
           l->delay_buf[(l->delay_buf_ptr + c->delay_buf_size - l->delay_size)%c->delay_buf_size] = checkbuf;
         }
         if (l->delay_buf_cnt >= c->delay_buf_size) {
@@ -344,38 +360,38 @@ static int sox_mcompand_flow_1(sox_effect_t * effp, priv_t * c, comp_band_t * l,
        cannot report back to flow() how many samples were consumed/emitted.
        Additionally, flow() doesn't know how to handle diverging
        sub-compander delays. */
-    lsx_fail("Using a compander delay within mcompand is currently not supported");
-    exit(1);
+    LogError("Using a compander delay within mcompand is currently not supported.\n");
+    return (AUDIO_EFFECT_EOF);
     /* FIXME */
   }
 
-  return (SOX_SUCCESS);
+  return (AUDIO_EFFECT_SUCCESS);
 }
 
 /*
  * Processed signed long samples from ibuf to obuf.
  * Return number of samples processed.
  */
-static int flow(sox_effect_t * effp, const sox_sample_t *ibuf, sox_sample_t *obuf,
+static int flow(EffectContext * ctx, const sample_type *ibuf, sample_type *obuf,
                      size_t *isamp, size_t *osamp) {
-  priv_t * c = (priv_t *) effp->priv;
+  priv_t * c = (priv_t *) ctx->priv;
   comp_band_t * l;
   size_t len = min(*isamp, *osamp);
   size_t band, i;
-  sox_sample_t *abuf, *bbuf, *cbuf, *oldabuf, *ibuf_copy;
+  sample_type *abuf, *bbuf, *cbuf, *oldabuf, *ibuf_copy;
   double out;
 
   if (c->band_buf_len < len) {
-    c->band_buf1 = lsx_realloc(c->band_buf1,len*sizeof(sox_sample_t));
-    c->band_buf2 = lsx_realloc(c->band_buf2,len*sizeof(sox_sample_t));
-    c->band_buf3 = lsx_realloc(c->band_buf3,len*sizeof(sox_sample_t));
+    c->band_buf1 = realloc(c->band_buf1,len*sizeof(sample_type));
+    c->band_buf2 = realloc(c->band_buf2,len*sizeof(sample_type));
+    c->band_buf3 = realloc(c->band_buf3,len*sizeof(sample_type));
     c->band_buf_len = len;
   }
 
-  len -= len % effp->out_signal.channels;
+  len -= len % ctx->in_signal.channels;
 
-  ibuf_copy = lsx_malloc(*isamp * sizeof(sox_sample_t));
-  memcpy(ibuf_copy, ibuf, *isamp * sizeof(sox_sample_t));
+  ibuf_copy = malloc(*isamp * sizeof(sample_type));
+  memcpy(ibuf_copy, ibuf, *isamp * sizeof(sample_type));
 
   /* split ibuf into bands using filters, pipe each band through sox_mcompand_flow_1, then add back together and write to obuf */
 
@@ -384,18 +400,18 @@ static int flow(sox_effect_t * effp, const sox_sample_t *ibuf, sox_sample_t *obu
     l = &c->bands[band];
 
     if (l->topfreq)
-      crossover_flow(effp, &l->filter, abuf, bbuf, cbuf, len);
+      crossover_flow(ctx, &l->filter, abuf, bbuf, cbuf, len);
     else {
       bbuf = abuf;
       abuf = cbuf;
     }
     if (abuf == ibuf_copy)
       abuf = c->band_buf3;
-    (void)sox_mcompand_flow_1(effp, c,l,bbuf,abuf,len, (size_t)effp->out_signal.channels);
+    (void)sox_mcompand_flow_1(ctx, c,l,bbuf,abuf,len, (size_t)ctx->in_signal.channels);
     for (i=0;i<len;++i)
     {
       out = (double)obuf[i] + (double)abuf[i];
-      SOX_SAMPLE_CLIP_COUNT(out, effp->clips);
+      SOX_SAMPLE_CLIP(out);
       obuf[i] = out;
     }
     oldabuf = abuf;
@@ -407,10 +423,10 @@ static int flow(sox_effect_t * effp, const sox_sample_t *ibuf, sox_sample_t *obu
 
   free(ibuf_copy);
 
-  return SOX_SUCCESS;
+  return AUDIO_EFFECT_SUCCESS;
 }
 
-static int sox_mcompand_drain_1(sox_effect_t * effp, priv_t * c, comp_band_t * l, sox_sample_t *obuf, size_t maxdrain)
+static int sox_mcompand_drain_1(EffectContext * effp, priv_t * c, comp_band_t * l, sample_type *obuf, size_t maxdrain)
 {
   size_t done;
   double out;
@@ -420,7 +436,7 @@ static int sox_mcompand_drain_1(sox_effect_t * effp, priv_t * c, comp_band_t * l
    */
   for (done = 0;  done < maxdrain  &&  l->delay_buf_cnt > 0;  done++) {
     out = obuf[done] + l->delay_buf[l->delay_buf_ptr++];
-    SOX_SAMPLE_CLIP_COUNT(out, effp->clips);
+    SOX_SAMPLE_CLIP(out);
     obuf[done] = out;
     l->delay_buf_ptr %= c->delay_buf_size;
     l->delay_buf_cnt--;
@@ -434,18 +450,18 @@ static int sox_mcompand_drain_1(sox_effect_t * effp, priv_t * c, comp_band_t * l
 /*
  * Drain out compander delay lines.
  */
-static int drain(sox_effect_t * effp, sox_sample_t *obuf, size_t *osamp)
+static int drain(EffectContext * ctx, sample_type *obuf, size_t *osamp)
 {
   size_t band, drained, mostdrained = 0;
-  priv_t * c = (priv_t *)effp->priv;
+  priv_t * c = (priv_t *)ctx->priv;
   comp_band_t * l;
 
-  *osamp -= *osamp % effp->out_signal.channels;
+  *osamp -= *osamp % ctx->in_signal.channels;
 
   memset(obuf,0,*osamp * sizeof *obuf);
   for (band=0;band<c->nBands;++band) {
     l = &c->bands[band];
-    drained = sox_mcompand_drain_1(effp, c,l,obuf,*osamp);
+    drained = sox_mcompand_drain_1(ctx, c,l,obuf,*osamp);
     if (drained > mostdrained)
       mostdrained = drained;
   }
@@ -453,17 +469,17 @@ static int drain(sox_effect_t * effp, sox_sample_t *obuf, size_t *osamp)
   *osamp = mostdrained;
 
   if (mostdrained)
-      return SOX_SUCCESS;
+      return AUDIO_EFFECT_SUCCESS;
   else
-      return SOX_EOF;
+      return AUDIO_EFFECT_EOF;
 }
 
 /*
  * Clean up compander effect.
  */
-static int stop(sox_effect_t * effp)
+static int stop(EffectContext * ctx)
 {
-  priv_t * c = (priv_t *) effp->priv;
+  priv_t * c = (priv_t *) ctx->priv;
   comp_band_t * l;
   size_t band;
 
@@ -481,12 +497,12 @@ static int stop(sox_effect_t * effp)
       free(l->filter.previous);
   }
 
-  return SOX_SUCCESS;
+  return AUDIO_EFFECT_SUCCESS;
 }
 
-static int lsx_kill(sox_effect_t * effp)
+static int lsx_kill(EffectContext * ctx)
 {
-  priv_t * c = (priv_t *) effp->priv;
+  priv_t * c = (priv_t *) ctx->priv;
   comp_band_t * l;
   size_t band;
 
@@ -501,23 +517,226 @@ static int lsx_kill(sox_effect_t * effp)
   free(c->bands);
   c->bands = NULL;
 
-  return SOX_SUCCESS;
+  return AUDIO_EFFECT_SUCCESS;
 }
 
-const sox_effect_handler_t *lsx_mcompand_effect_fn(void)
-{
-  static sox_effect_handler_t handler = {
-    "mcompand",
-    "quoted_compand_args [crossover_frequency[k] quoted_compand_args [...]]\n"
-    "\n"
-    "quoted_compand_args are as for the compand effect:\n"
-    "\n"
-    "  attack1,decay1[,attack2,decay2...]\n"
-    "                 in-dB1,out-dB1[,in-dB2,out-dB2...]\n"
-    "                [ gain [ initial-volume [ delay ] ] ]",
-    SOX_EFF_MCHAN | SOX_EFF_GAIN,
-    getopts, start, flow, drain, stop, lsx_kill, sizeof(priv_t)
-  };
+static int mcompand_parseopts(EffectContext *ctx, const char *argv_s) {
+#define MAX_ARGC 50
+    const char *argv[MAX_ARGC];
+    int argc = 0;
+    argv[argc++] = ctx->handler.name;
 
-  return &handler;
+    char *_argv_s = calloc(strlen(argv_s) + 1, sizeof(char));
+    memcpy(_argv_s, argv_s, strlen(argv_s) + 1);
+
+    char *token = strtok(_argv_s, ";");
+    while (token != NULL) {
+        argv[argc++] = token;
+        token = strtok(NULL, ";");
+    }
+
+    int ret = getopts(ctx, argc, argv);
+    if (ret < 0) goto end;
+    ret = start(ctx);
+    if (ret < 0) goto end;
+
+end:
+    free(_argv_s);
+    return ret;
+}
+
+static int mcompand_set_mode(EffectContext *ctx, const char *mode) {
+    LogInfo("%s mode = %s.\n", __func__, mode);
+    priv_t *priv = (priv_t *)ctx->priv;
+    if (0 == strcasecmp(mode, "None")) {
+        return -1;
+    } else {
+        return mcompand_parseopts(ctx, MCOMPAND_PARAMS);
+    }
+}
+
+static int mcompand_close(EffectContext *ctx) {
+    LogInfo("%s.\n", __func__);
+    if(NULL == ctx) return AEERROR_NULL_POINT;
+
+    if (ctx->priv) {
+        priv_t *priv = (priv_t *)ctx->priv;
+        if (priv->fifo_in) fifo_delete(&priv->fifo_in);
+        if (priv->fifo_out) fifo_delete(&priv->fifo_out);
+        if (priv->sdl_mutex) sdl_mutex_free(&priv->sdl_mutex);
+        if (priv->in_buf) {
+            free(priv->in_buf);
+            priv->in_buf = NULL;
+        }
+        if (priv->out_buf) {
+            free(priv->out_buf);
+            priv->out_buf = NULL;
+        }
+        stop(ctx);
+        lsx_kill(ctx);
+    }
+    return 0;
+}
+
+static int mcompand_flush(EffectContext *ctx, void *samples,
+                          const size_t max_nb_samples) {
+    if(!ctx || !samples) return AEERROR_NULL_POINT;
+    priv_t *priv = (priv_t *)ctx->priv;
+    if (!priv || !priv->fifo_out || !priv->out_buf)
+        return AEERROR_NULL_POINT;
+
+    sdl_mutex_lock(priv->sdl_mutex);
+    if (priv->effect_on) {
+        size_t out_len = max_nb_samples;
+        int completed = drain(ctx, priv->out_buf, &out_len);
+        fifo_write(priv->fifo_out, priv->out_buf, out_len);
+        while (completed == AUDIO_EFFECT_SUCCESS) {
+            out_len = max_nb_samples;
+            completed = drain(ctx, priv->out_buf, &out_len);
+            fifo_write(priv->fifo_out, priv->out_buf, out_len);
+        }
+    } else {
+        while (fifo_occupancy(priv->fifo_in) > 0) {
+            size_t nb_samples =
+                fifo_read(priv->fifo_in, priv->out_buf, max_nb_samples);
+            fifo_write(priv->fifo_out, priv->out_buf, nb_samples);
+        }
+    }
+    sdl_mutex_unlock(priv->sdl_mutex);
+
+    return fifo_read(priv->fifo_out, samples, max_nb_samples);
+}
+
+static int mcompand_receive(EffectContext *ctx, void *samples,
+                          const size_t max_nb_samples) {
+    if(!ctx || !samples) return AEERROR_NULL_POINT;
+    priv_t *priv = (priv_t *)ctx->priv;
+    if (!priv || !priv->fifo_in
+        || !priv->fifo_out || !priv->in_buf
+        || !priv->out_buf) return AEERROR_NULL_POINT;
+
+    sdl_mutex_lock(priv->sdl_mutex);
+    if (priv->effect_on) {
+        size_t nb_samples =
+            fifo_read(priv->fifo_in, priv->in_buf, MAX_SAMPLE_SIZE);
+        while (nb_samples > 0) {
+            size_t in_len = nb_samples;
+            size_t out_len = nb_samples;
+            flow(ctx, priv->in_buf, priv->out_buf, &in_len, &out_len);
+            fifo_write(priv->fifo_out, priv->out_buf, out_len);
+            nb_samples =
+                fifo_read(priv->fifo_in, priv->in_buf, MAX_SAMPLE_SIZE);
+        }
+    } else {
+        while (fifo_occupancy(priv->fifo_in) > 0) {
+            size_t nb_samples =
+                fifo_read(priv->fifo_in, priv->out_buf, max_nb_samples);
+            fifo_write(priv->fifo_out, priv->out_buf, nb_samples);
+        }
+    }
+    sdl_mutex_unlock(priv->sdl_mutex);
+
+    if (atomic_load(&ctx->return_max_nb_samples) &&
+        fifo_occupancy(priv->fifo_out) < max_nb_samples)
+        return 0;
+
+    return fifo_read(priv->fifo_out, samples, max_nb_samples);
+}
+
+static int mcompand_send(EffectContext *ctx, const void *samples,
+                      const size_t nb_samples) {
+    if(!ctx || !samples || nb_samples <= 0) return AEERROR_NULL_POINT;
+    priv_t *priv = (priv_t *)ctx->priv;
+    if (!priv || !priv->fifo_in) return AEERROR_NULL_POINT;
+
+    return fifo_write(priv->fifo_in, samples, nb_samples);
+}
+
+static int mcompand_set(EffectContext *ctx, const char *key, int flags) {
+    LogInfo("%s.\n", __func__);
+    if(NULL == ctx || NULL == key) return AEERROR_NULL_POINT;
+
+    priv_t *priv = (priv_t *)ctx->priv;
+    if (NULL == priv) return AEERROR_NULL_POINT;
+
+    int ret = 0;
+    AEDictionaryEntry *entry = ae_dict_get(ctx->options, key, NULL, flags);
+    if (entry) {
+        LogInfo("%s key = %s val = %s\n", __func__, entry->key, entry->value);
+
+        sdl_mutex_lock(priv->sdl_mutex);
+        if (0 == strcasecmp(entry->key, ctx->handler.name)) {
+            ret = mcompand_parseopts(ctx, entry->value);
+            if (ret >= 0) priv->effect_on = true;
+            else priv->effect_on = false;
+        } else if (0 == strcasecmp(entry->key, "mode")) {
+            ret = mcompand_set_mode(ctx, entry->value);
+            if (ret >= 0) priv->effect_on = true;
+            else priv->effect_on = false;
+        }
+        sdl_mutex_unlock(priv->sdl_mutex);
+    }
+    return ret;
+}
+
+static int mcompand_init(EffectContext *ctx, int argc, const char **argv) {
+    LogInfo("%s.\n", __func__);
+    if(NULL == ctx) return AEERROR_NULL_POINT;
+
+    priv_t *priv = (priv_t *)ctx->priv;
+    if (NULL == priv) return AEERROR_NULL_POINT;
+
+    int ret = 0;
+    priv->fifo_in = fifo_create(sizeof(sample_type));
+    if (NULL == priv->fifo_in) {
+        ret = AEERROR_NOMEM;
+        goto end;
+    }
+    priv->fifo_out = fifo_create(sizeof(sample_type));
+    if (NULL == priv->fifo_out) {
+        ret = AEERROR_NOMEM;
+        goto end;
+    }
+    priv->sdl_mutex = sdl_mutex_create();
+    if (NULL == priv->sdl_mutex) {
+        ret = AEERROR_NOMEM;
+        goto end;
+    }
+    priv->in_buf = calloc((size_t)MAX_SAMPLE_SIZE, sizeof(*priv->in_buf));
+    if (NULL == priv->in_buf) {
+        ret = AEERROR_NOMEM;
+        goto end;
+    }
+    priv->out_buf = calloc((size_t)MAX_SAMPLE_SIZE, sizeof(*priv->out_buf));
+    if (NULL == priv->out_buf) {
+        ret = AEERROR_NOMEM;
+        goto end;
+    }
+    priv->effect_on = false;
+
+    if (argc > 1 && argv != NULL) {
+        ret = getopts(ctx, argc, argv);
+        if (ret < 0) goto end;
+        ret = start(ctx);
+        if (ret < 0) goto end;
+    }
+
+    return ret;
+end:
+    if (ret < 0) mcompand_close(ctx);
+    return ret;
+}
+
+const EffectHandler *effect_mcompand_fn(void) {
+    static EffectHandler handler = {
+        .name = "mcompand",
+        .usage = mcompand_usage,
+        .priv_size = sizeof(priv_t),
+        .init = mcompand_init,
+        .set = mcompand_set,
+        .send = mcompand_send,
+        .receive = mcompand_receive,
+        .flush = mcompand_flush,
+        .close = mcompand_close};
+    return &handler;
 }

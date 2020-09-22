@@ -19,8 +19,8 @@ echo -e "\033[1;43;30m\ntest_logger...\033[0m"
 echo -e "\033[1;43;30m\ntest_beautify...\033[0m"
 ./tests/test_beautify ../data/pcm_mono_44kHz_0035.pcm test_beautify.pcm
 
-echo -e "\033[1;43;30m\ntest_compand...\033[0m"
-./tests/test_compand ../data/side_chain_music_test.wav test_compand.pcm
+echo -e "\033[1;43;30m\ntest_mcompand...\033[0m"
+./tests/test_mcompand ../data/side_chain_music_test.wav test_mcompand.pcm
 
 echo -e "\033[1;43;30m\ntest_noise_suppression...\033[0m"
 ./tests/test_noise_suppression ../data/ns_input.pcm test_noise_suppression.pcm

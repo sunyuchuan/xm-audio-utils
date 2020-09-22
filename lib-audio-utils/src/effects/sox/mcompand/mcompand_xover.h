@@ -22,6 +22,10 @@
 extern "C" {
 #endif
 
+#include "error_def.h"
+#include "effect_struct.h"
+#include "sox/sox.h"
+
 #define N 4          /* 4th order Linkwitz-Riley IIRs */
 #define CONVOLVE _ _ _ _
 
@@ -41,20 +45,18 @@ static void square_quadratic(char const * name, double const * x, double * y)
   y[2] = 2 * x[0] * x[2] + x[1] * x[1];
   y[3] = 2 * x[1] * x[2];
   y[4] = x[2] * x[2];
-  lsx_debug("%s=[%.16g %.16g %.16g %.16g %.16g];", name,
-      y[0], y[1], y[2], y[3], y[4]);
 }
 
-static int crossover_setup(sox_effect_t * effp, crossover_t * p, double frequency)
+static int crossover_setup(EffectContext * ctx, crossover_t * p, double frequency)
 {
-  double w0 = 2 * M_PI * frequency / effp->in_signal.rate;
+  double w0 = 2 * M_PI * frequency / ctx->in_signal.sample_rate;
   double Q = sqrt(.5), alpha = sin(w0)/(2*Q);
   double x[9], norm;
   int i;
 
   if (w0 > M_PI) {
-    lsx_fail("frequency must not exceed half the sample-rate (Nyquist rate)");
-    return SOX_EOF;
+    LogError("frequency must not exceed half the sample-rate (Nyquist rate).\n");
+    return AUDIO_EFFECT_EOF;
   }
   x[0] =  (1 - cos(w0))/2;           /* Cf. filter_LPF in biquads.c */
   x[1] =   1 - cos(w0);
@@ -70,20 +72,20 @@ static int crossover_setup(sox_effect_t * effp, crossover_t * p, double frequenc
   square_quadratic("hb", x + 3, p->coefs + 5);
   square_quadratic("a" , x + 6, p->coefs + 10);
 
-  p->previous = lsx_calloc(effp->in_signal.channels, sizeof(*p->previous));
-  return SOX_SUCCESS;
+  p->previous = calloc(ctx->in_signal.channels, sizeof(*p->previous));
+  return AUDIO_EFFECT_SUCCESS;
 }
 
-static int crossover_flow(sox_effect_t * effp, crossover_t * p, sox_sample_t
-    *ibuf, sox_sample_t *obuf_low, sox_sample_t *obuf_high, size_t len0)
+static int crossover_flow(EffectContext * ctx, crossover_t * p, sample_type
+    *ibuf, sample_type *obuf_low, sample_type *obuf_high, size_t len0)
 {
   double out_low, out_high;
-  size_t c, len = len0 / effp->in_signal.channels;
-  assert(len * effp->in_signal.channels == len0);
+  size_t c, len = len0 / ctx->in_signal.channels;
+  assert(len * ctx->in_signal.channels == len0);
 
   while (len--) {
     p->pos = p->pos? p->pos - 1 : N - 1;
-    for (c = 0; c < effp->in_signal.channels; ++c) {
+    for (c = 0; c < (size_t)ctx->in_signal.channels; ++c) {
 #define _ out_low += p->coefs[j] * p->previous[c][p->pos + j].in \
         - p->coefs[2*N+2 + j] * p->previous[c][p->pos + j].out_low, ++j;
       {
@@ -91,7 +93,7 @@ static int crossover_flow(sox_effect_t * effp, crossover_t * p, sox_sample_t
         out_low = p->coefs[0] * *ibuf;
         CONVOLVE
         assert(j == N+1);
-        *obuf_low++ = SOX_ROUND_CLIP_COUNT(out_low, effp->clips);
+        *obuf_low++ = SOX_ROUND_CLIP(out_low);
       }
 #undef _
 #define _ out_high += p->coefs[j+N+1] * p->previous[c][p->pos + j].in \
@@ -101,14 +103,14 @@ static int crossover_flow(sox_effect_t * effp, crossover_t * p, sox_sample_t
         out_high = p->coefs[N+1] * *ibuf;
         CONVOLVE
         assert(j == N+1);
-        *obuf_high++ = SOX_ROUND_CLIP_COUNT(out_high, effp->clips);
+        *obuf_high++ = SOX_ROUND_CLIP(out_high);
       }
       p->previous[c][p->pos + N].in = p->previous[c][p->pos].in = *ibuf++;
       p->previous[c][p->pos + N].out_low = p->previous[c][p->pos].out_low = out_low;
       p->previous[c][p->pos + N].out_high = p->previous[c][p->pos].out_high = out_high;
     }
   }
-  return SOX_SUCCESS;
+  return AUDIO_EFFECT_SUCCESS;
 }
 
 #if defined(__cplusplus)

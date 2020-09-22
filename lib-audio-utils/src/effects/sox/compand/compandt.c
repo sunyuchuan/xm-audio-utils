@@ -18,8 +18,6 @@
 #include "compandt.h"
 #include "log.h"
 #include "tools/util.h"
-#include <stdlib.h>
-#include <string.h>
 
 #define LOG_TO_LOG10(x) ((x) * 20 / M_LN10)
 

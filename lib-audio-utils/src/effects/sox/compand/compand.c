@@ -10,8 +10,6 @@
  * the consequences of using this software.
  */
 
-#include <string.h>
-#include <stdlib.h>
 #include "libavutil/mem.h"
 #include "compandt.h"
 #include "error_def.h"

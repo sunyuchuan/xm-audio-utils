@@ -21,7 +21,6 @@
 extern "C" {
 #endif
 
-#include <math.h>
 #include <stdbool.h>
 #include "effect_struct.h"
 #include "sox/sox.h"
