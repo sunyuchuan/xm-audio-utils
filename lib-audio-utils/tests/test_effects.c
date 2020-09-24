@@ -47,7 +47,7 @@ int main(int argc, char **argv) {
 
         // receive data
         ret = receive_samples(ctx, flp_buffer, buffer_size);
-        while (ret >= buffer_size) {
+        while (ret >= (int)buffer_size) {
             FloatToS16(flp_buffer, fix_buffer, ret);
             fwrite(fix_buffer, sizeof(short), buffer_size, pcm_writer);
             ret = receive_samples(ctx, flp_buffer, buffer_size);

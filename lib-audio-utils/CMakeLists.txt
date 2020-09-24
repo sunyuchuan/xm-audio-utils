@@ -164,7 +164,7 @@ src/effects/noise_suppression/ns/splitting_filter.c
 src/effects/noise_suppression/ns/ns_core.c
 src/effects/noise_suppression/noise_suppression.c
 src/effects/noise_suppression.c
-src/effects/volume_limiter.c
+src/effects/limiter.c
 src/effects/voice_effect.c
 src/effects/xm_audio_effects.c
 
