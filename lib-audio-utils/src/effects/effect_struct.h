@@ -20,6 +20,7 @@
     0.000625,0.0125 -47,-40,-34,-34,-15,-33;1600; \
     0.0001,0.025 -47,-40,-34,-34,-31,-31,-0,-30;6400; \
     0,0.025 -38,-31,-28,-28,-0,-25;"
+#define BIQUADS_PARAMS "0.3,1 6:-70,-60,-20 -5 -90 0.2"
 
 typedef struct EffectContext_T EffectContext;
 typedef struct EffectHandler_T EffectHandler;
@@ -42,6 +43,7 @@ struct EffectHandler_T {
 typedef struct SignalInfoT {
     int sample_rate; /**< samples per second, 0 if unknown */
     int channels;    /**< number of sound channels, 0 if unknown */
+    double * mult;   /**< Effects headroom multiplier; may be null */
 } SignalInfo;
 
 struct EffectContext_T {
