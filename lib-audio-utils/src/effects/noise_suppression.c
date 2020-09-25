@@ -68,6 +68,7 @@ static int noise_suppression_init(EffectContext *ctx,
     if ((ret = XmNs_set_policy(priv->ns, NS_MODE_LEVEL_3)) < 0) {
         goto end;
     }
+    XmNS_Noise_init(priv->ns);
 
     priv->fifo_in = fifo_create(sizeof(int16_t));
     if (NULL == priv->fifo_in) {
