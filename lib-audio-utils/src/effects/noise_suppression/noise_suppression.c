@@ -158,3 +158,25 @@ int XmNS_Process(NsHandle *pNS_inst, short *shBufferIn,
 	ret = fifo_read(p->f_out, shBufferOut, out_len);
 	return ret;
 }
+
+void XmNS_Noise_init(NsHandle *pNS_inst)
+{
+    short buffer_in[320] = { 0 };
+    short buffer_out[320] = { 0 };
+    NSinst_t *p = (NSinst_t *)pNS_inst;
+    int fs = p->fs;
+    short m_rand[2] = {0, 1};
+
+    if (fs == 8000 || fs == 16000) {
+        return;
+    } else {
+        for (int i = 0; i < 320; i++) {
+            buffer_in[i] = m_rand[i % 2];
+        }
+        int buffer_size = 320;
+        for (int i = 0; i < 16; i++) {
+            NS_Process_H((NsHandle *)pNS_inst, buffer_in, buffer_out);
+        }
+        return;
+    }
+}

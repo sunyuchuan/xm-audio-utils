@@ -18,7 +18,7 @@ typedef struct NsHandleT NsHandle;
 extern "C" {
 #endif
 
-// log level
+// NS level
 typedef enum NsMode {
     NS_MODE_LEVEL_0 = 0,
     NS_MODE_LEVEL_1,
@@ -122,6 +122,12 @@ int XmNS_Process(NsHandle *pNS_inst, short *shBufferIn, int in_len,
  */
 int XmNs_Flush(NsHandle *pNS_inst, short *shBufferOut, int out_len);
 
+/**
+ * @brief noise init
+ *
+ * @param pNS_inst Noise suppression instance
+ */
+void XmNS_Noise_init(NsHandle *pNS_inst);
 
 #ifdef __cplusplus
 }
