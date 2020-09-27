@@ -514,6 +514,7 @@ static int fill_track_buffer(AudioSourceQueue *queue,
                 buffer + buffer_data_start_index, buffer_size_in_short);
         }
         memcpy(source->buffer.buffer, buffer, sizeof(short) * MAX_NB_SAMPLES);
+        free(buffer);
         ret = 0;
         goto end;
     } else if (start_time >= source->end_time_ms) {
