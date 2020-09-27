@@ -22,7 +22,7 @@ enum EffectType {
     Minions,
     VoiceMorph,
     Reverb,
-    VolumeLimiter,
+    Limiter,
     MAX_NB_EFFECTS
 };
 

@@ -85,10 +85,33 @@ static int limiter_init(EffectContext *ctx, int argc, const char **argv) {
     }
 
     init_parameter(priv);
+    priv->effect_on = false;
 
 end:
     if (ret < 0) limiter_close(ctx);
     return ret;
+}
+
+static int limiter_parseopts(EffectContext *ctx, const char *argv_s) {
+    priv_t *priv = ctx->priv;
+    char *token = strtok(argv_s, ",");
+    if (token != NULL) {
+        priv->limiter_threshold_in_dB = strtod(token, NULL);
+        token = strtok(NULL, ",");
+    }
+    if (token != NULL) {
+        priv->output_gain_in_dB = strtod(token, NULL);
+        token = strtok(NULL, ",");
+    }
+    if (token != NULL) {
+        priv->attack_time_in_ms = strtod(token, NULL);
+        token = strtok(NULL, ",");
+    }
+    if (token != NULL) {
+        priv->decay_time_in_ms = strtod(token, NULL);
+    }
+
+    return 0;
 }
 
 static int limiter_set(EffectContext *ctx, const char *key,
@@ -101,14 +124,10 @@ static int limiter_set(EffectContext *ctx, const char *key,
         LogInfo("%s key = %s val = %s\n", __func__, entry->key, entry->value);
 
         sdl_mutex_lock(priv->sdl_mutex);
-        if (0 == strcasecmp(entry->key, "limiter_threshold_in_dB")) {
-            priv->limiter_threshold_in_dB = strtod(entry->value, NULL);
-        } else if (0 == strcasecmp(entry->key, "output_gain_in_dB")) {
-            priv->output_gain_in_dB = strtod(entry->value, NULL);
-        } else if (0 == strcasecmp(entry->key, "attack_time_in_ms")) {
-            priv->attack_time_in_ms = strtod(entry->value, NULL);
-        } else if (0 == strcasecmp(entry->key, "decay_time_in_ms")) {
-            priv->decay_time_in_ms = strtod(entry->value, NULL);
+        if (0 == strcasecmp(entry->key, ctx->handler.name)) {
+            int ret = limiter_parseopts(ctx, entry->value);
+            if (ret >= 0) priv->effect_on = true;
+            else priv->effect_on = false;
         } else if (0 == strcasecmp(entry->key, "Switch")) {
             if (0 == strcasecmp(entry->value, "Off")) {
                 priv->effect_on = false;

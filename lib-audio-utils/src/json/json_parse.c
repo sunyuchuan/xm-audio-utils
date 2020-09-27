@@ -34,7 +34,7 @@ static const char *phone_tracks_name[PHONE_NB_TRACKS] = {
 #define NOISE_SUPPRESSION "NoiseSuppression"
 #define BEAUTIFY "Beautify"
 #define REVERB "Reverb"
-#define VOLUME_LIMITER "VolumeLimiter"
+#define LIMITER "Limiter"
 #define MINIONS "Minions"
 #define VOICE_MORPH "VoiceMorph"
 static const char *voice_morph_name[3] = {
@@ -94,9 +94,10 @@ static int parse_voice_effects(cJSON *effects, AudioSource *source)
         } else if (0 == strcasecmp(name->valuestring, REVERB)) {
             LogInfo("%s effect Reverb\n", __func__);
             source->effects_info[Reverb] = av_strdup(info->valuestring);
-        } else if (0 == strcasecmp(name->valuestring, VOLUME_LIMITER)) {
-            LogInfo("%s effect VolumeLimiter\n", __func__);
-            source->effects_info[VolumeLimiter] = av_strdup(info->valuestring);
+        } else if (0 == strcasecmp(name->valuestring, LIMITER)) {
+            LogInfo("%s effect Limiter\n", __func__);
+            source->effects_info[Limiter] = av_strdup(info->valuestring);
+            source->has_effects = true;
         }  else if (0 == strcasecmp(name->valuestring, MINIONS)) {
             LogInfo("%s effect Minions\n", __func__);
             source->effects_info[Minions] = av_strdup(info->valuestring);

@@ -221,12 +221,12 @@ static int voice_effects_init(XmEffectContext *ctx,
                 set_effect(ctx->effects[Reverb], "mode",
                     effects_info[i], 0);
                 break;
-            case VolumeLimiter:
-                ctx->effects[VolumeLimiter] = create_effect(
+            case Limiter:
+                ctx->effects[Limiter] = create_effect(
                     find_effect("limiter"), dst_sample_rate,
                     dst_channels);
-                init_effect(ctx->effects[VolumeLimiter], 0, NULL);
-                set_effect(ctx->effects[VolumeLimiter], "Switch",
+                init_effect(ctx->effects[Limiter], 0, NULL);
+                set_effect(ctx->effects[Limiter], "limiter",
                     effects_info[i], 0);
                 break;
             case Minions:
