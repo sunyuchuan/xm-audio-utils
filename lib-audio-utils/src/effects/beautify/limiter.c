@@ -5,6 +5,7 @@
 
 #define FFMIN(a, b) ((a) > (b) ? (b) : (a))
 #define FFMIN3(a, b, c) FFMIN(FFMIN(a, b), c)
+#define FFMAX(a, b) (((a) > (b)) ? (a) : (b))
 
 struct LimiterT {
     float output_gain;
@@ -12,6 +13,10 @@ struct LimiterT {
     float decay_time;
     float limiter_threshold;
     float xpeak;
+    float left_xpeak;
+    float right_xpeak;
+    float* left_delay_buf;
+    float* right_delay_buf;
     float gain;
     float delay_in_sec;  /* Delay to apply before companding */
     float* delay_buf;    /* Old samples, used for delay processing */
@@ -20,13 +25,15 @@ struct LimiterT {
     int delay_buf_cnt;   /* No. of active entries in delay_buf */
     int sample_rate;
     short limiter_switch;
+    int channels;
 };
 
-Limiter* LimiterCreate(const int sample_rate) {
+Limiter* LimiterCreate(int sample_rate, int channels) {
     Limiter* self = (Limiter*)calloc(1, sizeof(Limiter));
     if (NULL == self) return NULL;
 
     self->sample_rate = sample_rate;
+    self->channels = channels;
     self->xpeak = 0.0f;
     self->gain = 1.0f;
     self->limiter_switch = 0;
@@ -70,24 +77,64 @@ int LimiterProcess(Limiter* inst, float* buffer, const int buffer_size) {
     int nb_samples = 0;
 
     for (int i = 0; i < buffer_size; ++i) {
-        float a = fabs(buffer[i]);
-        float coeff = a > inst->xpeak ? inst->attack_time : inst->decay_time;
-        inst->xpeak = (1.0f - coeff) * inst->xpeak + coeff * a;
-        float f = FFMIN(1.0f, inst->limiter_threshold / inst->xpeak);
-        coeff = f < inst->gain ? inst->attack_time : inst->decay_time;
-        inst->gain = (1 - coeff) * inst->gain + coeff * f;
-        if (inst->delay_buf_size <= 0) {
-            buffer[nb_samples++] *= inst->gain * inst->output_gain;
-        } else {
-            float tmp = buffer[i];
-            if (inst->delay_buf_cnt < inst->delay_buf_size) {
-                inst->delay_buf_cnt++;
+        if (inst->channels == 2) {
+            float left_a = fabs(buffer[i*2]);
+            float right_a = fabs(buffer[i*2+1]);
+            float left_coeff = left_a > inst->left_xpeak ?
+                inst->attack_time : inst->decay_time;
+            float right_coeff = right_a > inst->right_xpeak ?
+                inst->attack_time : inst->decay_time;
+            inst->left_xpeak = (1.0f - left_coeff) *
+                inst->left_xpeak + left_coeff * left_a;
+            inst->right_xpeak = (1.0f - right_coeff) *
+                inst->right_xpeak + right_coeff * right_a;
+            float peak = FFMAX(inst->left_xpeak, inst->right_xpeak);
+            float f = (peak == 0.0f) ? 1.0f :
+                FFMIN(1.0f, inst->limiter_threshold / peak);
+            float coeff = f < inst->gain ? inst->attack_time : inst->decay_time;
+            inst->gain = (1 - coeff) * inst->gain + coeff * f;
+            if (inst->delay_buf_size <= 0) {
+                buffer[2*nb_samples] *= inst->gain * inst->output_gain;
+                buffer[1+2*(nb_samples++)] *= inst->gain * inst->output_gain;
             } else {
-                buffer[nb_samples++] = inst->delay_buf[inst->delay_buf_index] *
-                                       inst->gain * inst->output_gain;
+                float left_tmp = buffer[i * 2];
+                float right_tmp = buffer[i * 2+1];
+                if (inst->delay_buf_cnt < inst->delay_buf_size) {
+                    inst->delay_buf_cnt++;
+                } else {
+                    buffer[2*nb_samples] =
+                        inst->left_delay_buf[inst->delay_buf_index] *
+                        inst->gain * inst->output_gain;
+                    buffer[1+2*(nb_samples++)] =
+                        inst->right_delay_buf[inst->delay_buf_index] *
+                        inst->gain * inst->output_gain;
+                }
+                inst->left_delay_buf[inst->delay_buf_index] = left_tmp;
+                inst->right_delay_buf[inst->delay_buf_index++] = right_tmp;
+                inst->delay_buf_index %= inst->delay_buf_size;
             }
-            inst->delay_buf[inst->delay_buf_index++] = tmp;
-            inst->delay_buf_index %= inst->delay_buf_size;
+        } else {
+            float a = fabs(buffer[i]);
+            float coeff = a > inst->xpeak ?
+                inst->attack_time : inst->decay_time;
+            inst->xpeak = (1.0f - coeff) * inst->xpeak + coeff * a;
+            float f = FFMIN(1.0f, inst->limiter_threshold / inst->xpeak);
+            coeff = f < inst->gain ? inst->attack_time : inst->decay_time;
+            inst->gain = (1 - coeff) * inst->gain + coeff * f;
+            if (inst->delay_buf_size <= 0) {
+                buffer[nb_samples++] *= inst->gain * inst->output_gain;
+            } else {
+                float tmp = buffer[i];
+                if (inst->delay_buf_cnt < inst->delay_buf_size) {
+                    inst->delay_buf_cnt++;
+                } else {
+                    buffer[nb_samples++] =
+                        inst->delay_buf[inst->delay_buf_index] *
+                        inst->gain * inst->output_gain;
+                }
+                inst->delay_buf[inst->delay_buf_index++] = tmp;
+                inst->delay_buf_index %= inst->delay_buf_size;
+            }
         }
     }
     return nb_samples;

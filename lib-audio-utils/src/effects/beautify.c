@@ -15,6 +15,7 @@
 #include "tools/util.h"
 
 #define SAMPLE_RATE 44100
+#define NB_CHANNELS 1
 typedef struct {
     fifo *fifo_in;
     fifo *fifo_out;
@@ -81,7 +82,7 @@ static int beautify_init(EffectContext *ctx, int argc, const char **argv) {
         goto end;
     }
 
-    priv->limiter = LimiterCreate(SAMPLE_RATE);
+    priv->limiter = LimiterCreate(SAMPLE_RATE, NB_CHANNELS);
     if (NULL == priv->limiter) {
         ret = AEERROR_NOMEM;
         goto end;

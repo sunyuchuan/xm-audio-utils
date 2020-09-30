@@ -12,7 +12,7 @@ extern "C" {
  *
  * @return Limiter*
  */
-Limiter* LimiterCreate(const int sample_rate);
+Limiter* LimiterCreate(int sample_rate, int channels);
 
 /**
  * @brief 释放限制器

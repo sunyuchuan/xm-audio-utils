@@ -61,7 +61,8 @@ static int limiter_init(EffectContext *ctx, int argc, const char **argv) {
     if (NULL == priv) return AEERROR_NULL_POINT;
 
     int ret = 0;
-    priv->limiter = LimiterCreate(ctx->in_signal.sample_rate);
+    priv->limiter = LimiterCreate(
+        ctx->in_signal.sample_rate, ctx->in_signal.channels);
     if (NULL == priv->limiter) {
         ret = AEERROR_NOMEM;
         goto end;
@@ -92,9 +93,9 @@ end:
     return ret;
 }
 
-static int limiter_parseopts(EffectContext *ctx, const char *argv_s) {
+static int limiter_parseopts(EffectContext *ctx, char *argv_s) {
     priv_t *priv = ctx->priv;
-    char *token = strtok(argv_s, ",");
+    const char *token = strtok(argv_s, ",");
     if (token != NULL) {
         priv->limiter_threshold_in_dB = strtod(token, NULL);
         token = strtok(NULL, ",");
