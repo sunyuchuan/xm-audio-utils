@@ -522,7 +522,7 @@ static int biquads_receive(EffectContext *ctx, void *samples,
     } else {
         while (fifo_occupancy(priv->fifo_in) > 0) {
             size_t nb_samples =
-                fifo_read(priv->fifo_in, priv->out_buf, max_nb_samples);
+                fifo_read(priv->fifo_in, priv->out_buf, MAX_SAMPLE_SIZE);
             fifo_write(priv->fifo_out, priv->out_buf, nb_samples);
         }
     }

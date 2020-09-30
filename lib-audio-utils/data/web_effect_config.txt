@@ -15,5 +15,8 @@
     ],
     "track1": [{ "file_path":"../data/side_chain_music_test.wav","volume":80,"cropStartTimeMs":35000,"cropEndTimeMs":650000,"startTimeMs":5000,"endTimeMs":75000,"fadeInTimeMs":3000,"fadeOutTimeMs":3000}],
     "track2": [{ "file_path":"../data/bgm1.mp3","volume":80,"cropStartTimeMs":0,"cropEndTimeMs":350000,"startTimeMs":80000,"endTimeMs":120000,"fadeInTimeMs":3000,"fadeOutTimeMs":3000}],
-    "track3": [{ "file_path":"../data/audio_effects_2.wav","volume":80,"cropStartTimeMs":0,"cropEndTimeMs":6000,"startTimeMs":190000,"endTimeMs":200000,"fadeInTimeMs":0,"fadeOutTimeMs":0}]
+    "track3": [{ "file_path":"../data/audio_effects_2.wav","volume":80,"cropStartTimeMs":0,"cropEndTimeMs":6000,"startTimeMs":190000,"endTimeMs":200000,"fadeInTimeMs":0,"fadeOutTimeMs":0}],
+    "effects": [
+        { "name":"mcompand","info":"0.005,0.1 -47,-40,-34,-34,-17,-33;100;0.003,0.05 -47,-40,-34,-34,-17,-33;400;0.000625,0.0125 -47,-40,-34,-34,-15,-33;1600;0.0001,0.025 -47,-40,-34,-34,-31,-31,-0,-30;6400;0,0.025 -38,-31,-28,-28,-0,-25;"}
+    ]
 }

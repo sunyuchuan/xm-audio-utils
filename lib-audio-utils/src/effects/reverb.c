@@ -346,7 +346,7 @@ static int reverb_receive(EffectContext *ctx, void *samples,
     } else {
         while (fifo_occupancy(priv->fifo_in) > 0) {
             size_t nb_samples =
-                fifo_read(priv->fifo_in, priv->fix_buffer, max_nb_samples);
+                fifo_read(priv->fifo_in, priv->fix_buffer, MAX_SAMPLE_SIZE);
             fifo_write(priv->fifo_out, priv->fix_buffer, nb_samples);
         }
     }

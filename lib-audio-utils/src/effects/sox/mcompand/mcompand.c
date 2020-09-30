@@ -587,18 +587,18 @@ static int mcompand_flush(EffectContext *ctx, void *samples,
 
     sdl_mutex_lock(priv->sdl_mutex);
     if (priv->effect_on) {
-        size_t out_len = max_nb_samples;
+        size_t out_len = MAX_SAMPLE_SIZE;
         int completed = drain(ctx, priv->out_buf, &out_len);
         fifo_write(priv->fifo_out, priv->out_buf, out_len);
         while (completed == AUDIO_EFFECT_SUCCESS) {
-            out_len = max_nb_samples;
+            out_len = MAX_SAMPLE_SIZE;
             completed = drain(ctx, priv->out_buf, &out_len);
             fifo_write(priv->fifo_out, priv->out_buf, out_len);
         }
     } else {
         while (fifo_occupancy(priv->fifo_in) > 0) {
             size_t nb_samples =
-                fifo_read(priv->fifo_in, priv->out_buf, max_nb_samples);
+                fifo_read(priv->fifo_in, priv->out_buf, MAX_SAMPLE_SIZE);
             fifo_write(priv->fifo_out, priv->out_buf, nb_samples);
         }
     }
@@ -630,7 +630,7 @@ static int mcompand_receive(EffectContext *ctx, void *samples,
     } else {
         while (fifo_occupancy(priv->fifo_in) > 0) {
             size_t nb_samples =
-                fifo_read(priv->fifo_in, priv->out_buf, max_nb_samples);
+                fifo_read(priv->fifo_in, priv->out_buf, MAX_SAMPLE_SIZE);
             fifo_write(priv->fifo_out, priv->out_buf, nb_samples);
         }
     }

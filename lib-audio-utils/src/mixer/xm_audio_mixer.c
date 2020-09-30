@@ -19,6 +19,7 @@
 
 struct XmMixerContext_T {
     volatile bool abort;
+    bool flush;
     int mix_status;
     int progress;
     // output sample rate and number channels
@@ -53,6 +54,20 @@ static void mixer_effects_free(MixerEffects *mixer) {
     LogInfo("%s\n", __func__);
     if (NULL == mixer)
         return;
+
+    if (mixer->total_effect) {
+        total_effect_freep(&mixer->total_effect);
+    }
+    for (int i = 0; i < MAX_NB_TOTAL_EFFECTS; i++) {
+        if (mixer->total_effects_info[i].info) {
+            free(mixer->total_effects_info[i].info);
+            mixer->total_effects_info[i].info = NULL;
+        }
+        if (mixer->total_effects_info[i].name) {
+            free(mixer->total_effects_info[i].name);
+            mixer->total_effects_info[i].name = NULL;
+        }
+    }
 
     for (int i = 0; i < MAX_NB_TRACKS; i++) {
         if (mixer->source[i]) {
@@ -388,6 +403,57 @@ static void mixer_free_l(XmMixerContext *ctx)
     pthread_mutex_unlock(&ctx->mutex);
 }
 
+static void flush_and_write_fifo(
+    XmMixerContext *ctx, short *buffer, int buffer_len) {
+    if (!ctx || !buffer || buffer_len <= 0)
+        return;
+
+    if (!ctx->audio_fifo)
+        return;
+
+    volatile int read_len = 1;
+    TotalEffectContext *effect = ctx->mixer_effects.total_effect;
+    while(effect && read_len > 0) {
+        read_len = total_effect_flush(effect, buffer, buffer_len);
+        if (read_len > 0) {
+            fifo_write(ctx->audio_fifo, buffer, read_len);
+        }
+    }
+    memset(buffer, 0, sizeof(*buffer) * buffer_len);
+    ctx->flush = true;
+}
+
+static void add_total_effects_and_write_fifo(
+    XmMixerContext *ctx, short *buffer, int buffer_len) {
+    if (!ctx || !buffer || buffer_len <= 0)
+        return;
+
+    if (!ctx->audio_fifo)
+        return;
+
+    volatile int read_len = -1;
+    TotalEffectContext *effect = ctx->mixer_effects.total_effect;
+    if (effect) {
+        // send data
+        total_effect_send(effect, buffer, buffer_len);
+
+        // receive data
+        read_len = total_effect_receive(effect, buffer, buffer_len);
+        if (read_len > 0) {
+            fifo_write(ctx->audio_fifo, buffer, read_len);
+        }
+
+        while(read_len > 0) {
+            read_len = total_effect_receive(effect, buffer, buffer_len);
+            if (read_len > 0) {
+                fifo_write(ctx->audio_fifo, buffer, read_len);
+            }
+        }
+    } else {
+        fifo_write(ctx->audio_fifo, buffer, buffer_len);
+    }
+}
+
 static void add_reverb_and_write_fifo(XmMixerContext *ctx,
         short *buffer, int buffer_len) {
     if (!ctx || !buffer || buffer_len <= 0)
@@ -596,7 +662,7 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
         return read_len;
     }
 
-    add_reverb_and_write_fifo(ctx, prev_buffer, read_len);
+    add_total_effects_and_write_fifo(ctx, prev_buffer, read_len);
     ret = read_len;
 
 end:
@@ -654,15 +720,20 @@ int xm_audio_mixer_get_frame(XmMixerContext *ctx,
     if (!ctx || !buffer || buffer_size_in_short < 0)
         return ret;
 
-    while (fifo_occupancy(ctx->audio_fifo) < (size_t) buffer_size_in_short) {
-	ret = mixer_mix_and_write_fifo(ctx);
-	if (ret < 0) {
-	    if (0 < fifo_occupancy(ctx->audio_fifo)) {
-	        break;
-	    } else {
-	        goto end;
-	    }
-	}
+    while (fifo_occupancy(ctx->audio_fifo) <
+            (size_t) buffer_size_in_short) {
+        ret = mixer_mix_and_write_fifo(ctx);
+        if (ret < 0) {
+            if (!ctx->flush) {
+                flush_and_write_fifo(ctx,
+                    buffer, buffer_size_in_short);
+            }
+            if (0 < fifo_occupancy(ctx->audio_fifo)) {
+                break;
+            } else {
+                goto end;
+            }
+        }
     }
 
     return fifo_read(ctx->audio_fifo, buffer, buffer_size_in_short);
@@ -679,6 +750,7 @@ int xm_audio_mixer_seekTo(
     ctx->seek_time_ms = seek_time_ms > 0 ? seek_time_ms : 0;
     if (ctx->audio_fifo) fifo_clear(ctx->audio_fifo);
     ctx->cur_size = 0;
+    ctx->flush = false;
 
     for (int i = 0; i < MAX_NB_TRACKS; i++) {
         AudioSourceQueue_copy(
@@ -717,6 +789,7 @@ static int xm_audio_mixer_mix_l(XmMixerContext *ctx,
 
     ctx->seek_time_ms = 0;
     ctx->cur_size = 0;
+    ctx->flush = false;
     int file_duration = ctx->mixer_effects.duration_ms;
     //if (file_duration > MAX_DURATION_MIX_IN_MS) file_duration = MAX_DURATION_MIX_IN_MS;
     while (!ctx->abort) {
@@ -808,6 +881,7 @@ int xm_audio_mixer_init(XmMixerContext *ctx,
     ctx->cur_size = 0;
     ctx->seek_time_ms = 0;
     ctx->in_config_path = av_strdup(in_config_path);
+    ctx->flush = false;
 
     if ((ret = mixer_effects_init(&(ctx->mixer_effects))) < 0) {
         LogError("%s mixer_effects_init failed\n", __func__);
@@ -817,6 +891,16 @@ int xm_audio_mixer_init(XmMixerContext *ctx,
     if ((ret = json_parse(&(ctx->mixer_effects), in_config_path)) < 0) {
         LogError("%s json_parse %s failed\n", __func__, in_config_path);
         goto fail;
+    }
+
+    if (ctx->mixer_effects.has_total_effects) {
+        ctx->mixer_effects.total_effect = total_effect_create();
+        if ((ret = total_effect_init(ctx->mixer_effects.total_effect,
+                ctx->mixer_effects.total_effects_info, ctx->dst_sample_rate,
+                ctx->dst_channels, ctx->bits_per_sample)) < 0) {
+            LogError("%s total_effect_init failed\n", __func__);
+            goto fail;
+        }
     }
 
     for (int i = 0; i < MAX_NB_TRACKS; i++) {

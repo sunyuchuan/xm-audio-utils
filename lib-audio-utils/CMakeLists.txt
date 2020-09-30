@@ -167,6 +167,7 @@ src/effects/noise_suppression.c
 src/effects/limiter.c
 src/effects/voice_effect.c
 src/effects/xm_audio_effects.c
+src/effects/xm_total_effects.c
 
 src/effects/sox/effects_i.c
 src/effects/sox/compand/compand.c

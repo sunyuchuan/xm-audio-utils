@@ -44,6 +44,62 @@ static const char *beautify_name[6] = {
     "CleanVoice", "Bass", "LowVoice", "Penetrating", "Magnetic", "SoftPitch"
 };
 
+static int parse_total_effects(cJSON *effects, MixerEffects *mixer_effects)
+{
+    if (!mixer_effects) {
+        return -1;
+    }
+
+    EffectsInfo *effects_info = mixer_effects->total_effects_info;
+    for (int i = 0; i < MAX_NB_TOTAL_EFFECTS; ++i) {
+        if (effects_info[i].info) {
+            free(effects_info[i].info);
+            effects_info[i].info = NULL;
+        }
+        if (effects_info[i].name) {
+            free(effects_info[i].name);
+            effects_info[i].name = NULL;
+        }
+    }
+
+    const cJSON *effect = NULL;
+    int count = 0;
+    cJSON_ArrayForEach(effect, effects)
+    {
+        if (count >= MAX_NB_TOTAL_EFFECTS) {
+            LogWarning("%s number of total effects is"
+                "greater than the maximum %d.\n",
+                __func__, MAX_NB_TOTAL_EFFECTS);
+            goto end;
+        }
+
+        cJSON *name = cJSON_GetObjectItemCaseSensitive(
+            effect, KEY_EFFECTS_NAME);
+        cJSON *info = cJSON_GetObjectItemCaseSensitive(
+            effect, KEY_EFFECTS_INFO);
+
+        if (!cJSON_IsString(name) || !cJSON_IsString(info)
+            || name->valuestring == NULL || info->valuestring == NULL)
+        {
+            LogError("%s get effect failed, continue.\n", __func__);
+            continue;
+        }
+        LogInfo("%s name->valuestring %s\n", __func__, name->valuestring);
+        LogInfo("%s info->valuestring %s\n", __func__, info->valuestring);
+        effects_info[count].name = av_strdup(name->valuestring);
+        effects_info[count].info = av_strdup(info->valuestring);
+        ++count;
+    }
+
+    if (count > 0) {
+        mixer_effects->has_total_effects = true;
+    } else {
+        mixer_effects->has_total_effects = false;
+    }
+end:
+    return 0;
+}
+
 static int parse_voice_effects(cJSON *effects, AudioSource *source)
 {
     if (!effects || !source) {
@@ -267,6 +323,7 @@ static int phone_json_parse(cJSON *json, MixerEffects *mixer_effects) {
     cJSON *root_json = json;
     cJSON *tracks[PHONE_NB_TRACKS];
     cJSON *tracks_childs[PHONE_NB_TRACKS];
+    cJSON *total_effects = NULL;
     memset(tracks, 0, sizeof(tracks));
     memset(tracks_childs, 0, sizeof(tracks_childs));
 
@@ -308,6 +365,11 @@ static int phone_json_parse(cJSON *json, MixerEffects *mixer_effects) {
         }
     }
 
+    total_effects = cJSON_GetObjectItemCaseSensitive(root_json, KEY_EFFECTS);
+    if (total_effects) {
+        parse_total_effects(total_effects, mixer_effects);
+    }
+
     for (int i = 0; i < PHONE_NB_TRACKS; i++) {
         if (AudioSourceQueue_size(mixer_effects->sourceQueue[i]) > 0) {
             ret = 0;
@@ -328,6 +390,7 @@ static int phone_json_parse(cJSON *json, MixerEffects *mixer_effects) {
                 mixer_effects->sourceQueueBackup[i]);
         }
     }
+
     return ret;
 }
 
@@ -341,6 +404,7 @@ static int web_json_parse(cJSON *json, MixerEffects *mixer_effects) {
     cJSON *root_json = json;
     cJSON *tracks[MAX_NB_TRACKS];
     cJSON *tracks_childs[MAX_NB_TRACKS];
+    cJSON *total_effects = NULL;
     memset(tracks, 0, sizeof(tracks));
     memset(tracks_childs, 0, sizeof(tracks_childs));
 
@@ -378,6 +442,11 @@ static int web_json_parse(cJSON *json, MixerEffects *mixer_effects) {
         if (mixer_effects->duration_ms < end_time_ms) {
             mixer_effects->duration_ms = end_time_ms;
         }
+    }
+
+    total_effects = cJSON_GetObjectItemCaseSensitive(root_json, KEY_EFFECTS);
+    if (total_effects) {
+        parse_total_effects(total_effects, mixer_effects);
     }
 
     for (int i = 0; i < MAX_NB_TRACKS; i++) {
