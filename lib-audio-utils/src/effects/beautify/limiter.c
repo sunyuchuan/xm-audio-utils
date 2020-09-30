@@ -67,15 +67,16 @@ void LimiterSet(Limiter* inst, const float limiter_threshold_in_dB,
     inst->limiter_threshold = powf(10.0f, limiter_threshold_in_dB / 20);
     inst->output_gain = powf(10.0f, output_gain_in_dB / 20);
     inst->attack_time =
-        1.0f - expf(-2.2f / inst->sample_rate * 1000 / attack_time_in_ms);
+        1.0f - expf(-2.2f / inst->sample_rate * 1000000 / attack_time_in_ms);
     inst->decay_time =
-        1.0f - expf(-2.2f / inst->sample_rate * 1000 / decay_time_in_ms);
+        1.0f - expf(-2.2f / inst->sample_rate * 1000000 / decay_time_in_ms);
 }
 
-int LimiterProcess(Limiter* inst, float* buffer, const int buffer_size) {
+int LimiterProcess(Limiter* inst, float* buffer, int buffer_size) {
     if (NULL == inst || 0 == inst->limiter_switch) return buffer_size;
     int nb_samples = 0;
 
+    buffer_size = buffer_size / inst->channels;
     for (int i = 0; i < buffer_size; ++i) {
         if (inst->channels == 2) {
             float left_a = fabs(buffer[i*2]);
@@ -137,5 +138,5 @@ int LimiterProcess(Limiter* inst, float* buffer, const int buffer_size) {
             }
         }
     }
-    return nb_samples;
+    return nb_samples * inst->channels;
 }

@@ -34,7 +34,7 @@ void LimiterSet(Limiter* inst, const float limiter_threshold_in_dB,
  * @param buffer 输入输出数据
  * @param buffer_size 数据长度
  */
-int LimiterProcess(Limiter* inst, float* buffer, const int buffer_size);
+int LimiterProcess(Limiter* inst, float* buffer, int buffer_size);
 
 #ifdef __cplusplus
 }

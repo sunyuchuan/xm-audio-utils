@@ -48,7 +48,7 @@ const char *show_usage(EffectContext *ctx) {
 }
 
 int init_effect(EffectContext *ctx, int argc, const char **argv) {
-    if(NULL == ctx) {
+    if(!ctx || !ctx->handler.init) {
         return -1;
     }
 
@@ -57,7 +57,7 @@ int init_effect(EffectContext *ctx, int argc, const char **argv) {
 
 int set_effect(EffectContext *ctx, const char *key, const char *value,
                int flags) {
-    if(NULL == ctx) {
+    if(!ctx || !ctx->handler.set) {
         return -1;
     }
 
@@ -73,7 +73,7 @@ int set_effect(EffectContext *ctx, const char *key, const char *value,
 
 int send_samples(EffectContext *ctx, const void *samples,
                  const size_t nb_samples) {
-    if(NULL == ctx) {
+    if(!ctx || !ctx->handler.send) {
         return -1;
     }
 
@@ -82,7 +82,7 @@ int send_samples(EffectContext *ctx, const void *samples,
 
 int receive_samples(EffectContext *ctx, void *samples,
                     const size_t max_nb_samples) {
-    if(NULL == ctx) {
+    if(!ctx || !ctx->handler.receive) {
         return -1;
     }
 
@@ -91,7 +91,7 @@ int receive_samples(EffectContext *ctx, void *samples,
 
 int flush_effect(EffectContext *ctx, void *samples,
                     const size_t max_nb_samples) {
-    if(NULL == ctx) {
+    if(!ctx || !ctx->handler.flush) {
         return -1;
     }
 
@@ -100,7 +100,7 @@ int flush_effect(EffectContext *ctx, void *samples,
 
 void free_effect(EffectContext *ctx) {
     if (NULL == ctx) return;
-    ctx->handler.close(ctx);
+    if (ctx->handler.close) ctx->handler.close(ctx);
     if (ctx->priv) av_freep(&ctx->priv);
     if (ctx->options) ae_dict_free(&ctx->options);
     free(ctx);

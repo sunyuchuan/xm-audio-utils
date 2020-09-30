@@ -13,6 +13,7 @@ typedef struct EffectsInfo {
 } EffectsInfo;
 
 #define MAX_NB_TOTAL_EFFECTS 20
+#define MAX_NB_CHANNELS 2
 typedef struct TotalEffectContext {
     int sample_rate;
     int channels;
@@ -20,8 +21,10 @@ typedef struct TotalEffectContext {
     fifo *fifo_in;
     fifo *fifo_out;
     short *buffer;
+    short *buffer_L;
+    short *buffer_R;
     SdlMutex *sdl_mutex;
-    EffectContext *effects[MAX_NB_TOTAL_EFFECTS];
+    EffectContext *effects[MAX_NB_TOTAL_EFFECTS][MAX_NB_CHANNELS];
 } TotalEffectContext;
 
 /**
