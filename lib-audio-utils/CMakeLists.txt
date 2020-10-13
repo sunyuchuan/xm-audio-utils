@@ -175,6 +175,7 @@ src/effects/sox/compand/compandt.c
 src/effects/sox/mcompand/mcompand.c
 src/effects/sox/biquad/biquad.c
 src/effects/sox/biquad/biquads.c
+src/effects/sox/reverb/reverb.c
 
 src/mixer/fade_in_out.c
 src/mixer/side_chain_compress.c

@@ -13,6 +13,7 @@
 #endif
 
 #define REVERB_PARAMS "1.5 50.0 100.0 0.0 -6.0"
+#define REVERB_PARAMS_SOX "1.5 50.0 100.0 50.0 0.0 -6.0"
 #define COMPAND_PARAMS "0.3,1 6:-70,-60,-20 -5 -90 0.2"
 #define MCOMPAND_PARAMS \
     "0.005,0.1 -47,-40,-34,-34,-17,-33;100; \

@@ -17,12 +17,22 @@
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  */
 
-#include "sox_i.h"
-#include "fifo.h"
+#include "error_def.h"
+#include "effect_struct.h"
+#include "sox/sox.h"
+#include "tools/fifo.h"
+#include "tools/sdl_mutex.h"
+#include "tools/conversion.h"
 
-#define lsx_zalloc(var, n) var = lsx_calloc(n, sizeof(*var))
+#define lsx_zalloc(var, n) var = calloc(n, sizeof(*var))
 #define filter_advance(p) if (--(p)->ptr < (p)->buffer) (p)->ptr += (p)->size
 #define filter_delete(p) free((p)->buffer)
+
+#define MAX_BUFFER_SIZE 2048
+
+#define FLOAT_SAMPLE_CLIP(d) \
+  ((d) < 0.0f ? ((d) < -1.0f ? -1.0f : (d)) \
+    : ((d) > 1.0f ? 1.0f: (d)))
 
 typedef struct {
   size_t  size;
@@ -112,7 +122,7 @@ typedef struct {
   float feedback;
   float hf_damping;
   float gain;
-  fifo_t input_fifo;
+  fifo *input_fifo;
   filter_array_t chan[2];
   float * out[2];
 } reverb_t;
@@ -137,8 +147,8 @@ static void reverb_create(reverb_t * p, double sample_rate_Hz,
   p->feedback = 1 - exp((reverberance - b) / (a * b));
   p->hf_damping = hf_damping / 100 * .3 + .2;
   p->gain = dB_to_linear(wet_gain_dB) * .015;
-  fifo_create(&p->input_fifo, sizeof(float));
-  memset(fifo_write(&p->input_fifo, delay, 0), 0, delay * sizeof(float));
+  p->input_fifo = fifo_create(sizeof(float));
+  memset(fifo_reserve(p->input_fifo, delay), 0, delay * sizeof(float));
   for (i = 0; i <= ceil(depth); ++i) {
     filter_array_create(p->chan + i, sample_rate_Hz, scale, i * depth);
     out[i] = lsx_zalloc(p->out[i], buffer_size);
@@ -149,8 +159,10 @@ static void reverb_process(reverb_t * p, size_t length)
 {
   size_t i;
   for (i = 0; i < 2 && p->out[i]; ++i)
-    filter_array_process(p->chan + i, length, (float *) fifo_read_ptr(&p->input_fifo), p->out[i], &p->feedback, &p->hf_damping, &p->gain);
-  fifo_read(&p->input_fifo, length, NULL);
+    filter_array_process(p->chan + i, length,
+      (float *) fifo_read_ptr(p->input_fifo),
+      p->out[i], &p->feedback, &p->hf_damping, &p->gain);
+  fifo_update_ptr(p->input_fifo, length);
 }
 
 static void reverb_delete(reverb_t * p)
@@ -166,9 +178,17 @@ static void reverb_delete(reverb_t * p)
 /*------------------------------- SoX Wrapper --------------------------------*/
 
 typedef struct {
+  fifo *fifo_in;
+  fifo *fifo_out;
+  SdlMutex *sdl_mutex;
+  bool effect_on;
+  short *s_buf;
+  float *in_buf;
+  float *out_buf;
+
   double reverberance, hf_damping, pre_delay_ms;
   double stereo_depth, wet_gain_dB, room_scale;
-  sox_bool wet_only;
+  bool wet_only;
 
   size_t ichannels, ochannels;
   struct {
@@ -177,7 +197,7 @@ typedef struct {
   } chan[2];
 } priv_t;
 
-static int getopts(sox_effect_t * effp, int argc, char **argv)
+static int getopts(EffectContext * effp, int argc, const char **argv)
 {
   priv_t * p = (priv_t *)effp->priv;
   p->reverberance = p->hf_damping = 50; /* Set non-zero defaults */
@@ -185,7 +205,8 @@ static int getopts(sox_effect_t * effp, int argc, char **argv)
 
   --argc, ++argv;
   p->wet_only = argc && (!strcmp(*argv, "-w") || !strcmp(*argv, "--wet-only"))
-    && (--argc, ++argv, sox_true);
+    && (--argc, ++argv, true);
+  priv_t * priv = p;
   do {  /* break-able block */
     NUMERIC_PARAMETER(reverberance, 0, 100)
     NUMERIC_PARAMETER(hf_damping, 0, 100)
@@ -195,83 +216,286 @@ static int getopts(sox_effect_t * effp, int argc, char **argv)
     NUMERIC_PARAMETER(wet_gain_dB, -10, 10)
   } while (0);
 
-  return argc ? lsx_usage(effp) : SOX_SUCCESS;
+  return argc ? AUDIO_EFFECT_EOF : AUDIO_EFFECT_SUCCESS;
 }
 
-static int start(sox_effect_t * effp)
+static int start(EffectContext * effp)
 {
   priv_t * p = (priv_t *)effp->priv;
   size_t i;
 
-  p->ichannels = p->ochannels = 1;
-  effp->out_signal.rate = effp->in_signal.rate;
+  p->ichannels = p->ochannels = effp->in_signal.channels;
   if (effp->in_signal.channels > 2 && p->stereo_depth) {
-    lsx_warn("stereo-depth not applicable with >2 channels");
+    LogWarning("stereo-depth not applicable with >2 channels");
     p->stereo_depth = 0;
   }
+
   if (effp->in_signal.channels == 1 && p->stereo_depth)
-    effp->out_signal.channels = p->ochannels = 2;
-  else effp->out_signal.channels = effp->in_signal.channels;
-  if (effp->in_signal.channels == 2 && p->stereo_depth)
-    p->ichannels = p->ochannels = 2;
-  else effp->flows = effp->in_signal.channels;
-  for (i = 0; i < p->ichannels; ++i) reverb_create(
-    &p->chan[i].reverb, effp->in_signal.rate, p->wet_gain_dB, p->room_scale,
-    p->reverberance, p->hf_damping, p->pre_delay_ms, p->stereo_depth,
-    effp->global_info->global_info->bufsiz / p->ochannels, p->chan[i].wet);
+    return AUDIO_EFFECT_EOF;
+
+  for (i = 0; i < p->ichannels; ++i)
+    reverb_create(
+    &p->chan[i].reverb, effp->in_signal.sample_rate,
+    p->wet_gain_dB, p->room_scale, p->reverberance,
+    p->hf_damping, p->pre_delay_ms, p->stereo_depth,
+    MAX_BUFFER_SIZE / p->ochannels, p->chan[i].wet);
 
   if (effp->in_signal.mult)
     *effp->in_signal.mult /= !p->wet_only + 2 * dB_to_linear(max(0,p->wet_gain_dB));
-  return SOX_SUCCESS;
+  return AUDIO_EFFECT_SUCCESS;
 }
 
-static int flow(sox_effect_t * effp, const sox_sample_t * ibuf,
-                sox_sample_t * obuf, size_t * isamp, size_t * osamp)
+static int flow(EffectContext * effp, const float * ibuf,
+                float * obuf, size_t * isamp, size_t * osamp)
 {
   priv_t * p = (priv_t *)effp->priv;
   size_t c, i, w, len = min(*isamp / p->ichannels, *osamp / p->ochannels);
-  SOX_SAMPLE_LOCALS;
 
   *isamp = len * p->ichannels, *osamp = len * p->ochannels;
   for (c = 0; c < p->ichannels; ++c)
-    p->chan[c].dry = fifo_write(&p->chan[c].reverb.input_fifo, len, 0);
+    p->chan[c].dry = fifo_reserve(p->chan[c].reverb.input_fifo, len);
   for (i = 0; i < len; ++i) for (c = 0; c < p->ichannels; ++c)
-    p->chan[c].dry[i] = SOX_SAMPLE_TO_FLOAT_32BIT(*ibuf++, effp->clips);
+    {p->chan[c].dry[i] = FLOAT_SAMPLE_CLIP(*ibuf); ibuf++;}
   for (c = 0; c < p->ichannels; ++c)
     reverb_process(&p->chan[c].reverb, len);
   if (p->ichannels == 2) for (i = 0; i < len; ++i) for (w = 0; w < 2; ++w) {
     float out = (1 - p->wet_only) * p->chan[w].dry[i] +
       .5 * (p->chan[0].wet[w][i] + p->chan[1].wet[w][i]);
-    *obuf++ = SOX_FLOAT_32BIT_TO_SAMPLE(out, effp->clips);
+    *obuf++ = FLOAT_SAMPLE_CLIP(out);
   }
   else for (i = 0; i < len; ++i) for (w = 0; w < p->ochannels; ++w) {
     float out = (1 - p->wet_only) * p->chan[0].dry[i] + p->chan[0].wet[w][i];
-    *obuf++ = SOX_FLOAT_32BIT_TO_SAMPLE(out, effp->clips);
+    *obuf++ = FLOAT_SAMPLE_CLIP(out);
   }
-  return SOX_SUCCESS;
+  return AUDIO_EFFECT_SUCCESS;
 }
 
-static int stop(sox_effect_t * effp)
+static int stop(EffectContext * effp)
 {
   priv_t * p = (priv_t *)effp->priv;
   size_t i;
   for (i = 0; i < p->ichannels; ++i)
     reverb_delete(&p->chan[i].reverb);
-  return SOX_SUCCESS;
+  return AUDIO_EFFECT_SUCCESS;
 }
 
-sox_effect_handler_t const *lsx_reverb_effect_fn(void)
-{
-  static sox_effect_handler_t handler = {"reverb",
-    "[-w|--wet-only]"
-    " [reverberance (50%)"
-    " [HF-damping (50%)"
-    " [room-scale (100%)"
-    " [stereo-depth (100%)"
-    " [pre-delay (0ms)"
-    " [wet-gain (0dB)"
-    "]]]]]]",
-    SOX_EFF_MCHAN, getopts, start, flow, NULL, stop, NULL, sizeof(priv_t)
-  };
-  return &handler;
+static int reverb_parseopts(EffectContext *ctx, const char *argv_s) {
+#define MAX_ARGC 50
+    const char *argv[MAX_ARGC];
+    int argc = 0;
+    argv[argc++] = ctx->handler.name;
+
+    char *_argv_s = calloc(strlen(argv_s) + 1, sizeof(char));
+    memcpy(_argv_s, argv_s, strlen(argv_s) + 1);
+
+    char *token = strtok(_argv_s, " ");
+    while (token != NULL) {
+        argv[argc++] = token;
+        token = strtok(NULL, " ");
+    }
+
+    int ret = getopts(ctx, argc, argv);
+    if (ret < 0) goto end;
+    ret = start(ctx);
+    if (ret < 0) goto end;
+
+end:
+    free(_argv_s);
+    return ret;
+}
+
+static int reverb_set_mode(EffectContext *ctx, const char *mode) {
+    LogInfo("%s mode = %s.\n", __func__, mode);
+    priv_t *priv = (priv_t *)ctx->priv;
+    if (0 == strcasecmp(mode, "None")) {
+        return -1;
+    } else {
+        return reverb_parseopts(ctx, REVERB_PARAMS_SOX);
+    }
+}
+
+static int reverb_close(EffectContext *ctx) {
+    LogInfo("%s.\n", __func__);
+    if(NULL == ctx) return AEERROR_NULL_POINT;
+
+    if (ctx->priv) {
+        priv_t *priv = (priv_t *)ctx->priv;
+        if (priv->fifo_in) fifo_delete(&priv->fifo_in);
+        if (priv->fifo_out) fifo_delete(&priv->fifo_out);
+        if (priv->sdl_mutex) sdl_mutex_free(&priv->sdl_mutex);
+        if (priv->s_buf) {
+            free(priv->s_buf);
+            priv->s_buf = NULL;
+        }
+        if (priv->out_buf) {
+            free(priv->out_buf);
+            priv->out_buf = NULL;
+        }
+        if (priv->in_buf) {
+            free(priv->in_buf);
+            priv->in_buf = NULL;
+        }
+        stop(ctx);
+    }
+    return 0;
+}
+
+static int reverb_flush(EffectContext *ctx, void *samples,
+                          const size_t max_nb_samples) {
+    if(!ctx || !samples) return AEERROR_NULL_POINT;
+    priv_t *priv = (priv_t *)ctx->priv;
+    if (!priv || !priv->fifo_out)
+        return AEERROR_NULL_POINT;
+
+    return fifo_read(priv->fifo_out, samples, max_nb_samples);
+}
+
+static int reverb_receive(EffectContext *ctx, void *samples,
+                          const size_t max_nb_samples) {
+    if(!ctx || !samples) return AEERROR_NULL_POINT;
+    priv_t *priv = (priv_t *)ctx->priv;
+    if (!priv || !priv->fifo_in
+        || !priv->fifo_out || !priv->in_buf
+        || !priv->out_buf || !priv->s_buf) return AEERROR_NULL_POINT;
+
+    sdl_mutex_lock(priv->sdl_mutex);
+    if (priv->effect_on) {
+        size_t nb_samples =
+            fifo_read(priv->fifo_in, priv->s_buf, MAX_BUFFER_SIZE);
+        S16ToFloat(priv->s_buf, priv->in_buf, nb_samples);
+        while (nb_samples > 0) {
+            size_t in_len = nb_samples;
+            size_t out_len = nb_samples;
+            flow(ctx, priv->in_buf, priv->out_buf, &in_len, &out_len);
+            FloatToS16(priv->out_buf, priv->s_buf, out_len);
+            fifo_write(priv->fifo_out, priv->s_buf, out_len);
+            nb_samples =
+                fifo_read(priv->fifo_in, priv->s_buf, MAX_BUFFER_SIZE);
+            S16ToFloat(priv->s_buf, priv->in_buf, nb_samples);
+        }
+    } else {
+        while (fifo_occupancy(priv->fifo_in) > 0) {
+            size_t nb_samples =
+                fifo_read(priv->fifo_in, priv->s_buf, MAX_BUFFER_SIZE);
+            fifo_write(priv->fifo_out, priv->s_buf, nb_samples);
+        }
+    }
+    sdl_mutex_unlock(priv->sdl_mutex);
+
+    if (atomic_load(&ctx->return_max_nb_samples) &&
+        fifo_occupancy(priv->fifo_out) < max_nb_samples)
+        return 0;
+
+    return fifo_read(priv->fifo_out, samples, max_nb_samples);
+}
+
+static int reverb_send(EffectContext *ctx, const void *samples,
+                      const size_t nb_samples) {
+    if(!ctx || !samples || nb_samples <= 0) return AEERROR_NULL_POINT;
+    priv_t *priv = (priv_t *)ctx->priv;
+    if (!priv || !priv->fifo_in) return AEERROR_NULL_POINT;
+
+    return fifo_write(priv->fifo_in, samples, nb_samples);
+}
+
+static int reverb_set(EffectContext *ctx, const char *key, int flags) {
+    LogInfo("%s.\n", __func__);
+    if(NULL == ctx || NULL == key) return AEERROR_NULL_POINT;
+
+    priv_t *priv = (priv_t *)ctx->priv;
+    if (NULL == priv) return AEERROR_NULL_POINT;
+
+    int ret = 0;
+    AEDictionaryEntry *entry = ae_dict_get(ctx->options, key, NULL, flags);
+    if (entry) {
+        LogInfo("%s key = %s val = %s\n", __func__, entry->key, entry->value);
+
+        sdl_mutex_lock(priv->sdl_mutex);
+        if (0 == strcasecmp(entry->key, ctx->handler.name)) {
+            ret = reverb_parseopts(ctx, entry->value);
+            if (ret >= 0) priv->effect_on = true;
+            else priv->effect_on = false;
+        } else if (0 == strcasecmp(entry->key, "mode")) {
+            ret = reverb_set_mode(ctx, entry->value);
+            if (ret >= 0) priv->effect_on = true;
+            else priv->effect_on = false;
+        }
+        sdl_mutex_unlock(priv->sdl_mutex);
+    }
+    return ret;
+}
+
+static int reverb_init(EffectContext *ctx, int argc, const char **argv) {
+    LogInfo("%s.\n", __func__);
+    if(NULL == ctx) return AEERROR_NULL_POINT;
+
+    priv_t *priv = (priv_t *)ctx->priv;
+    if (NULL == priv) return AEERROR_NULL_POINT;
+
+    int ret = 0;
+    priv->fifo_in = fifo_create(sizeof(sample_type));
+    if (NULL == priv->fifo_in) {
+        ret = AEERROR_NOMEM;
+        goto end;
+    }
+    priv->fifo_out = fifo_create(sizeof(sample_type));
+    if (NULL == priv->fifo_out) {
+        ret = AEERROR_NOMEM;
+        goto end;
+    }
+    priv->sdl_mutex = sdl_mutex_create();
+    if (NULL == priv->sdl_mutex) {
+        ret = AEERROR_NOMEM;
+        goto end;
+    }
+    priv->s_buf = calloc((size_t)MAX_BUFFER_SIZE, sizeof(*priv->s_buf));
+    if (NULL == priv->s_buf) {
+        ret = AEERROR_NOMEM;
+        goto end;
+    }
+    priv->in_buf = calloc((size_t)MAX_BUFFER_SIZE, sizeof(*priv->in_buf));
+    if (NULL == priv->in_buf) {
+        ret = AEERROR_NOMEM;
+        goto end;
+    }
+    priv->out_buf = calloc((size_t)MAX_BUFFER_SIZE, sizeof(*priv->out_buf));
+    if (NULL == priv->out_buf) {
+        ret = AEERROR_NOMEM;
+        goto end;
+    }
+    priv->effect_on = false;
+
+    if (argc > 1 && argv != NULL) {
+        ret = getopts(ctx, argc, argv);
+        if (ret < 0) goto end;
+        ret = start(ctx);
+        if (ret < 0) goto end;
+    }
+
+    return ret;
+end:
+    if (ret < 0) reverb_close(ctx);
+    return ret;
+}
+
+const EffectHandler *effect_reverb_sox_fn(void) {
+    static EffectHandler handler = {
+        .name = "reverb_sox",
+        .usage =
+          "[-w|--wet-only]"
+          " [reverberance (50%)"
+          " [HF-damping (50%)"
+          " [room-scale (100%)"
+          " [stereo-depth (100%)"
+          " [pre-delay (0ms)"
+          " [wet-gain (0dB)"
+          "]]]]]]",
+        .priv_size = sizeof(priv_t),
+        .init = reverb_init,
+        .set = reverb_set,
+        .send = reverb_send,
+        .receive = reverb_receive,
+        .flush = reverb_flush,
+        .close = reverb_close};
+    return &handler;
 }
