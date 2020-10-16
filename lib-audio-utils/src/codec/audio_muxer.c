@@ -3,8 +3,8 @@
 #include "error_def.h"
 #include "sw/audio_encoder_sw.h"
 
-#define MONO_BIT_RATE 64000
-#define STEREO_BIT_RATE 128000
+#define MONO_BIT_RATE 160000
+#define STEREO_BIT_RATE 160000
 
 static void release(AudioMuxer *am) {
     LogInfo("%s.\n", __func__);
