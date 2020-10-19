@@ -41,7 +41,10 @@ Limiter* LimiterCreate(int sample_rate, int channels) {
     self->delay_buf_size = self->delay_in_sec * self->sample_rate;
     self->delay_buf = (float*)calloc(self->delay_buf_size, sizeof(float));
     if (NULL == self->delay_buf) LimiterFree(&self);
-
+    self->left_delay_buf = (float*)calloc(self->delay_buf_size, sizeof(float));
+    if (NULL == self->left_delay_buf) LimiterFree(&self);
+    self->right_delay_buf = (float*)calloc(self->delay_buf_size, sizeof(float));
+    if (NULL == self->right_delay_buf) LimiterFree(&self);
     return self;
 }
 
@@ -52,6 +55,14 @@ void LimiterFree(Limiter** inst) {
     if (self->delay_buf) {
         free(self->delay_buf);
         self->delay_buf = NULL;
+    }
+    if (self->left_delay_buf) {
+        free(self->left_delay_buf);
+        self->left_delay_buf = NULL;
+    }
+    if (self->right_delay_buf) {
+        free(self->right_delay_buf);
+        self->right_delay_buf = NULL;
     }
     free(*inst);
     *inst = NULL;
