@@ -30,12 +30,16 @@ static int sw_encoder_config(Encoder *encoder, AVDictionary *opt) {
                 codec_id = AV_CODEC_ID_H264;
                 opaque->type = FF_AVMEDIA_TYPE_VIDEO;
                 break;
-            } else if (!strcasecmp(e->value, MIME_AUDIO_AAC)){
+            } else if (!strcasecmp(e->value, MIME_AUDIO_AAC)) {
                 codec_id = AV_CODEC_ID_AAC;
                 opaque->type = FF_AVMEDIA_TYPE_AUDIO;
                 break;
-            } else if (!strcasecmp(e->value, MIME_AUDIO_WAV)){
+            } else if (!strcasecmp(e->value, MIME_AUDIO_WAV)) {
                 codec_id = AV_CODEC_ID_PCM_S16LE;
+                opaque->type = FF_AVMEDIA_TYPE_AUDIO;
+                break;
+            } else if (!strcasecmp(e->value, MIME_AUDIO_MP3)) {
+                codec_id = AV_CODEC_ID_MP3;
                 opaque->type = FF_AVMEDIA_TYPE_AUDIO;
                 break;
             } else {
@@ -74,8 +78,7 @@ static int sw_encoder_config(Encoder *encoder, AVDictionary *opt) {
         }
 
         ctx->cutoff = 18000;
-        ctx->sample_fmt =
-                codec->sample_fmts ? codec->sample_fmts[0] : AV_SAMPLE_FMT_FLTP;
+        ctx->sample_fmt = AV_SAMPLE_FMT_FLTP;
         LogInfo("sample fmt %x.\n", ctx->sample_fmt);
         bool supported_samplerates = false;
         if (codec->supported_samplerates) {
@@ -202,9 +205,15 @@ static int sw_encoder_encode_frame(Encoder *encoder, AVFrame *frame, AVPacket *p
                 ret = avcodec_encode_audio2(ctx, pkt, frame, got_packet_ptr);
             } else {
                 AVFrame *floatframe = opaque->frame;
-                S16toFLTP((int16_t *)frame->data[0], (float **)floatframe->data,
-                    ctx->frame_size * ctx->channels, ctx->channels);
-                floatframe->format = AV_SAMPLE_FMT_FLTP;
+                if (floatframe->format == AV_SAMPLE_FMT_FLTP) {
+                    S16toFLTP((int16_t *)frame->data[0],
+                        (float **)floatframe->data,
+                        ctx->frame_size * ctx->channels, ctx->channels);
+                } else {
+                    LogError("frame->format %d not supported.\n",
+                        floatframe->format);
+                    return -1;
+                }
                 floatframe->pts = frame->pts;
                 ret = avcodec_encode_audio2(ctx, pkt, floatframe, got_packet_ptr);
             }

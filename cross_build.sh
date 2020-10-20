@@ -9,6 +9,7 @@ UNAME_SM=$(uname -sm)
 echo "build on $UNAME_SM"
 
 ROOT_DIR=$PWD
+LAME_DIR=$ROOT_DIR/lame-3.100
 FFMPEG_DIR=$ROOT_DIR/ffmpeg-3.4.7
 AUDIO_UTILS_DIR=$ROOT_DIR/lib-audio-utils
 AUDIO_UTILS_BUILD_DIR=$ROOT_DIR/lib-audio-utils/build/dist-wasm
@@ -16,6 +17,10 @@ RELEASE_DIR=$ROOT_DIR/out
 
 ###################### web  ##########################
 build_wasm() {
+    ##### build libmp3lame
+    cd $LAME_DIR
+    bash build_js.sh
+
     ##### build ffmpeg
     cd $FFMPEG_DIR
     bash build_js.sh

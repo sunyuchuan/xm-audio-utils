@@ -301,21 +301,35 @@ static void fade_in_out(AudioSource *source, int sample_rate,
         dst_buffer_size / channels, channels);
 }
 
-static AudioMuxer *open_muxer(int dst_sample_rate, int dst_channels,
-	int bytes_per_sample, const char *out_file_path, int encoder_type) {
+static AudioMuxer *open_muxer(int dst_sample_rate,
+    int dst_channels, int bytes_per_sample,
+    const char *out_file_path, int encoder_type,
+    int mux_type) {
     LogInfo("%s\n", __func__);
     if (!out_file_path )
         return NULL;
     AudioMuxer *muxer = NULL;
 
     MuxerConfig config;
+    config.output_filename = av_strdup(out_file_path);
     config.src_sample_rate_in_Hz = dst_sample_rate;
     config.src_nb_channels = dst_channels;
     config.dst_sample_rate_in_Hz = dst_sample_rate;
     config.dst_nb_channels = dst_channels;
-    config.muxer_name = MUXER_AUDIO_MP4;
-    config.mime = MIME_AUDIO_AAC;
-    config.output_filename = av_strdup(out_file_path);
+    switch (mux_type) {
+        case MUX_TYPE_MP3:
+            config.muxer_name = MUXER_AUDIO_MP3;
+            config.mime = MIME_AUDIO_MP3;
+            config.codec_id = AV_CODEC_ID_MP3;
+            break;
+        case MUX_TYPE_NONE:
+        case MUX_TYPE_M4A:
+        default:
+            config.muxer_name = MUXER_AUDIO_MP4;
+            config.mime = MIME_AUDIO_AAC;
+            config.codec_id = AV_CODEC_ID_AAC;
+            break;
+    }
     switch (bytes_per_sample) {
         case 1:
             config.src_sample_fmt = AV_SAMPLE_FMT_U8;
@@ -330,7 +344,6 @@ static AudioMuxer *open_muxer(int dst_sample_rate, int dst_channels,
             LogError("%s bytes_per_sample %d is invalid.\n", __func__, bytes_per_sample);
             return NULL;
     }
-    config.codec_id = AV_CODEC_ID_AAC;
     switch (encoder_type) {
         case ENCODER_FFMPEG:
             config.encoder_type = ENCODER_FFMPEG;
@@ -764,7 +777,8 @@ int xm_audio_mixer_seekTo(
 }
 
 static int xm_audio_mixer_mix_l(XmMixerContext *ctx,
-    int encoder_type, const char *out_file_path) {
+    int encoder_type, const char *out_file_path,
+    int mux_type) {
     LogInfo("%s.\n", __func__);
     int ret = -1;
     short *buffer = NULL;
@@ -772,8 +786,9 @@ static int xm_audio_mixer_mix_l(XmMixerContext *ctx,
         return ret;
     }
 
-    ctx->muxer = open_muxer(ctx->dst_sample_rate, ctx->dst_channels,
-        ctx->bits_per_sample >> 3, out_file_path, encoder_type);
+    ctx->muxer = open_muxer(ctx->dst_sample_rate,
+        ctx->dst_channels, ctx->bits_per_sample >> 3,
+        out_file_path, encoder_type, mux_type);
     if (!ctx->muxer) {
         LogError("%s open_muxer failed.\n", __func__);
         ret = AEERROR_NOMEM;
@@ -832,7 +847,8 @@ fail:
 }
 
 int xm_audio_mixer_mix(XmMixerContext *ctx,
-    const char *out_file_path, int encoder_type)
+    const char *out_file_path, int encoder_type,
+    int mux_type)
 {
     LogInfo("%s out_file_path = %s, encoder_type = %d.\n", __func__, out_file_path, encoder_type);
     int ret = -1;
@@ -848,7 +864,8 @@ int xm_audio_mixer_mix(XmMixerContext *ctx,
     ctx->mix_status = MIX_STATE_STARTED;
     pthread_mutex_unlock(&ctx->mutex);
 
-    if ((ret = xm_audio_mixer_mix_l(ctx, encoder_type, out_file_path)) < 0) {
+    if ((ret = xm_audio_mixer_mix_l(ctx, encoder_type,
+        out_file_path, mux_type)) < 0) {
         LogError("%s mixer_audio_mix_l failed\n", __func__);
         goto fail;
     }

@@ -333,8 +333,7 @@ int FindAndOpenAudioEncoder(AVCodecContext** enc_ctx,
     (*enc_ctx)->bit_rate = bit_rate;
     (*enc_ctx)->channels = nb_channels;
     (*enc_ctx)->channel_layout = av_get_default_channel_layout(nb_channels);
-    (*enc_ctx)->sample_fmt =
-        codec->sample_fmts ? codec->sample_fmts[0] : AV_SAMPLE_FMT_FLTP;
+    (*enc_ctx)->sample_fmt = AV_SAMPLE_FMT_FLTP;
     if (codec->supported_samplerates) {
         (*enc_ctx)->sample_rate = 0;
         for (int i = 0; codec->supported_samplerates[i]; i++) {

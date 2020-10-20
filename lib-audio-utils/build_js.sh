@@ -6,6 +6,7 @@ NPROC=$(grep -c ^processor /proc/cpuinfo)
 ROOT_DIR=$PWD
 BUILD_DIR=$ROOT_DIR/build
 FFMPEG_BUILD_DIR=$ROOT_DIR/../ffmpeg-3.4.7/build
+LAME_BUILD_DIR=$ROOT_DIR/../lame-3.100/build
 EM_TOOLCHAIN_FILE=/home/sunyc/work/emscripten/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake
 PTHREAD_FLAGS='-s USE_PTHREADS=0'
 export CFLAGS=$PTHREAD_FLAGS
@@ -33,11 +34,12 @@ audio_utils_make() {
 build_audio_utils_js() {
     emcc \
     -I. -I${FFMPEG_BUILD_DIR}/include -I${BUILD_DIR}/install/include \
-    -L${FFMPEG_BUILD_DIR}/lib  -L${BUILD_DIR}/install/lib \
+    -I${LAME_BUILD_DIR}/include -L${LAME_BUILD_DIR}/lib \
+    -L${FFMPEG_BUILD_DIR}/lib -L${BUILD_DIR}/install/lib \
     -I./src -I./src/effects \
     -Qunused-arguments -O2 \
     -o $2 src/tools/log.c src/xm_wav_utils.c src/xm_duration_parser.c src/xm_audio_utils.c src/xm_audio_generator.c src/xm_audio_transcode.c \
-    -laudio_utils -lavfilter -lavformat -lavcodec -lswresample -lavutil \
+    -laudio_utils -lavfilter -lavformat -lavcodec -lswresample -lavutil -llibmp3lame \
     -Wno-deprecated-declarations -Wno-pointer-sign -Wno-implicit-int-float-conversion -Wno-switch -Wno-parentheses \
     -s USE_SDL=2 \
     $PTHREAD_FLAGS \

@@ -34,7 +34,7 @@ static int chk_st_l(int state)
 }
 
 static int mixer_mix(XmAudioGenerator *self, const char *in_config_path,
-        const char *out_file_path, int encode_type) {
+        const char *out_file_path, int encode_type, int mux_type) {
     LogInfo("%s\n", __func__);
     int ret = -1;
     if(!self || !in_config_path || !out_file_path) {
@@ -60,7 +60,8 @@ static int mixer_mix(XmAudioGenerator *self, const char *in_config_path,
     xm_audio_mixer_set_progress_callback(self->mixer_ctx,
         self->js_progress_callback);
 
-    ret = xm_audio_mixer_mix(self->mixer_ctx, out_file_path, encode_type);
+    ret = xm_audio_mixer_mix(self->mixer_ctx, out_file_path,
+        encode_type, mux_type);
     if (ret < 0) {
 	LogError("%s xm_audio_mixer_mix failed\n", __func__);
 	goto end;
@@ -137,7 +138,7 @@ int xm_audio_generator_set_progress_callback(
 
 enum GeneratorStatus xm_audio_generator_start(
     XmAudioGenerator *self, const char *in_config_path,
-    const char *out_file_path) {
+    const char *out_file_path, int mux_type) {
     LogInfo("%s\n", __func__);
     enum GeneratorStatus ret = GS_ERROR;
     if (!self || !in_config_path || !out_file_path) {
@@ -151,7 +152,7 @@ enum GeneratorStatus xm_audio_generator_start(
     self->status = GENERATOR_STATE_STARTED;
     pthread_mutex_unlock(&self->mutex);
 
-    if (mixer_mix(self, in_config_path, out_file_path, 0) < 0) {
+    if (mixer_mix(self, in_config_path, out_file_path, 0, mux_type) < 0) {
         LogError("%s mixer_mix failed\n", __func__);
         ret = GS_ERROR;
     } else {

@@ -9,6 +9,12 @@ typedef struct XmMixerContext_T XmMixerContext;
 #define MIX_STATE_COMPLETED  3
 #define MIX_STATE_ERROR  4
 
+enum MuxType {
+    MUX_TYPE_NONE = -1,
+    MUX_TYPE_M4A,
+    MUX_TYPE_MP3,
+};
+
 /**
  * @brief free XmMixerContext
  *
@@ -67,10 +73,12 @@ int xm_audio_mixer_seekTo(XmMixerContext *ctx,
  * @param ctx XmMixerContext
  * @param out_file_path output file path
  * @param encoder_type Support ffmpeg
+ * @param mux_type mp4 or mp3
  * @return Less than 0 means failure
  */
 int xm_audio_mixer_mix(XmMixerContext *ctx,
-    const char *out_file_path, int encoder_type);
+    const char *out_file_path, int encoder_type,
+    int mux_type);
 
 /**
  * @brief mixer init

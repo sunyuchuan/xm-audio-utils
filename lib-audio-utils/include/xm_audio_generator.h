@@ -60,11 +60,12 @@ EM_PORT_API(int) xm_audio_generator_set_progress_callback(
  * @param self XmAudioGenerator
  * @param in_config_path Config file about audio mix parameter
  * @param out_file_path Output audio file path
+ * @param mux_type Output audio file type, 0 : mp4; 1 : mp3
  * @return GeneratorStatus
  */
 EM_PORT_API(enum GeneratorStatus) xm_audio_generator_start(
     XmAudioGenerator *self, const char *in_config_path,
-    const char *out_file_path);
+    const char *out_file_path, int mux_type);
 
 /**
  * @brief create XmAudioGenerator

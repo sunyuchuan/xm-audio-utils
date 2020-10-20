@@ -4,6 +4,7 @@ set -e -o pipefail
 
 NPROC=$(grep -c ^processor /proc/cpuinfo)
 ROOT_DIR=$PWD
+LAME_BUILD_DIR=$ROOT_DIR/../lame-3.100/build
 BUILD_DIR=$ROOT_DIR/build
 EM_TOOLCHAIN_FILE=/home/sunyc/work/emscripten/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake
 PTHREAD_FLAGS='-s USE_PTHREADS=0'
@@ -27,9 +28,9 @@ configure_ffmpeg() {
     emconfigure ./configure \
     $COMMON_FF_CFG_FLAGS \
     --prefix=$BUILD_DIR \
-    --extra-cflags="-I$BUILD_DIR/include" \
-    --extra-cxxflags="-I$BUILD_DIR/include" \
-    --extra-ldflags="-L$BUILD_DIR/lib" \
+    --extra-cflags="-I$BUILD_DIR/include -I${LAME_BUILD_DIR}/include" \
+    --extra-cxxflags="-I$BUILD_DIR/include -I${LAME_BUILD_DIR}/include" \
+    --extra-ldflags="-L$BUILD_DIR/lib -L${LAME_BUILD_DIR}/lib" \
     --nm="llvm-nm -g" \
     --ar=emar \
     --as=llvm-as \
@@ -47,6 +48,7 @@ configure_ffmpeg() {
     --arch=x86_64 \
     --enable-x86asm \
     --cpu=generic \
+    --enable-libmp3lame \
     --enable-static
 
     delete_RANLIB

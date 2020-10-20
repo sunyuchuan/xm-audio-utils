@@ -8,6 +8,8 @@
 #include "log.h"
 
 #define ENCODER_FFMPEG 0
+#define MUX_TYPE_M4A 0
+#define MUX_TYPE_MP3 1
 static volatile bool abort_request = false;
 
 void *get_progress(void *arg) {
@@ -47,7 +49,7 @@ int main(int argc, char **argv) {
     }
 
     enum GeneratorStatus ret = xm_audio_generator_start(
-        generator, argv[1], argv[2]);
+        generator, argv[1], argv[2], MUX_TYPE_M4A);
     if (ret == GS_ERROR) {
 	LogError("%s xm_audio_generator_start failed\n", __func__);
 	goto end;

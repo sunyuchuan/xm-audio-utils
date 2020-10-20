@@ -22,8 +22,10 @@ enum FF_AVMediaType {
 #define MIME_VIDEO_AVC "video/avc"
 #define MIME_AUDIO_AAC "audio/aac"
 #define MIME_AUDIO_WAV "audio/wav"
+#define MIME_AUDIO_MP3 "audio/mpeg"
 #define MUXER_AUDIO_WAV "wav"
 #define MUXER_AUDIO_MP4 "mp4"
+#define MUXER_AUDIO_MP3 "mp3"
 
 struct Encoder {
     Encoder_Opaque *opaque;
