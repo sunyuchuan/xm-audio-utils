@@ -5,6 +5,8 @@
 #include <stdlib.h>
 #include "codec/ffmpeg_utils.h"
 
+#define TOTAL_REVERB_ENABLE
+
 static const char *web_tracks_name[MAX_NB_TRACKS] = {
     "track0", "track1", "track2", "track3", "track4"
 };
@@ -62,8 +64,10 @@ static int parse_total_effects(cJSON *effects, MixerEffects *mixer_effects)
         }
     }
 
-    const cJSON *effect = NULL;
     int count = 0;
+    if (effects == NULL) goto add_reverb;
+
+    const cJSON *effect = NULL;
     cJSON_ArrayForEach(effect, effects)
     {
         if (count >= MAX_NB_TOTAL_EFFECTS) {
@@ -91,6 +95,12 @@ static int parse_total_effects(cJSON *effects, MixerEffects *mixer_effects)
         ++count;
     }
 
+add_reverb:
+#ifdef TOTAL_REVERB_ENABLE
+    effects_info[count].name = av_strdup("reverb_sox");
+    effects_info[count].info = av_strdup(REVERB_PARAMS_SOX);
+    ++count;
+#endif
     if (count > 0) {
         mixer_effects->has_total_effects = true;
     } else {
@@ -366,9 +376,7 @@ static int phone_json_parse(cJSON *json, MixerEffects *mixer_effects) {
     }
 
     total_effects = cJSON_GetObjectItemCaseSensitive(root_json, KEY_EFFECTS);
-    if (total_effects) {
-        parse_total_effects(total_effects, mixer_effects);
-    }
+    parse_total_effects(total_effects, mixer_effects);
 
     for (int i = 0; i < PHONE_NB_TRACKS; i++) {
         if (AudioSourceQueue_size(mixer_effects->sourceQueue[i]) > 0) {
@@ -445,9 +453,7 @@ static int web_json_parse(cJSON *json, MixerEffects *mixer_effects) {
     }
 
     total_effects = cJSON_GetObjectItemCaseSensitive(root_json, KEY_EFFECTS);
-    if (total_effects) {
-        parse_total_effects(total_effects, mixer_effects);
-    }
+    parse_total_effects(total_effects, mixer_effects);
 
     for (int i = 0; i < MAX_NB_TRACKS; i++) {
         if (AudioSourceQueue_size(mixer_effects->sourceQueue[i]) > 0) {

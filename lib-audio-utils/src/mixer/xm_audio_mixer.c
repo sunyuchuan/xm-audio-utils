@@ -33,22 +33,11 @@ struct XmMixerContext_T {
     fifo *audio_fifo;
     AudioMuxer *muxer;
     char *in_config_path;
-    EffectContext *reverb_ctx;
     short *zero_buffer;
     char *js_progress_callback;
     pthread_mutex_t mutex;
     MixerEffects mixer_effects;
 };
-
-static void reverb_free(XmMixerContext *ctx) {
-    LogInfo("%s\n", __func__);
-    if (!ctx) return;
-
-    if (ctx->reverb_ctx) {
-        free_effect(ctx->reverb_ctx);
-        ctx->reverb_ctx = NULL;
-    }
-}
 
 static void mixer_effects_free(MixerEffects *mixer) {
     LogInfo("%s\n", __func__);
@@ -80,34 +69,6 @@ static void mixer_effects_free(MixerEffects *mixer) {
             AudioSourceQueue_freep(&mixer->sourceQueueBackup[i]);
         }
     }
-}
-
-static int reverb_init(XmMixerContext *ctx) {
-    int ret = -1;
-    if (!ctx) return -1;
-
-    if (ctx->reverb_ctx) {
-        free_effect(ctx->reverb_ctx);
-        ctx->reverb_ctx = NULL;
-    }
-
-    ctx->reverb_ctx = create_effect(find_effect("reverb"),
-        ctx->dst_sample_rate, ctx->dst_channels);
-
-    ret = init_effect(ctx->reverb_ctx, 0, NULL);
-    if (ret < 0) goto fail;
-
-    ret = set_effect(ctx->reverb_ctx, "Switch", "On", 0);
-    if (ret < 0) goto fail;
-
-    ret = set_effect(ctx->reverb_ctx, "reverb", REVERB_PARAMS, 0);
-    if (ret < 0) goto fail;
-
-    return ret;
-fail:
-    if (ctx->reverb_ctx) free_effect(ctx->reverb_ctx);
-    ctx->reverb_ctx = NULL;
-    return ret;
 }
 
 static int mixer_effects_init(MixerEffects *mixer) {
@@ -388,8 +349,6 @@ static void mixer_free_l(XmMixerContext *ctx)
 
     mixer_effects_free(&(ctx->mixer_effects));
 
-    reverb_free(ctx);
-
     if (ctx->in_config_path) {
         free(ctx->in_config_path);
         ctx->in_config_path = NULL;
@@ -464,32 +423,6 @@ static void add_total_effects_and_write_fifo(
         }
     } else {
         fifo_write(ctx->audio_fifo, buffer, buffer_len);
-    }
-}
-
-static void add_reverb_and_write_fifo(XmMixerContext *ctx,
-        short *buffer, int buffer_len) {
-    if (!ctx || !buffer || buffer_len <= 0)
-        return;
-
-    if (!ctx->reverb_ctx || !ctx->audio_fifo)
-        return;
-
-    volatile int read_len = -1;
-    // send data
-    send_samples(ctx->reverb_ctx, buffer, buffer_len);
-
-    // receive data
-    read_len = receive_samples(ctx->reverb_ctx, buffer, buffer_len);
-    if (read_len > 0) {
-        fifo_write(ctx->audio_fifo, buffer, read_len);
-    }
-
-    while(read_len > 0) {
-        read_len = receive_samples(ctx->reverb_ctx, buffer, buffer_len);
-        if (read_len > 0) {
-            fifo_write(ctx->audio_fifo, buffer, read_len);
-        }
     }
 }
 
@@ -938,11 +871,6 @@ int xm_audio_mixer_init(XmMixerContext *ctx,
     if (!ctx->zero_buffer) {
         LogError("%s calloc zero_buffer failed.\n", __func__);
         ret = AEERROR_NOMEM;
-        goto fail;
-    }
-
-    if ((ret = reverb_init(ctx)) < 0) {
-        LogError("%s reverb_init failed\n", __func__);
         goto fail;
     }
 
