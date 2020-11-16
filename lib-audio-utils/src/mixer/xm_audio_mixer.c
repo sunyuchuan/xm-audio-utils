@@ -74,7 +74,7 @@ static int reverb_init(XmMixerContext *ctx) {
         ctx->reverb_ctx = NULL;
     }
 
-    ctx->reverb_ctx = create_effect(find_effect("reverb"),
+    ctx->reverb_ctx = create_effect(find_effect("reverb_sox"),
         ctx->dst_sample_rate, ctx->dst_channels);
 
     ret = init_effect(ctx->reverb_ctx, 0, NULL);
@@ -83,7 +83,7 @@ static int reverb_init(XmMixerContext *ctx) {
     ret = set_effect(ctx->reverb_ctx, "Switch", "On", 0);
     if (ret < 0) goto fail;
 
-    ret = set_effect(ctx->reverb_ctx, "reverb", REVERB_PARAMS, 0);
+    ret = set_effect(ctx->reverb_ctx, "reverb_sox", REVERB_PARAMS_SOX, 0);
     if (ret < 0) goto fail;
 
     return ret;

@@ -5,3 +5,5 @@ EFFECT(reverb)
 EFFECT(limiter)
 EFFECT(minions)
 EFFECT(voice_morph)
+//sox
+EFFECT(reverb_sox)

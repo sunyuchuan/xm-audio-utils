@@ -128,6 +128,7 @@ src/tools/util.c
 src/effects/echo.c
 src/effects/echos.c
 src/effects/reverb.c
+src/effects/sox/reverb/reverb.c
 
 src/effects/dsp_tools/fft/fft8g.c
 src/effects/dsp_tools/iir_design/iir_design.c

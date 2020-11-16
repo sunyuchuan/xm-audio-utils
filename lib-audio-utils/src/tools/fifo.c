@@ -23,7 +23,7 @@ struct fifo_t {
 
 void fifo_clear(fifo *f) { f->end = f->begin = 0; }
 
-static void *fifo_reserve(fifo *f, size_t n) {
+static void *fifo_reserve_l(fifo *f, size_t n) {
     n *= f->item_size;
 
     if (f->begin == f->end) fifo_clear(f);
@@ -48,6 +48,10 @@ static void *fifo_reserve(fifo *f, size_t n) {
 
 size_t fifo_occupancy(fifo *f) { return (f->end - f->begin) / f->item_size; }
 
+void *fifo_read_ptr(fifo *f) { return f->data + f->begin; }
+
+void fifo_update_ptr(fifo *f, const size_t n) {f->begin += (n * f->item_size);}
+
 int fifo_read(fifo *f, void *data, const size_t n) {
     if (NULL == f || NULL == data) return -1;
     size_t nb = FFMIN(n, (f->end - f->begin) / f->item_size);
@@ -56,9 +60,15 @@ int fifo_read(fifo *f, void *data, const size_t n) {
     return nb;
 }
 
+void *fifo_reserve(fifo *f, const size_t n)
+{
+    void *s = fifo_reserve_l(f, n);
+    return s;
+}
+
 int fifo_write(fifo *f, const void *data, const size_t n) {
     if (NULL == f || NULL == data) return -1;
-    void *s = fifo_reserve(f, n);
+    void *s = fifo_reserve_l(f, n);
     memcpy(s, data, n * f->item_size);
     return n;
 }

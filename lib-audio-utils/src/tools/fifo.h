@@ -11,7 +11,10 @@ typedef struct fifo_t fifo;
 
 void fifo_clear(fifo *f);
 size_t fifo_occupancy(fifo *f);
+void *fifo_read_ptr(fifo *f);
+void fifo_update_ptr(fifo *f, const size_t n);
 int fifo_read(fifo *f, void *data, const size_t n);
+void *fifo_reserve(fifo *f, const size_t n);
 int fifo_write(fifo *f, const void *data, const size_t n);
 void fifo_delete(fifo **f);
 fifo *fifo_create(size_t item_size);
