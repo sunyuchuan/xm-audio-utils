@@ -43,7 +43,7 @@
 
 #define DELAY_BUFSIZ (50 * 50U * 1024)
 #define MAX_ECHOS 7 /* 24 bit x ( 1 + MAX_ECHOS ) = */
-                    /* 24 bit x 8 = 32 bit !!!      */
+/* 24 bit x 8 = 32 bit !!!      */
 
 typedef float sample_type;
 
@@ -61,7 +61,8 @@ typedef struct {
     ptrdiff_t samples[MAX_ECHOS], maxsamples;
 } priv_t;
 
-static int echo_getopts(EffectContext *ctx, int argc, const char **argv) {
+static int echo_getopts(EffectContext *ctx, int argc, const char **argv)
+{
     priv_t *priv = (priv_t *)ctx->priv;
     int i = 0;
 
@@ -89,7 +90,8 @@ static int echo_getopts(EffectContext *ctx, int argc, const char **argv) {
     return AUDIO_EFFECT_SUCCESS;
 }
 
-static int echo_start(EffectContext *ctx) {
+static int echo_start(EffectContext *ctx)
+{
     priv_t *priv = (priv_t *)ctx->priv;
     float sum_in_volume;
 
@@ -146,7 +148,8 @@ static int echo_start(EffectContext *ctx) {
     return AUDIO_EFFECT_SUCCESS;
 }
 
-static int echo_parseopts(EffectContext *ctx, const char *argvs) {
+static int echo_parseopts(EffectContext *ctx, const char *argvs)
+{
 #define MAX_ARGC 50
     const char *argv[MAX_ARGC];
     int argc = 0;
@@ -169,7 +172,8 @@ end:
     return ret;
 }
 
-static int echo_close(EffectContext *ctx) {
+static int echo_close(EffectContext *ctx)
+{
     LogInfo("%s.\n", __func__);
     assert(NULL != ctx);
 
@@ -186,7 +190,8 @@ static int echo_close(EffectContext *ctx) {
     return 0;
 }
 
-static int echo_init(EffectContext *ctx, int argc, const char **argv) {
+static int echo_init(EffectContext *ctx, int argc, const char **argv)
+{
     LogInfo("%s.\n", __func__);
     assert(NULL != ctx);
     priv_t *priv = (priv_t *)ctx->priv;
@@ -223,7 +228,8 @@ end:
     return ret;
 }
 
-static int echo_set(EffectContext *ctx, const char *key, int flags) {
+static int echo_set(EffectContext *ctx, const char *key, int flags)
+{
     assert(NULL != ctx);
 
     int ret = 0;
@@ -248,7 +254,8 @@ static int echo_set(EffectContext *ctx, const char *key, int flags) {
 }
 
 static int echo_send(EffectContext *ctx, const void *samples,
-                     const size_t nb_samples) {
+                     const size_t nb_samples)
+{
     assert(NULL != ctx);
     priv_t *priv = (priv_t *)ctx->priv;
     assert(NULL != priv);
@@ -258,7 +265,8 @@ static int echo_send(EffectContext *ctx, const void *samples,
 }
 
 static int echo_receive(EffectContext *ctx, void *samples,
-                        const size_t max_nb_samples) {
+                        const size_t max_nb_samples)
+{
     assert(NULL != ctx);
     priv_t *priv = (priv_t *)ctx->priv;
     assert(NULL != priv);
@@ -297,7 +305,8 @@ static int echo_receive(EffectContext *ctx, void *samples,
     return fifo_read(priv->fifo_out, samples, max_nb_samples);
 }
 
-const EffectHandler *effect_echo_fn(void) {
+const EffectHandler *effect_echo_fn(void)
+{
     static EffectHandler handler = {
         .name = "echo",
         .usage = "gain-in gain-out delay decay [ delay decay ... ]",
@@ -306,6 +315,7 @@ const EffectHandler *effect_echo_fn(void) {
         .set = echo_set,
         .send = echo_send,
         .receive = echo_receive,
-        .close = echo_close};
+        .close = echo_close
+    };
     return &handler;
 }

@@ -22,14 +22,14 @@ void IAudioDecoder_freep(IAudioDecoder **decoder)
 }
 
 int IAudioDecoder_get_pcm_frame(IAudioDecoder *decoder,
-    short *buffer, int buffer_size_in_short, bool loop)
+                                short *buffer, int buffer_size_in_short, bool loop)
 {
     if (!decoder || !buffer)
         return -1;
 
     if (decoder->func_get_pcm_frame)
         return decoder->func_get_pcm_frame(decoder->opaque,
-            buffer, buffer_size_in_short, loop);
+                                           buffer, buffer_size_in_short, loop);
 
     return -1;
 }
@@ -46,7 +46,7 @@ int IAudioDecoder_seekTo(IAudioDecoder *decoder, int seek_pos_ms)
 }
 
 int IAudioDecoder_set_crop_pos(IAudioDecoder *decoder,
-    int crop_start_time_in_ms, int crop_end_time_in_ms)
+                               int crop_start_time_in_ms, int crop_end_time_in_ms)
 {
     int ret = -1;
     if (!decoder)
@@ -54,7 +54,7 @@ int IAudioDecoder_set_crop_pos(IAudioDecoder *decoder,
 
     if (decoder->func_set_crop_pos) {
         ret = decoder->func_set_crop_pos(decoder->opaque,
-            crop_start_time_in_ms, crop_end_time_in_ms);
+                                         crop_start_time_in_ms, crop_end_time_in_ms);
         if (ret >= 0) {
             decoder->duration_ms = ret;
         }

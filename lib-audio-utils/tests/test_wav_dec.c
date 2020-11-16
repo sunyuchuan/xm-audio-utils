@@ -3,7 +3,8 @@
 #include "log.h"
 #include "wave/wav_dec.h"
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     struct timeval start;
     struct timeval end;
     unsigned long timer;

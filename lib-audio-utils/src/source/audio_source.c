@@ -3,7 +3,8 @@
 #include <string.h>
 #include "effects/voice_effect.h"
 
-void AudioSource_free(AudioSource *source) {
+void AudioSource_free(AudioSource *source)
+{
     if (source) {
         if (source->effects_ctx) {
             audio_effect_freep(&source->effects_ctx);
@@ -34,7 +35,8 @@ void AudioSource_free(AudioSource *source) {
     }
 }
 
-void AudioSource_freep(AudioSource **source) {
+void AudioSource_freep(AudioSource **source)
+{
     if (source && *source) {
         AudioSource_free(*source);
         free(*source);

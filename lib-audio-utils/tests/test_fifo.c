@@ -3,7 +3,8 @@
 #include "log.h"
 #include "tools/fifo.h"
 
-int main() {
+int main()
+{
     AeSetLogLevel(LOG_LEVEL_TRACE);
     AeSetLogMode(LOG_MODE_SCREEN);
 

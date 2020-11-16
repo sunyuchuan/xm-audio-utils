@@ -8,8 +8,7 @@ typedef struct AudioSourceList {
     struct AudioSourceList *next;
 } AudioSourceList;
 
-typedef struct AudioSourceQueue
-{
+typedef struct AudioSourceQueue {
     AudioSourceList *mFirst;
     AudioSourceList *mLast;
     volatile int mNumbers;

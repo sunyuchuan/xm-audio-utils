@@ -77,8 +77,8 @@ int xm_audio_generator_get_progress(XmAudioGenerator *self);
  * @return GeneratorStatus
  */
 enum GeneratorStatus xm_audio_generator_start(
-        XmAudioGenerator *self, const char *in_config_path,
-        const char *out_file_path, int encode_type);
+    XmAudioGenerator *self, const char *in_config_path,
+    const char *out_file_path, int encode_type);
 
 /**
  * @brief create XmAudioGenerator

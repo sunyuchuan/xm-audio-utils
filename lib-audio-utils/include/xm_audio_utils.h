@@ -58,7 +58,7 @@ void xm_audio_utils_freep(XmAudioUtils **self);
                   Less than or equal to 0 means failure or end.
  */
 int xm_audio_utils_mixer_get_frame(XmAudioUtils *self,
-    short *buffer, int buffer_size_in_short);
+                                   short *buffer, int buffer_size_in_short);
 
 /**
  * @brief mixer seekTo
@@ -68,7 +68,7 @@ int xm_audio_utils_mixer_get_frame(XmAudioUtils *self,
  * @return Less than 0 means failure
  */
 int xm_audio_utils_mixer_seekTo(XmAudioUtils *self,
-    int seek_time_ms);
+                                int seek_time_ms);
 
 /**
  * @brief init mixer
@@ -78,7 +78,7 @@ int xm_audio_utils_mixer_seekTo(XmAudioUtils *self,
  * @return Less than 0 means failure
  */
 int xm_audio_utils_mixer_init(XmAudioUtils *self,
-        const char *in_config_path);
+                              const char *in_config_path);
 
 /**
  * @brief start fade bgm pcm data
@@ -90,7 +90,7 @@ int xm_audio_utils_mixer_init(XmAudioUtils *self,
  * @return Less than 0 means error
  */
 int xm_audio_utils_fade(XmAudioUtils *self, short *buffer,
-    int buffer_size, int buffer_start_time);
+                        int buffer_size, int buffer_start_time);
 
 /**
  * @brief init fade in out params
@@ -105,9 +105,9 @@ int xm_audio_utils_fade(XmAudioUtils *self, short *buffer,
  * @return Less than 0 means error
  */
 int xm_audio_utils_fade_init(XmAudioUtils *self,
-    int pcm_sample_rate, int pcm_nb_channels,
-    int bgm_start_time_ms, int bgm_end_time_ms,
-    int fade_in_time_ms, int fade_out_time_ms);
+                             int pcm_sample_rate, int pcm_nb_channels,
+                             int bgm_start_time_ms, int bgm_end_time_ms,
+                             int fade_in_time_ms, int fade_out_time_ms);
 
 /**
  * @brief get pcm data from decoder
@@ -120,7 +120,7 @@ int xm_audio_utils_fade_init(XmAudioUtils *self,
                   Less than or equal to 0 means failure or end
  */
 int xm_audio_utils_get_decoded_frame(XmAudioUtils *self,
-    short *buffer, int buffer_size_in_short, bool loop);
+                                     short *buffer, int buffer_size_in_short, bool loop);
 
 /**
  * @brief decoder seekTo
@@ -129,7 +129,7 @@ int xm_audio_utils_get_decoded_frame(XmAudioUtils *self,
  * @param seek_time_ms seek target time in ms
  */
 void xm_audio_utils_decoder_seekTo(XmAudioUtils *self,
-    int seek_time_ms);
+                                   int seek_time_ms);
 
 /**
  * @brief create decoder that decode audio to pcm data
@@ -144,8 +144,8 @@ void xm_audio_utils_decoder_seekTo(XmAudioUtils *self,
  * @return Less than 0 means failure
  */
 int xm_audio_utils_decoder_create(XmAudioUtils *self,
-    const char *in_audio_path, int crop_start_time_in_ms, int crop_end_time_in_ms,
-    int out_sample_rate, int out_channels, int volume_fix);
+                                  const char *in_audio_path, int crop_start_time_in_ms, int crop_end_time_in_ms,
+                                  int out_sample_rate, int out_channels, int volume_fix);
 
 /**
  * @brief get pcm resampler out samples

@@ -52,7 +52,7 @@ void audio_effect_freep(XmEffectContext **ctx);
                 Less than or equal to 0 means failure or end
  */
 int audio_effect_get_frame(XmEffectContext *ctx,
-    short *buffer, int buffer_size_in_short);
+                           short *buffer, int buffer_size_in_short);
 
 /**
  * @brief init XmEffectContext
@@ -64,7 +64,7 @@ int audio_effect_get_frame(XmEffectContext *ctx,
  * @return Less than 0 means failure
  */
 int audio_effect_init(XmEffectContext *ctx,
-    IAudioDecoder *decoder, char **effects_info, int dst_channels);
+                      IAudioDecoder *decoder, char **effects_info, int dst_channels);
 
 /**
  * @brief create XmEffectContext

@@ -52,7 +52,7 @@ static uint32_t next_tag(FILE *reader, uint32_t *tag)
 }
 
 static int wav_parse_fmt_tag(FILE *reader,
-    int64_t size, WavHeader *header)
+                             int64_t size, WavHeader *header)
 {
     if (!reader || !header) {
         return -1;
@@ -66,7 +66,7 @@ static int wav_parse_fmt_tag(FILE *reader,
         header->byte_rate = avio_rl32(reader);
         header->block_align = avio_rl16(reader);
         LogInfo("%s nb_channels %d, sample_rate %d.\n", __func__,
-            header->nb_channels, header->sample_rate);
+                header->nb_channels, header->sample_rate);
     } else {
         LogError("%s audio_format not pcm.\n", __func__);
         return -1;
@@ -77,7 +77,7 @@ static int wav_parse_fmt_tag(FILE *reader,
     } else {
         header->bits_per_sample = avio_rl16(reader);
         LogInfo("%s bits_per_sample %d.\n", __func__,
-            header->bits_per_sample);
+                header->bits_per_sample);
     }
 
     return 0;
@@ -132,8 +132,8 @@ int wav_read_header(const char *file_addr, WavContext *ctx)
     memset(header, 0, sizeof(WavHeader));
     FILE *reader = NULL;
     if ((ret = ae_open_file(&reader, file_addr, false)) < 0) {
-	LogError("%s open file_addr %s failed\n", __func__, file_addr);
-	goto fail;
+        LogError("%s open file_addr %s failed\n", __func__, file_addr);
+        goto fail;
     }
     fseek(reader, 0, SEEK_END);
     ctx->file_size = ftell(reader);
@@ -187,10 +187,10 @@ int wav_read_header(const char *file_addr, WavContext *ctx)
             header->data_size = size;
             ctx->pcm_data_offset = ftell(reader);
             LogInfo("%s find data tag, data offset 0x%x, data size 0x%x.\n", __func__,
-                ctx->pcm_data_offset, header->data_size);
+                    ctx->pcm_data_offset, header->data_size);
             if (header->riff_size + 8 - header->data_size != ctx->pcm_data_offset) {
                 LogWarning("%s pcm_data_offset != file_size - data_size, riff_size 0x%x.\n", __func__,
-                    header->riff_size);
+                           header->riff_size);
             }
             ret = 0;
             goto end;

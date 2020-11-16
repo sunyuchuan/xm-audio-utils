@@ -8,11 +8,13 @@
 #include "xm_duration_parser.h"
 
 static inline int calculation_duration_ms(int64_t size,
-    float bytes_per_sample, int nb_channles, int sample_rate) {
+        float bytes_per_sample, int nb_channles, int sample_rate)
+{
     return 1000 * (size / bytes_per_sample / nb_channles / sample_rate);
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     AeSetLogLevel(LOG_LEVEL_TRACE);
     AeSetLogMode(LOG_MODE_SCREEN);
 
@@ -54,7 +56,7 @@ int main(int argc, char **argv) {
     }
 
     ret = xm_audio_utils_decoder_create(utils, argv[1], crop_start_time,
-        crop_end_time, atoi(argv[3]), atoi(argv[4]), 100);
+                                        crop_end_time, atoi(argv[3]), atoi(argv[4]), 100);
     if (ret < 0) {
         LogError("xm_audio_utils_decoder_create failed\n");
         goto end;
@@ -73,7 +75,7 @@ int main(int argc, char **argv) {
         ret = xm_audio_utils_get_decoded_frame(utils, buffer, buffer_size_in_short, false);
         if (ret <= 0) break;
         int buffer_start_time = calculation_duration_ms(cur_size*sizeof(short),
-            16/8, atoi(argv[4]), atoi(argv[3]));
+                                16/8, atoi(argv[4]), atoi(argv[3]));
         cur_size += ret;
         xm_audio_utils_fade(utils, buffer, ret, buffer_start_time);
         fwrite(buffer, sizeof(short), ret, pcm_writer);

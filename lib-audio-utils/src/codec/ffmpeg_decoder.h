@@ -4,7 +4,7 @@
 #include "idecoder.h"
 
 IAudioDecoder *FFmpegDecoder_create(const char *file_addr,
-    int dst_sample_rate, int dst_channels, float volume_flp);
+                                    int dst_sample_rate, int dst_channels, float volume_flp);
 
 #endif // FFMPEG_DECODER_H
 #endif // defined(__ANDROID__) || defined (__linux__)

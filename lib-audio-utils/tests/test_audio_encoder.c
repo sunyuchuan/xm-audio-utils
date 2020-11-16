@@ -9,7 +9,8 @@
 #define DEFAULT_CHANNEL_NUMBER 2
 #define MIME_AUDIO_AAC "audio/aac"
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     AeSetLogLevel(LOG_LEVEL_TRACE);
     AeSetLogMode(LOG_MODE_SCREEN);
     if (argc < 3) {
@@ -36,7 +37,7 @@ int main(int argc, char **argv) {
     }
 
     IAudioDecoder *decoder = audio_decoder_create(argv[1], sample_rate, nb_channels,
-        sample_rate, nb_channels, 1.0f, DECODER_PCM);
+                             sample_rate, nb_channels, 1.0f, DECODER_PCM);
     if (decoder == NULL) {
         LogError("audio_decoder_create failed\n");
         goto end;

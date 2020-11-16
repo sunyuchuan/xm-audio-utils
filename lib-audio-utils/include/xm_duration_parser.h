@@ -13,6 +13,6 @@
  * @return the duration of an audio file.
  */
 int get_file_duration_ms(const char *file_addr, bool is_pcm,
-    int bits_per_sample, int src_sample_rate_in_Hz, int src_nb_channels);
+                         int bits_per_sample, int src_sample_rate_in_Hz, int src_nb_channels);
 
 #endif //XM_DURATION_PARSER_H

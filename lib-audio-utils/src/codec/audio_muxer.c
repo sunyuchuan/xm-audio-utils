@@ -18,7 +18,8 @@
 
 static int read_encode_and_save(AudioMuxer *am);
 
-static void release(AudioMuxer *am) {
+static void release(AudioMuxer *am)
+{
     LogInfo("%s.\n", __func__);
     if(!am)
         return;
@@ -82,7 +83,7 @@ static int fifo_put(AudioMuxer *am, int nb_samples, void** buffer)
 {
     int ret = -1;
     if(!am || !am->encode_fifo
-        || !buffer || !(*buffer) || nb_samples < 0)
+       || !buffer || !(*buffer) || nb_samples < 0)
         return ret;
 
     pthread_mutex_lock(&am->mutex);
@@ -95,7 +96,7 @@ static int fifo_get(AudioMuxer *am, int nb_samples, void** buffer)
 {
     int ret = -1;
     if(!am || !am->encode_fifo
-        || !buffer || !(*buffer) || nb_samples < 0)
+       || !buffer || !(*buffer) || nb_samples < 0)
         return ret;
 
     pthread_mutex_lock(&am->mutex);
@@ -181,24 +182,22 @@ static bool encoder_flush(AudioMuxer *am)
     int i = 0;
 
     while (fifo_size(am) > 0) {
-        if ((ret = read_encode_and_save(am)) < 0)
-        {
+        if ((ret = read_encode_and_save(am)) < 0) {
             LogError("%s read_encode_and_save error, ret = %d.\n",
-                __func__, ret);
+                     __func__, ret);
             ret = -1;
             goto end;
         }
     }
 
-    for (got_packet = 1; got_packet; i++)
-    {
+    for (got_packet = 1; got_packet; i++) {
         AVPacket packet;
         InitPacket(&packet);
         ret = ff_encoder_encode_frame(am->audio_encoder, NULL, &packet,
-            &got_packet);
+                                      &got_packet);
         if (ret < 0) {
             LogError("Could not encode frame (error '%s'), error code = %d.\n",
-                av_err2str(ret), ret);
+                     av_err2str(ret), ret);
             av_packet_unref(&packet);
             goto end;
         }
@@ -217,7 +216,8 @@ end:
     return ret >= 0 ? true : false;
 }
 
-static int encode_and_save(AudioMuxer *am, AVFrame *audio_frame) {
+static int encode_and_save(AudioMuxer *am, AVFrame *audio_frame)
+{
     if (!am || !audio_frame)
         return kNullPointError;
     int ret = 0;
@@ -228,7 +228,7 @@ static int encode_and_save(AudioMuxer *am, AVFrame *audio_frame) {
     audio_frame->pts = am->audio_encode_pts;
     am->audio_encode_pts += am->frame_size;
     ret = ff_encoder_encode_frame(am->audio_encoder, audio_frame, &packet,
-            &got_packet);
+                                  &got_packet);
     if (ret < 0) {
         LogError("Could not encode frame (error '%s'), error code = %d.\n", av_err2str(ret), ret);
         goto end;
@@ -247,7 +247,8 @@ end:
     return ret;
 }
 
-static int read_encode_and_save(AudioMuxer *am) {
+static int read_encode_and_save(AudioMuxer *am)
+{
     if (!am)
         return kNullPointError;
     int ret = 0;
@@ -264,7 +265,8 @@ end:
 }
 
 static int resample_audio(AudioMuxer *am, const uint8_t **src_data,
-        int src_nb_samples) {
+                          int src_nb_samples)
+{
     if (!am || !src_data || !*src_data)
         return kNullPointError;
 
@@ -274,7 +276,7 @@ static int resample_audio(AudioMuxer *am, const uint8_t **src_data,
         dst_nb_samples = swr_get_out_samples(am->swr_ctx, src_nb_samples);
         if (dst_nb_samples > am->max_dst_nb_samples) {
             ret = AllocateSampleBuffer(&(am->dst_data), am->config.dst_nb_channels,
-                dst_nb_samples, AV_SAMPLE_FMT_S16);
+                                       dst_nb_samples, AV_SAMPLE_FMT_S16);
             if (ret < 0) {
                 LogError("%s av_samples_alloc error!\n", __func__);
                 goto end;
@@ -283,7 +285,7 @@ static int resample_audio(AudioMuxer *am, const uint8_t **src_data,
         }
 
         ret = dst_nb_samples = swr_convert(am->swr_ctx, am->dst_data,
-            dst_nb_samples, src_data, src_nb_samples);
+                                           dst_nb_samples, src_data, src_nb_samples);
         if (ret < 0) {
             LogError("%s swr_convert error!\n", __func__);
             goto end;
@@ -295,7 +297,8 @@ end:
 }
 
 static int add_samples_to_encode_fifo(AudioMuxer *am,
-        uint8_t **src_data, int src_nb_samples) {
+                                      uint8_t **src_data, int src_nb_samples)
+{
     if (!am || !am->encode_fifo || !src_data)
         return kNullPointError;
 
@@ -326,7 +329,8 @@ end:
 }
 
 static int copy_audio_buffer(AudioMuxer *am, const short *buffer,
-        int buffer_size_in_short) {
+                             int buffer_size_in_short)
+{
     if (!am || !am->copy_buffer || !buffer)
         return kNullPointError;
 
@@ -335,7 +339,7 @@ static int copy_audio_buffer(AudioMuxer *am, const short *buffer,
     if (nb_samples > am->max_nb_copy_samples) {
         am->max_nb_copy_samples = nb_samples;
         ret = AllocateSampleBuffer(&(am->copy_buffer), am->config.src_nb_channels,
-            am->max_nb_copy_samples, am->config.src_sample_fmt);
+                                   am->max_nb_copy_samples, am->config.src_sample_fmt);
         if (ret < 0) {
             LogError("%s ReAllocateSampleCopyBuffer failed.\n", __func__);
             goto end;
@@ -347,7 +351,8 @@ end:
     return ret;
 }
 
-static int create_audio_encoder(AudioMuxer *am) {
+static int create_audio_encoder(AudioMuxer *am)
+{
     if (!am)
         return kNullPointError;
     int ret = 0;
@@ -389,14 +394,14 @@ static int create_audio_encoder(AudioMuxer *am) {
     av_dict_set_int(&audio_opt, "sample_rate", am->config.dst_sample_rate_in_Hz, 0);
     av_dict_set_int(&audio_opt, "channels", am->config.dst_nb_channels, 0);
     av_dict_set_int(&audio_opt, "channel_layout",
-    av_get_default_channel_layout(am->config.dst_nb_channels), 0);
+                    av_get_default_channel_layout(am->config.dst_nb_channels), 0);
 
     ret = ff_encoder_config(am->audio_encoder, audio_opt);
     if (ret < 0) goto end;
 
     am->frame_size =
-            ff_encoder_get_frame_size(am->audio_encoder) / am->config.dst_nb_channels
-            / av_get_bytes_per_sample(AV_SAMPLE_FMT_S16);
+        ff_encoder_get_frame_size(am->audio_encoder) / am->config.dst_nb_channels
+        / av_get_bytes_per_sample(AV_SAMPLE_FMT_S16);
     if (am->frame_size != am->enc_ctx->frame_size) {
         LogError("%s audio encoder frame_size != am->enc_ctx->frame_size.\n", __func__);
         ret = -1;
@@ -417,16 +422,14 @@ static int open_output_file(AudioMuxer *am)
     MuxerConfig *config = &am->config;
     AVCodecContext *avctx = NULL;
     if ((ret = avformat_alloc_output_context2(&am->ofmt_ctx, NULL,
-        config->muxer_name, config->output_filename)) < 0)
-    {
+               config->muxer_name, config->output_filename)) < 0) {
         LogError("%s avformat_alloc_output_context2 failed, file addr: %s.\n", __func__, config->output_filename);
         goto end;
     }
 
     if((ret = FindAndOpenAudioEncoder(&avctx, config->codec_id,
-        config->dst_bit_rate, config->dst_nb_channels,
-        config->dst_sample_rate_in_Hz)) < 0)
-    {
+                                      config->dst_bit_rate, config->dst_nb_channels,
+                                      config->dst_sample_rate_in_Hz)) < 0) {
         LogError("%s FindAndOpenAudioEncoder failed!errCode : %s.\n", __func__, av_err2str(ret));
         goto end;
     }
@@ -439,11 +442,9 @@ static int open_output_file(AudioMuxer *am)
     am->audio_stream_index = ret;
     av_opt_set(am->ofmt_ctx, "movflags", "faststart", AV_OPT_SEARCH_CHILDREN);
 
-    if(!(am->ofmt_ctx->oformat->flags & AVFMT_NOFILE))
-    {
+    if(!(am->ofmt_ctx->oformat->flags & AVFMT_NOFILE)) {
         if((ret = avio_open(&am->ofmt_ctx->pb, config->output_filename,
-            AVIO_FLAG_WRITE)) < 0)
-        {
+                            AVIO_FLAG_WRITE)) < 0) {
             LogError("%s avio_open failed!output_filename : %s.\n", __func__, config->output_filename);
             goto end;
         }
@@ -455,7 +456,8 @@ end:
     return ret;
 }
 
-static int write_frame(AudioMuxer *am) {
+static int write_frame(AudioMuxer *am)
+{
     int ret = -1;
     if (!am || !am->encode_fifo || !am->enc_ctx) {
         LogError("%s kNullPointError.\n", __func__);
@@ -484,7 +486,8 @@ end:
     return ret;
 }
 
-static int write_output_file_header(AVFormatContext *ofmt_ctx) {
+static int write_output_file_header(AVFormatContext *ofmt_ctx)
+{
     int ret = 0;
 
     ret = avformat_write_header(ofmt_ctx, NULL);
@@ -513,7 +516,7 @@ static int init_encoder_muxer(AudioMuxer *am, MuxerConfig *config)
     am->audio_encode_pts = 0;
 
     ret = CheckSampleRateAndChannels(config->dst_sample_rate_in_Hz,
-        config->dst_nb_channels);
+                                     config->dst_nb_channels);
     if (ret < 0) {
         LogError("%s CheckSampleRateAndChannels failed.\n", __func__);
         goto end;
@@ -531,37 +534,37 @@ static int init_encoder_muxer(AudioMuxer *am, MuxerConfig *config)
 
     // Allocate sample buffer for copy_buffer
     ret = AllocateSampleBuffer(&(am->copy_buffer), config->src_nb_channels,
-        am->max_nb_copy_samples, config->src_sample_fmt);
+                               am->max_nb_copy_samples, config->src_sample_fmt);
     if (ret < 0) {
         LogError("%s Allocate sample copy buffer failed.\n", __func__);
         goto end;
     }
 
     ret = InitResampler(config->src_nb_channels, config->dst_nb_channels,
-        config->src_sample_rate_in_Hz, config->dst_sample_rate_in_Hz,
-        config->src_sample_fmt, AV_SAMPLE_FMT_S16, &(am->swr_ctx));
+                        config->src_sample_rate_in_Hz, config->dst_sample_rate_in_Hz,
+                        config->src_sample_fmt, AV_SAMPLE_FMT_S16, &(am->swr_ctx));
     if (ret < 0) {
         LogError("%s InitResampler failed.\n", __func__);
         goto end;
     }
 
     ret = AllocateSampleBuffer(&(am->dst_data), config->dst_nb_channels,
-        am->max_dst_nb_samples, AV_SAMPLE_FMT_S16);
+                               am->max_dst_nb_samples, AV_SAMPLE_FMT_S16);
     if (ret < 0) {
         LogError("%s  Allocate sample dst buffer failed.\n", __func__);
         goto end;
     }
 
     ret = AllocAudioFifo(AV_SAMPLE_FMT_S16, config->dst_nb_channels,
-        &(am->encode_fifo));
+                         &(am->encode_fifo));
     if (ret < 0) {
         LogError("%s  Allocate audio fifo failed.\n", __func__);
         goto end;
     }
 
     ret = AllocEncodeAudioFrame(&(am->audio_frame), config->dst_nb_channels,
-        config->dst_sample_rate_in_Hz, am->frame_size,
-        AV_SAMPLE_FMT_S16);
+                                config->dst_sample_rate_in_Hz, am->frame_size,
+                                AV_SAMPLE_FMT_S16);
     if (ret < 0) {
         LogError("%s  Allocate audio encode frame failed.\n", __func__);
         goto end;
@@ -607,8 +610,7 @@ static int thread_startup(void *arg)
         LogWarning("%s encoder_flush failed.\n", __func__);
     }
 
-    if((ret = av_write_trailer(am->ofmt_ctx)) < 0)
-    {
+    if((ret = av_write_trailer(am->ofmt_ctx)) < 0) {
         LogError("%s error occurred when av_write_trailer.\n", __func__);
         goto end;
     }
@@ -630,14 +632,15 @@ end:
     return ret;
 }
 
-static int start_async(AudioMuxer *am) {
+static int start_async(AudioMuxer *am)
+{
     if (!am) {
         LogError("%s kNullPointError.\n", __func__);
         return kNullPointError;
     }
 
     am->mux_thread = SDL_CreateThreadEx(&am->_mux_thread, thread_startup,
-        am, "audio muxer thread");
+                                        am, "audio muxer thread");
     if (!am->mux_thread) {
         LogError("%s mux_thread SDL_CreateThread() failed\n", __func__);
         return -1;
@@ -670,7 +673,8 @@ void muxer_freep(AudioMuxer **am)
 }
 
 int muxer_write_audio_frame(AudioMuxer *am, const short *buffer,
-        int buffer_size_in_short) {
+                            int buffer_size_in_short)
+{
     if (!am || is_abort(am)) return 0;
 
     if (!am->copy_buffer || !am->encode_fifo || !am->enc_ctx) {
@@ -685,7 +689,7 @@ int muxer_write_audio_frame(AudioMuxer *am, const short *buffer,
     }
 
     ret = add_samples_to_encode_fifo(am, am->copy_buffer,
-        buffer_size_in_short / am->config.src_nb_channels);
+                                     buffer_size_in_short / am->config.src_nb_channels);
     if (ret < 0) {
         LogError("%s add_samples_to_encode_fifo failed.\n", __func__);
         goto end;
