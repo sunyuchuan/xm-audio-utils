@@ -8,7 +8,8 @@
 
 static void js_progress_callback(
     __attribute__((unused)) char *callback,
-    __attribute__((unused)) int progress) {
+    __attribute__((unused)) int progress)
+{
 #ifdef __EMSCRIPTEN__
     if (NULL == callback) return;
 

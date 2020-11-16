@@ -2,8 +2,9 @@
 #include "log.h"
 
 void check_fade_in_out(FadeInOut *fade_io,
-        int buffer_start_time, int buffer_duration, int sample_rate,
-        int bgm_start_time_ms, int bgm_end_time_ms) {
+                       int buffer_start_time, int buffer_duration, int sample_rate,
+                       int bgm_start_time_ms, int bgm_end_time_ms)
+{
     if (!fade_io) {
         return;
     }
@@ -11,18 +12,18 @@ void check_fade_in_out(FadeInOut *fade_io,
     int buffer_end_time = buffer_start_time + buffer_duration;
 
     if (self->fade_in_time_ms > 0 && buffer_end_time >= bgm_start_time_ms &&
-            buffer_start_time < bgm_start_time_ms + self->fade_in_time_ms) {
+        buffer_start_time < bgm_start_time_ms + self->fade_in_time_ms) {
         self->fade_in = true;
     } else {
         self->fade_in = false;
     }
 
     if (self->fade_out_time_ms > 0
-            && (buffer_end_time >= bgm_end_time_ms - self->fade_out_time_ms)) {
+        && (buffer_end_time >= bgm_end_time_ms - self->fade_out_time_ms)) {
         self->fade_out = true;
         if (buffer_start_time < bgm_end_time_ms - self->fade_out_time_ms) {
             self->fade_out_start_index = sample_rate *
-                (float)(bgm_end_time_ms - self->fade_out_time_ms - buffer_start_time) / 1000;
+                                         (float)(bgm_end_time_ms - self->fade_out_time_ms - buffer_start_time) / 1000;
         } else {
             self->fade_out_start_index = 0;
         }
@@ -32,7 +33,8 @@ void check_fade_in_out(FadeInOut *fade_io,
 }
 
 void scale_with_ramp(FadeInOut *fade_io, short *data,
-        int nb_samples, int nb_channels) {
+                     int nb_samples, int nb_channels)
+{
     if (!fade_io || !data) {
         return;
     }

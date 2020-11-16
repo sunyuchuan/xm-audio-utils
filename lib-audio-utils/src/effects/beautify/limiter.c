@@ -28,7 +28,8 @@ struct LimiterT {
     int channels;
 };
 
-Limiter* LimiterCreate(int sample_rate, int channels) {
+Limiter* LimiterCreate(int sample_rate, int channels)
+{
     Limiter* self = (Limiter*)calloc(1, sizeof(Limiter));
     if (NULL == self) return NULL;
 
@@ -48,7 +49,8 @@ Limiter* LimiterCreate(int sample_rate, int channels) {
     return self;
 }
 
-void LimiterFree(Limiter** inst) {
+void LimiterFree(Limiter** inst)
+{
     if (NULL == inst || NULL == *inst) return;
     Limiter* self = *inst;
 
@@ -68,13 +70,15 @@ void LimiterFree(Limiter** inst) {
     *inst = NULL;
 }
 
-void LimiterSetSwitch(Limiter* inst, const int limiter_switch) {
+void LimiterSetSwitch(Limiter* inst, const int limiter_switch)
+{
     inst->limiter_switch = limiter_switch;
 }
 
 void LimiterSet(Limiter* inst, const float limiter_threshold_in_dB,
                 const float attack_time_in_ms, const float decay_time_in_ms,
-                const float output_gain_in_dB) {
+                const float output_gain_in_dB)
+{
     inst->limiter_threshold = powf(10.0f, limiter_threshold_in_dB / 20);
     inst->output_gain = powf(10.0f, output_gain_in_dB / 20);
     inst->attack_time =
@@ -83,7 +87,8 @@ void LimiterSet(Limiter* inst, const float limiter_threshold_in_dB,
         1.0f - expf(-2.2f / inst->sample_rate * 1000000 / decay_time_in_ms);
 }
 
-int LimiterProcess(Limiter* inst, float* buffer, int buffer_size) {
+int LimiterProcess(Limiter* inst, float* buffer, int buffer_size)
+{
     if (NULL == inst || 0 == inst->limiter_switch) return buffer_size;
     int nb_samples = 0;
 
@@ -93,16 +98,16 @@ int LimiterProcess(Limiter* inst, float* buffer, int buffer_size) {
             float left_a = fabs(buffer[i*2]);
             float right_a = fabs(buffer[i*2+1]);
             float left_coeff = left_a > inst->left_xpeak ?
-                inst->attack_time : inst->decay_time;
+                               inst->attack_time : inst->decay_time;
             float right_coeff = right_a > inst->right_xpeak ?
-                inst->attack_time : inst->decay_time;
+                                inst->attack_time : inst->decay_time;
             inst->left_xpeak = (1.0f - left_coeff) *
-                inst->left_xpeak + left_coeff * left_a;
+                               inst->left_xpeak + left_coeff * left_a;
             inst->right_xpeak = (1.0f - right_coeff) *
-                inst->right_xpeak + right_coeff * right_a;
+                                inst->right_xpeak + right_coeff * right_a;
             float peak = FFMAX(inst->left_xpeak, inst->right_xpeak);
             float f = (peak == 0.0f) ? 1.0f :
-                FFMIN(1.0f, inst->limiter_threshold / peak);
+                      FFMIN(1.0f, inst->limiter_threshold / peak);
             float coeff = f < inst->gain ? inst->attack_time : inst->decay_time;
             inst->gain = (1 - coeff) * inst->gain + coeff * f;
             if (inst->delay_buf_size <= 0) {
@@ -128,7 +133,7 @@ int LimiterProcess(Limiter* inst, float* buffer, int buffer_size) {
         } else {
             float a = fabs(buffer[i]);
             float coeff = a > inst->xpeak ?
-                inst->attack_time : inst->decay_time;
+                          inst->attack_time : inst->decay_time;
             inst->xpeak = (1.0f - coeff) * inst->xpeak + coeff * a;
             float f = FFMIN(1.0f, inst->limiter_threshold / inst->xpeak);
             coeff = f < inst->gain ? inst->attack_time : inst->decay_time;

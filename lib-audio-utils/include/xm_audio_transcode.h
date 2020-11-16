@@ -49,7 +49,7 @@ EM_PORT_API(int) xm_audio_transcoder_set_progress_callback(
  * @return Less than 0 means failure.
  */
 EM_PORT_API(int) xm_audio_transcoder_start(XmAudioTranscoder *self,
-    const char *in_audio_path, const char *out_m4a_path);
+        const char *in_audio_path, const char *out_m4a_path);
 
 /**
  * @brief create XmAudioTranscoder

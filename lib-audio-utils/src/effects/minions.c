@@ -39,7 +39,8 @@ typedef struct {
     bool is_minions_on;
 } priv_t;
 
-static void sola_free(Sola **sola) {
+static void sola_free(Sola **sola)
+{
     if (NULL == sola || NULL == *sola) return;
     Sola *self = *sola;
     if (self->input) {
@@ -58,7 +59,8 @@ static void sola_free(Sola **sola) {
     *sola = NULL;
 }
 
-static int sola_init(Sola *sola, short pitch_sample, float tsm_factor) {
+static int sola_init(Sola *sola, short pitch_sample, float tsm_factor)
+{
     sola->Lmax = pitch_sample * 1.5;
     float tmp = tsm_factor - 1.0f;
     tmp = tmp > 0.0f ? tmp : -tmp;
@@ -81,19 +83,22 @@ static int sola_init(Sola *sola, short pitch_sample, float tsm_factor) {
     return 0;
 }
 
-static void sola_inframe_update(Sola *sola) {
+static void sola_inframe_update(Sola *sola)
+{
     memmove(sola->input, sola->input + sola->analysis_window_offset,
             sizeof(int16_t) * (sola->in_len - sola->analysis_window_offset));
     memcpy(sola->input + sola->in_len - sola->analysis_window_offset,
            sola->frame_update, sizeof(int16_t) * sola->analysis_window_offset);
 }
 
-static void sola_outframe_update(Sola *sola) {
+static void sola_outframe_update(Sola *sola)
+{
     memmove(sola->output, sola->output + sola->synthesis_window_offset,
             sizeof(int16_t) * sola->Lmax);
 }
 
-static void sola_porcess(Sola *sola) {
+static void sola_porcess(Sola *sola)
+{
     int mVal = 0;
     short xcorr_len = sola->Lmax - sola->min_overlap - 1;
     short *seg1 = sola->output + xcorr_len;
@@ -125,7 +130,8 @@ static void sola_porcess(Sola *sola) {
     }
 }
 
-static void sola_linear_cross_fade(Sola *sola) {
+static void sola_linear_cross_fade(Sola *sola)
+{
     short cross_fade_duration = sola->opt_overlap_pos;
     short index = cross_fade_duration - 1;
     short Recip = RecipTab[index - sola->min_overlap];
@@ -149,7 +155,8 @@ static void sola_linear_cross_fade(Sola *sola) {
     }
 }
 
-static int minions_close(EffectContext *ctx) {
+static int minions_close(EffectContext *ctx)
+{
     LogInfo("%s.\n", __func__);
     assert(NULL != ctx);
 
@@ -173,7 +180,8 @@ static int minions_close(EffectContext *ctx) {
     return 0;
 }
 
-static int minions_init(EffectContext *ctx, int argc, const char **argv) {
+static int minions_init(EffectContext *ctx, int argc, const char **argv)
+{
     LogInfo("%s.\n", __func__);
     for (int i = 0; i < argc; ++i) {
         LogInfo("argv[%d] = %s\n", i, argv[i]);
@@ -223,7 +231,8 @@ end:
     return ret;
 }
 
-static int minions_set(EffectContext *ctx, const char *key, int flags) {
+static int minions_set(EffectContext *ctx, const char *key, int flags)
+{
     assert(NULL != ctx);
 
     priv_t *priv = ctx->priv;
@@ -245,7 +254,8 @@ static int minions_set(EffectContext *ctx, const char *key, int flags) {
 }
 
 static int minions_send(EffectContext *ctx, const void *samples,
-                        const size_t nb_samples) {
+                        const size_t nb_samples)
+{
     assert(NULL != ctx);
     priv_t *priv = (priv_t *)ctx->priv;
     assert(NULL != priv);
@@ -255,7 +265,8 @@ static int minions_send(EffectContext *ctx, const void *samples,
 }
 
 static int minions_receive(EffectContext *ctx, void *samples,
-                           const size_t max_nb_samples) {
+                           const size_t max_nb_samples)
+{
     assert(NULL != ctx);
     priv_t *priv = (priv_t *)ctx->priv;
     assert(NULL != priv);
@@ -301,7 +312,8 @@ static int minions_receive(EffectContext *ctx, void *samples,
     return fifo_read(priv->fifo_out, samples, max_nb_samples);
 }
 
-const EffectHandler *effect_minions_fn(void) {
+const EffectHandler *effect_minions_fn(void)
+{
     static EffectHandler handler = {.name = "minions",
                                     .usage = "",
                                     .priv_size = sizeof(priv_t),
@@ -310,6 +322,7 @@ const EffectHandler *effect_minions_fn(void) {
                                     .send = minions_send,
                                     .receive = minions_receive,
                                     .flush = NULL,
-                                    .close = minions_close};
+                                    .close = minions_close
+                                   };
     return &handler;
 }

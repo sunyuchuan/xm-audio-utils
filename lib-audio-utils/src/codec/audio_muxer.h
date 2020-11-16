@@ -5,8 +5,7 @@
 #include "ffmpeg_utils.h"
 #include "audio_encoder.h"
 
-typedef struct AudioMuxer
-{
+typedef struct AudioMuxer {
     volatile bool abort;
     // Used to copy buffer
     uint8_t **copy_buffer;
@@ -37,7 +36,7 @@ void muxer_free(AudioMuxer *am);
 void muxer_freep(AudioMuxer **am);
 int muxer_stop(AudioMuxer *am);
 int muxer_write_audio_frame(AudioMuxer *am, const short *buffer,
-        int buffer_size_in_short);
+                            int buffer_size_in_short);
 AudioMuxer *muxer_create(MuxerConfig *config);
 
 #endif // _AUDIO_MUXER_H_

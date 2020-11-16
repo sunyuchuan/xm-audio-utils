@@ -19,7 +19,8 @@ struct MulCompressorT {
     CompressorBand* compressor_bands;
 };
 
-MulCompressor* MulCompressorCreate(const int sample_rate) {
+MulCompressor* MulCompressorCreate(const int sample_rate)
+{
     MulCompressor* self = (MulCompressor*)calloc(1, sizeof(MulCompressor));
     if (NULL == self) return NULL;
 
@@ -27,7 +28,8 @@ MulCompressor* MulCompressorCreate(const int sample_rate) {
     return self;
 }
 
-static void CompressorBandFree(MulCompressor* inst) {
+static void CompressorBandFree(MulCompressor* inst)
+{
     if (NULL == inst || NULL == inst->compressor_bands) return;
     for (int i = 0; i < inst->nb_compressor_bands; ++i) {
         if (inst->compressor_bands + i) {
@@ -52,7 +54,8 @@ static void CompressorBandFree(MulCompressor* inst) {
     inst->max_nb_samples = 0;
 }
 
-void MulCompressorFree(MulCompressor** inst) {
+void MulCompressorFree(MulCompressor** inst)
+{
     if (NULL == inst || NULL == *inst) return;
     MulCompressor* self = *inst;
 
@@ -62,10 +65,11 @@ void MulCompressorFree(MulCompressor** inst) {
     *inst = NULL;
 }
 
-static void CreateCleanVoice(MulCompressor* inst) {
+static void CreateCleanVoice(MulCompressor* inst)
+{
     inst->nb_compressor_bands = 4;
     inst->compressor_bands = (CompressorBand*)calloc(inst->nb_compressor_bands,
-                                                     sizeof(CompressorBand));
+                             sizeof(CompressorBand));
     if (NULL == inst->compressor_bands) return;
 
     // 设置第一个压缩器
@@ -114,10 +118,11 @@ end:
     CompressorBandFree(inst);
 }
 
-static void CreateBassEffect(MulCompressor* inst) {
+static void CreateBassEffect(MulCompressor* inst)
+{
     inst->nb_compressor_bands = 4;
     inst->compressor_bands = (CompressorBand*)calloc(inst->nb_compressor_bands,
-                                                     sizeof(CompressorBand));
+                             sizeof(CompressorBand));
     if (NULL == inst->compressor_bands) return;
 
     // 设置第一个压缩器
@@ -166,10 +171,11 @@ end:
     CompressorBandFree(inst);
 }
 
-static void CreateLowVoice(MulCompressor* inst) {
+static void CreateLowVoice(MulCompressor* inst)
+{
     inst->nb_compressor_bands = 4;
     inst->compressor_bands = (CompressorBand*)calloc(inst->nb_compressor_bands,
-                                                     sizeof(CompressorBand));
+                             sizeof(CompressorBand));
     if (NULL == inst->compressor_bands) return;
 
     // 设置第一个压缩器
@@ -217,10 +223,11 @@ end:
     CompressorBandFree(inst);
 }
 
-static void CreatePenetratingEffect(MulCompressor* inst) {
+static void CreatePenetratingEffect(MulCompressor* inst)
+{
     inst->nb_compressor_bands = 4;
     inst->compressor_bands = (CompressorBand*)calloc(inst->nb_compressor_bands,
-                                                     sizeof(CompressorBand));
+                             sizeof(CompressorBand));
     if (NULL == inst->compressor_bands) return;
 
     // 设置第一个压缩器
@@ -268,10 +275,11 @@ end:
     CompressorBandFree(inst);
 }
 
-static void CreateMagneticEffect(MulCompressor* inst) {
+static void CreateMagneticEffect(MulCompressor* inst)
+{
     inst->nb_compressor_bands = 4;
     inst->compressor_bands = (CompressorBand*)calloc(inst->nb_compressor_bands,
-                                                     sizeof(CompressorBand));
+                             sizeof(CompressorBand));
     if (NULL == inst->compressor_bands) return;
 
     // 设置第一个压缩器
@@ -319,10 +327,11 @@ end:
     CompressorBandFree(inst);
 }
 
-static void CreateSoftPitch(MulCompressor* inst) {
+static void CreateSoftPitch(MulCompressor* inst)
+{
     inst->nb_compressor_bands = 4;
     inst->compressor_bands = (CompressorBand*)calloc(inst->nb_compressor_bands,
-                                                     sizeof(CompressorBand));
+                             sizeof(CompressorBand));
     if (NULL == inst->compressor_bands) return;
 
     // 设置第一个压缩器
@@ -371,40 +380,42 @@ end:
 }
 
 void MulCompressorSetMode(MulCompressor* inst,
-                          const enum MulCompressMode mode) {
+                          const enum MulCompressMode mode)
+{
     CompressorBandFree(inst);
     switch (mode) {
-        case MulComCleanVoice:
-            // 清晰人声
-            CreateCleanVoice(inst);
-            break;
-        case MulComBass:
-            // 低音 -> 沉稳
-            CreateBassEffect(inst);
-            break;
-        case MulComLowVoice:
-            // 低沉 -> 低音
-            CreateLowVoice(inst);
-            break;
-        case MulComPenetrating:
-            // 穿透
-            CreatePenetratingEffect(inst);
-            break;
-        case MulComMagnetic:
-            // 磁性
-            CreateMagneticEffect(inst);
-            break;
-        case MulComSoftPitch:
-            // 柔和高音
-            CreateSoftPitch(inst);
-            break;
-        default:
-            break;
+    case MulComCleanVoice:
+        // 清晰人声
+        CreateCleanVoice(inst);
+        break;
+    case MulComBass:
+        // 低音 -> 沉稳
+        CreateBassEffect(inst);
+        break;
+    case MulComLowVoice:
+        // 低沉 -> 低音
+        CreateLowVoice(inst);
+        break;
+    case MulComPenetrating:
+        // 穿透
+        CreatePenetratingEffect(inst);
+        break;
+    case MulComMagnetic:
+        // 磁性
+        CreateMagneticEffect(inst);
+        break;
+    case MulComSoftPitch:
+        // 柔和高音
+        CreateSoftPitch(inst);
+        break;
+    default:
+        break;
     }
 }
 
 static int CompressorBandProcess(CompressorBand* compressor_band, float* buffer,
-                                 const int buffer_size) {
+                                 const int buffer_size)
+{
     // 拷贝数据
     memcpy(compressor_band->buffer, buffer, buffer_size * sizeof(float));
     // 分频
@@ -415,7 +426,8 @@ static int CompressorBandProcess(CompressorBand* compressor_band, float* buffer,
                              compressor_band->buffer, buffer_size);
 }
 
-static int RellocateBuffer(MulCompressor* inst, const int buffer_size) {
+static int RellocateBuffer(MulCompressor* inst, const int buffer_size)
+{
     for (int i = 0; i < inst->nb_compressor_bands; ++i) {
         if ((inst->compressor_bands + i)->buffer) {
             free((inst->compressor_bands + i)->buffer);
@@ -433,7 +445,8 @@ static int RellocateBuffer(MulCompressor* inst, const int buffer_size) {
 }
 
 int MulCompressorProcess(MulCompressor* inst, float* buffer,
-                         const int buffer_size) {
+                         const int buffer_size)
+{
     if (NULL == inst || inst->nb_compressor_bands <= 0) return buffer_size;
     int ret = 0;
 

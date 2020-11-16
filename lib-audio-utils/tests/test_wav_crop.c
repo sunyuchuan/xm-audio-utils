@@ -3,7 +3,8 @@
 #include "log.h"
 #include "xm_wav_utils.h"
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     struct timeval start;
     struct timeval end;
     unsigned long timer;
@@ -22,8 +23,7 @@ int main(int argc, char **argv) {
         goto end;
     }
 
-    if(!xm_wav_utils_crop(argv[1], duration/2, duration, argv[2]))
-    {
+    if(!xm_wav_utils_crop(argv[1], duration/2, duration, argv[2])) {
         LogError("%s wav_read_header failed\n", __func__);
         goto end;
     }

@@ -21,9 +21,9 @@ struct XmAudioGenerator {
 static int chk_st_l(int state)
 {
     if (state == GENERATOR_STATE_INITIALIZED ||
-            state == GENERATOR_STATE_COMPLETED ||
-            state == GENERATOR_STATE_STOP ||
-            state == GENERATOR_STATE_ERROR) {
+        state == GENERATOR_STATE_COMPLETED ||
+        state == GENERATOR_STATE_STOP ||
+        state == GENERATOR_STATE_ERROR) {
         return 0;
     }
 
@@ -34,7 +34,8 @@ static int chk_st_l(int state)
 }
 
 static int mixer_mix(XmAudioGenerator *self, const char *in_config_path,
-        const char *out_file_path, int encode_type, int mux_type) {
+                     const char *out_file_path, int encode_type, int mux_type)
+{
     LogInfo("%s\n", __func__);
     int ret = -1;
     if(!self || !in_config_path || !out_file_path) {
@@ -58,20 +59,21 @@ static int mixer_mix(XmAudioGenerator *self, const char *in_config_path,
     }
 
     xm_audio_mixer_set_progress_callback(self->mixer_ctx,
-        self->js_progress_callback);
+                                         self->js_progress_callback);
 
     ret = xm_audio_mixer_mix(self->mixer_ctx, out_file_path,
-        encode_type, mux_type);
+                             encode_type, mux_type);
     if (ret < 0) {
-	LogError("%s xm_audio_mixer_mix failed\n", __func__);
-	goto end;
+        LogError("%s xm_audio_mixer_mix failed\n", __func__);
+        goto end;
     }
 
 end:
     return ret;
 }
 
-void xm_audio_generator_free(XmAudioGenerator *self) {
+void xm_audio_generator_free(XmAudioGenerator *self)
+{
     LogInfo("%s\n", __func__);
     if (NULL == self)
         return;
@@ -86,7 +88,8 @@ void xm_audio_generator_free(XmAudioGenerator *self) {
     }
 }
 
-void xm_audio_generator_freep(XmAudioGenerator *ag) {
+void xm_audio_generator_freep(XmAudioGenerator *ag)
+{
     LogInfo("%s\n", __func__);
     if (NULL == ag)
         return;
@@ -96,7 +99,8 @@ void xm_audio_generator_freep(XmAudioGenerator *ag) {
     free(ag);
 }
 
-void xm_audio_generator_stop(XmAudioGenerator *self) {
+void xm_audio_generator_stop(XmAudioGenerator *self)
+{
     LogInfo("%s\n", __func__);
     if (NULL == self)
         return;
@@ -107,7 +111,8 @@ void xm_audio_generator_stop(XmAudioGenerator *self) {
     pthread_mutex_unlock(&self->mutex);
 }
 
-int xm_audio_generator_get_progress(XmAudioGenerator *self) {
+int xm_audio_generator_get_progress(XmAudioGenerator *self)
+{
     if (NULL == self)
         return -1;
 
@@ -115,7 +120,8 @@ int xm_audio_generator_get_progress(XmAudioGenerator *self) {
 }
 
 int xm_audio_generator_set_progress_callback(
-    XmAudioGenerator *self, const char *callback) {
+    XmAudioGenerator *self, const char *callback)
+{
     if (!self || !callback)
         return -1;
 
@@ -138,7 +144,8 @@ int xm_audio_generator_set_progress_callback(
 
 enum GeneratorStatus xm_audio_generator_start(
     XmAudioGenerator *self, const char *in_config_path,
-    const char *out_file_path, int mux_type) {
+    const char *out_file_path, int mux_type)
+{
     LogInfo("%s\n", __func__);
     enum GeneratorStatus ret = GS_ERROR;
     if (!self || !in_config_path || !out_file_path) {
@@ -170,7 +177,8 @@ enum GeneratorStatus xm_audio_generator_start(
     return ret;
 }
 
-XmAudioGenerator *xm_audio_generator_create() {
+XmAudioGenerator *xm_audio_generator_create()
+{
     XmAudioGenerator *self = (XmAudioGenerator *)calloc(1, sizeof(XmAudioGenerator));
     if (NULL == self) {
         LogError("%s alloc XmAudioGenerator failed.\n", __func__);

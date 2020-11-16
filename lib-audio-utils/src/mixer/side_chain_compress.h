@@ -8,6 +8,6 @@
 #define MAKEUP_GAIN_MAX_DB 5
 
 void side_chain_compress(short *voice, short *bgm, float *bgm_yl_prev,
-        int buffer_size, int sample_rate, int nb_channels, float threshold,
-        float ratio, float attack_ms, float release_ms, float makeup_gain);
+                         int buffer_size, int sample_rate, int nb_channels, float threshold,
+                         float ratio, float attack_ms, float release_ms, float makeup_gain);
 #endif

@@ -44,7 +44,7 @@ void total_effect_freep(TotalEffectContext **ctx);
         Less than 0 means failure
  */
 int total_effect_flush(TotalEffectContext *ctx,
-    short *buffer, int buffer_size_in_short);
+                       short *buffer, int buffer_size_in_short);
 
 /**
  * @brief obtain total effects samples
@@ -56,7 +56,7 @@ int total_effect_flush(TotalEffectContext *ctx,
         Less than 0 means failure
  */
 int total_effect_receive(TotalEffectContext *ctx,
-    short *buffer, int buffer_size_in_short);
+                         short *buffer, int buffer_size_in_short);
 
 /**
  * @brief send samples to total effects
@@ -68,7 +68,7 @@ int total_effect_receive(TotalEffectContext *ctx,
         Less than 0 means failure
  */
 int total_effect_send(TotalEffectContext *ctx,
-    short *buffer, int buffer_size_in_short);
+                      short *buffer, int buffer_size_in_short);
 
 /**
  * @brief init TotalEffectContext
@@ -81,8 +81,8 @@ int total_effect_send(TotalEffectContext *ctx,
  * @return Less than 0 means failure
  */
 int total_effect_init(TotalEffectContext *ctx,
-    EffectsInfo *effects_info, int sample_rate,
-    int channels, int bits_per_sample);
+                      EffectsInfo *effects_info, int sample_rate,
+                      int channels, int bits_per_sample);
 
 /**
  * @brief create TotalEffectContext

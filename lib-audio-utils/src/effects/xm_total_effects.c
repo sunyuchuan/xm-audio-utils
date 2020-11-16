@@ -4,7 +4,8 @@
 #include "log.h"
 #include "xm_total_effects.h"
 
-static void te_free(TotalEffectContext *ctx) {
+static void te_free(TotalEffectContext *ctx)
+{
     LogInfo("%s\n", __func__);
     if (NULL == ctx)
         return;
@@ -39,8 +40,9 @@ static void te_free(TotalEffectContext *ctx) {
 }
 
 static int flush(TotalEffectContext *ctx,
-    EffectContext **effects, short *buffer,
-    int buffer_size_in_short) {
+                 EffectContext **effects, short *buffer,
+                 int buffer_size_in_short)
+{
     if (effects[0] && effects[1]) {
         int half = (buffer_size_in_short >> 1);
         flush_effect(effects[0], ctx->buffer_L, half);
@@ -52,15 +54,16 @@ static int flush(TotalEffectContext *ctx,
         return len << 1;
     } else if (effects[0]) {
         return flush_effect(effects[0],
-            buffer, buffer_size_in_short);
+                            buffer, buffer_size_in_short);
     } else {
         return -1;
     }
 }
 
 static int receive(TotalEffectContext *ctx,
-    EffectContext **effects, short *buffer,
-    int buffer_size_in_short) {
+                   EffectContext **effects, short *buffer,
+                   int buffer_size_in_short)
+{
     if (effects[0] && effects[1]) {
         int half = (buffer_size_in_short >> 1);
         receive_samples(effects[0], ctx->buffer_L, half);
@@ -72,15 +75,16 @@ static int receive(TotalEffectContext *ctx,
         return len << 1;
     } else if (effects[0]) {
         return receive_samples(effects[0],
-            buffer, buffer_size_in_short);
+                               buffer, buffer_size_in_short);
     } else {
         return -1;
     }
 }
 
 static int send(TotalEffectContext *ctx,
-    EffectContext **effects, short *buffer,
-    int buffer_size_in_short) {
+                EffectContext **effects, short *buffer,
+                int buffer_size_in_short)
+{
     if (effects[0] && effects[1]) {
         int half = (buffer_size_in_short >> 1);
         for (int i = 0; i < half; ++i) {
@@ -91,14 +95,15 @@ static int send(TotalEffectContext *ctx,
         return send_samples(effects[1], ctx->buffer_R, half);
     } else if (effects[0]) {
         return send_samples(effects[0], buffer,
-            buffer_size_in_short);
+                            buffer_size_in_short);
     } else {
         return -1;
     }
 }
 
 static int flush_l(TotalEffectContext *ctx,
-    short *buffer, int buffer_size_in_short) {
+                   short *buffer, int buffer_size_in_short)
+{
     if (!ctx || !buffer || buffer_size_in_short <= 0)
         return -1;
 
@@ -108,26 +113,26 @@ static int flush_l(TotalEffectContext *ctx,
 
         bool is_last_effect = true;
         receive_len = receive(ctx, ctx->effects[i],
-            buffer, buffer_size_in_short);
+                              buffer, buffer_size_in_short);
         if (receive_len <= 0) {
             receive_len = flush(ctx, ctx->effects[i],
-                buffer, buffer_size_in_short);
+                                buffer, buffer_size_in_short);
         }
         while (receive_len > 0) {
             for (short j = i + 1; j < MAX_NB_TOTAL_EFFECTS; ++j) {
                 if (NULL != ctx->effects[j][0]) {
                     receive_len = send(ctx, ctx->effects[j],
-                        buffer, receive_len);
+                                       buffer, receive_len);
                     if (receive_len < 0) {
                         LogError("%s send_samples to the next effect failed\n",__func__);
                         goto end;
                     }
                     is_last_effect = false;
                     receive_len = receive(ctx, ctx->effects[i],
-                        buffer, buffer_size_in_short);
+                                          buffer, buffer_size_in_short);
                     if (receive_len <= 0) {
                         receive_len = flush(ctx, ctx->effects[i],
-                        buffer, buffer_size_in_short);
+                                            buffer, buffer_size_in_short);
                     }
                     break;
                 }
@@ -141,7 +146,8 @@ end:
 }
 
 static int add_effects(TotalEffectContext *ctx,
-    short *buffer, int buffer_len) {
+                       short *buffer, int buffer_len)
+{
     int ret = -1;
     if (!ctx || !ctx->fifo_out
         || !buffer || buffer_len <= 0) return ret;
@@ -151,7 +157,7 @@ static int add_effects(TotalEffectContext *ctx,
         if (NULL != ctx->effects[i][0]) {
             if(send(ctx, ctx->effects[i], buffer, buffer_len) < 0) {
                 LogError("%s send_samples to the first effect failed\n",
-                    __func__);
+                         __func__);
                 ret = -1;
                 return ret;
             }
@@ -171,21 +177,21 @@ static int add_effects(TotalEffectContext *ctx,
 
         bool is_last_effect = true;
         receive_len = receive(ctx, ctx->effects[i],
-            buffer, buffer_len);
+                              buffer, buffer_len);
         while (receive_len > 0) {
             for (short j = i + 1; j < MAX_NB_TOTAL_EFFECTS; ++j) {
                 if (NULL != ctx->effects[j][0]) {
                     receive_len = send(ctx, ctx->effects[j],
-                        buffer, receive_len);
+                                       buffer, receive_len);
                     if (receive_len < 0) {
                         LogError("%s send_samples to the next effect failed\n",
-                            __func__);
+                                 __func__);
                         ret = -1;
                         return ret;
                     }
                     is_last_effect = false;
                     receive_len = receive(ctx, ctx->effects[i],
-                        buffer, buffer_len);
+                                          buffer, buffer_len);
                     break;
                 }
             }
@@ -196,7 +202,8 @@ static int add_effects(TotalEffectContext *ctx,
     return receive_len;
 }
 
-static char *strlower(char *str) {
+static char *strlower(char *str)
+{
     char *original = str;
 
     for (; *str!='\0'; str++)
@@ -206,14 +213,15 @@ static char *strlower(char *str) {
 }
 
 static int get_nb_effects(TotalEffectContext *ctx,
-    const char *effect_name) {
+                          const char *effect_name)
+{
     if (ctx->channels == 2) {
         if (!strcasecmp(effect_name, "highpass")
-        || !strcasecmp(effect_name, "lowpass")
-        || !strcasecmp(effect_name, "bandpass")
-        || !strcasecmp(effect_name, "bandreject")
-        || !strcasecmp(effect_name, "allpass")
-        || !strcasecmp(effect_name, "equalizer")) {
+            || !strcasecmp(effect_name, "lowpass")
+            || !strcasecmp(effect_name, "bandpass")
+            || !strcasecmp(effect_name, "bandreject")
+            || !strcasecmp(effect_name, "allpass")
+            || !strcasecmp(effect_name, "equalizer")) {
             return 2;
         }
     }
@@ -221,7 +229,8 @@ static int get_nb_effects(TotalEffectContext *ctx,
 }
 
 static int effects_init(TotalEffectContext *ctx,
-    EffectsInfo *effects_info) {
+                        EffectsInfo *effects_info)
+{
     if (!ctx) return -1;
 
     for (int i = 0; i < MAX_NB_TOTAL_EFFECTS; ++i) {
@@ -241,18 +250,19 @@ static int effects_init(TotalEffectContext *ctx,
         int nb_effects = get_nb_effects(ctx, effects_info[i].name);
         for (int j = 0; j < nb_effects; ++j) {
             ctx->effects[i][j] = create_effect(
-                find_effect(effects_info[i].name),
-                ctx->sample_rate, ctx->channels);
+                                     find_effect(effects_info[i].name),
+                                     ctx->sample_rate, ctx->channels);
             init_effect(ctx->effects[i][j], 0, NULL);
             set_effect(ctx->effects[i][j], effects_info[i].name,
-                effects_info[i].info, 0);
+                       effects_info[i].info, 0);
         }
     }
 
     return 0;
 }
 
-void total_effect_freep(TotalEffectContext **ctx) {
+void total_effect_freep(TotalEffectContext **ctx)
+{
     LogInfo("%s\n", __func__);
     if (NULL == ctx || NULL == *ctx)
         return;
@@ -263,7 +273,8 @@ void total_effect_freep(TotalEffectContext **ctx) {
 }
 
 int total_effect_flush(TotalEffectContext *ctx,
-    short *buffer, int buffer_size_in_short) {
+                       short *buffer, int buffer_size_in_short)
+{
     if (!ctx || !buffer || buffer_size_in_short <= 0)
         return -1;
 
@@ -277,9 +288,10 @@ int total_effect_flush(TotalEffectContext *ctx,
 }
 
 int total_effect_receive(TotalEffectContext *ctx,
-    short *buffer, int buffer_size_in_short) {
+                         short *buffer, int buffer_size_in_short)
+{
     if(!ctx || !buffer
-        || buffer_size_in_short <= 0) return AEERROR_NULL_POINT;
+       || buffer_size_in_short <= 0) return AEERROR_NULL_POINT;
     if (!ctx->fifo_in || !ctx->fifo_out
         || !ctx->buffer) return AEERROR_NULL_POINT;
 
@@ -306,9 +318,10 @@ fail:
 }
 
 int total_effect_send(TotalEffectContext *ctx,
-    short *buffer, int buffer_size_in_short) {
+                      short *buffer, int buffer_size_in_short)
+{
     if(!ctx || !buffer || !ctx->fifo_in
-        || buffer_size_in_short <= 0)
+       || buffer_size_in_short <= 0)
         return AEERROR_NULL_POINT;
     int ret = -1;
 
@@ -319,8 +332,9 @@ int total_effect_send(TotalEffectContext *ctx,
 }
 
 int total_effect_init(TotalEffectContext *ctx,
-    EffectsInfo *effects_info, int sample_rate,
-    int channels, int bits_per_sample) {
+                      EffectsInfo *effects_info, int sample_rate,
+                      int channels, int bits_per_sample)
+{
     int ret = -1;
     if (!ctx || !effects_info)
         return ret;
@@ -365,7 +379,8 @@ end:
     return ret;
 }
 
-TotalEffectContext *total_effect_create() {
+TotalEffectContext *total_effect_create()
+{
     TotalEffectContext *self =
         (TotalEffectContext *)calloc(1, sizeof(TotalEffectContext));
     if (NULL == self) {

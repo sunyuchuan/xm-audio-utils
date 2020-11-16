@@ -10,7 +10,8 @@
 
 extern void RegisterFFmpeg();
 
-int get_audio_file_duration_ms(const char *file_addr) {
+int get_audio_file_duration_ms(const char *file_addr)
+{
     int ret = -1;
     if (!file_addr) return -1;
     LogInfo("%s file_addr %s.\n", __func__, file_addr);
@@ -28,7 +29,7 @@ int get_audio_file_duration_ms(const char *file_addr) {
     AVStream *audio_stream = fmt_ctx->streams[audio_stream_index];
     if (audio_stream->duration != AV_NOPTS_VALUE) {
         ret = av_rescale_q(audio_stream->duration,
-            audio_stream->time_base, AV_TIME_BASE_Q) / 1000;
+                           audio_stream->time_base, AV_TIME_BASE_Q) / 1000;
     } else {
         ret = fftime_to_milliseconds(fmt_ctx->duration);
     }
@@ -42,7 +43,8 @@ end:
 }
 
 int get_pcm_file_duration_ms(const char *file_addr,
-    int bits_per_sample, int src_sample_rate_in_Hz, int src_nb_channels) {
+                             int bits_per_sample, int src_sample_rate_in_Hz, int src_nb_channels)
+{
     int ret = -1;
     if (!file_addr) return -1;
     LogInfo("%s file_addr %s.\n", __func__, file_addr);
@@ -55,7 +57,7 @@ int get_pcm_file_duration_ms(const char *file_addr,
 
     fseek(reader, 0, SEEK_END);
     ret = calculation_duration_ms(ftell(reader),
-        bits_per_sample/8, src_nb_channels, src_sample_rate_in_Hz);
+                                  bits_per_sample/8, src_nb_channels, src_sample_rate_in_Hz);
 end:
     if (reader != NULL) fclose(reader);
     return ret;

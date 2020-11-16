@@ -4,7 +4,8 @@
 #include "log.h"
 #include "tools/conversion.h"
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     AeSetLogLevel(LOG_LEVEL_TRACE);
     AeSetLogMode(LOG_MODE_SCREEN);
 

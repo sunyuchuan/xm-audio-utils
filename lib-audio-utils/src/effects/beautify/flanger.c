@@ -73,7 +73,8 @@ struct FlangerT {
 // "each channel",
 // "interp   --    lin   delay-line interpolation: linear|quadratic"
 
-Flanger* FlangerCreate(const int sample_rate) {
+Flanger* FlangerCreate(const int sample_rate)
+{
     Flanger* self = (Flanger*)calloc(1, sizeof(Flanger));
     if (NULL == self) return NULL;
 
@@ -82,7 +83,8 @@ Flanger* FlangerCreate(const int sample_rate) {
     return self;
 }
 
-void FlangerFree(Flanger** inst) {
+void FlangerFree(Flanger** inst)
+{
     if (NULL == inst || NULL == *inst) return;
 
     Flanger* self = *inst;
@@ -100,7 +102,8 @@ void FlangerFree(Flanger** inst) {
 
 static void lsx_generate_wave_table(wave_t wave_type, sox_data_t data_type,
                                     void* table, size_t table_size, float min,
-                                    float max, float phase) {
+                                    float max, float phase)
+{
     uint32_t t;
     uint32_t phase_offset = phase / M_PI / 2 * table_size + 0.5;
 
@@ -108,70 +111,71 @@ static void lsx_generate_wave_table(wave_t wave_type, sox_data_t data_type,
         uint32_t point = (t + phase_offset) % table_size;
         float d;
         switch (wave_type) {
-            case WAVE_SINE:
-                d = (sin((float)point / table_size * 2 * M_PI) + 1) / 2;
-                break;
+        case WAVE_SINE:
+            d = (sin((float)point / table_size * 2 * M_PI) + 1) / 2;
+            break;
 
-            case WAVE_TRIANGLE:
-                d = (float)point * 2 / table_size;
-                switch (4 * point / table_size) {
-                    case 0:
-                        d = d + 0.5;
-                        break;
-                    case 1:
-                    case 2:
-                        d = 1.5 - d;
-                        break;
-                    case 3:
-                        d = d - 1.5;
-                        break;
-                }
+        case WAVE_TRIANGLE:
+            d = (float)point * 2 / table_size;
+            switch (4 * point / table_size) {
+            case 0:
+                d = d + 0.5;
                 break;
+            case 1:
+            case 2:
+                d = 1.5 - d;
+                break;
+            case 3:
+                d = d - 1.5;
+                break;
+            }
+            break;
 
-            default:     /* Oops! FIXME */
-                d = 0.0; /* Make sure we have a value */
-                break;
+        default:     /* Oops! FIXME */
+            d = 0.0; /* Make sure we have a value */
+            break;
         }
         d = d * (max - min) + min;
         switch (data_type) {
-            case SOX_FLOAT: {
-                float* fp = (float*)table;
-                *fp++ = (float)d;
-                table = fp;
-                continue;
-            }
-            case SOX_DOUBLE: {
-                double* dp = (double*)table;
-                *dp++ = d;
-                table = dp;
-                continue;
-            }
-            default:
-                break;
+        case SOX_FLOAT: {
+            float* fp = (float*)table;
+            *fp++ = (float)d;
+            table = fp;
+            continue;
+        }
+        case SOX_DOUBLE: {
+            double* dp = (double*)table;
+            *dp++ = d;
+            table = dp;
+            continue;
+        }
+        default:
+            break;
         }
         d += d < 0 ? -0.5 : +0.5;
         switch (data_type) {
-            case SOX_SHORT: {
-                short* sp = table;
-                *sp++ = (short)d;
-                table = sp;
-                continue;
-            }
-            case SOX_INT: {
-                int* ip = table;
-                *ip++ = (int)d;
-                table = ip;
-                continue;
-            }
-            default:
-                break;
+        case SOX_SHORT: {
+            short* sp = table;
+            *sp++ = (short)d;
+            table = sp;
+            continue;
+        }
+        case SOX_INT: {
+            int* ip = table;
+            *ip++ = (int)d;
+            table = ip;
+            continue;
+        }
+        default:
+            break;
         }
     }
 }
 
 void FlangerSet(Flanger* inst, const float delay, const float depth,
                 const float regen, const float width, const float speed,
-                const wave_t shape, const float phase) {
+                const wave_t shape, const float phase)
+{
     inst->delay_min = delay;
     inst->delay_depth = depth;
     inst->feedback_gain = regen;
@@ -219,7 +223,8 @@ void FlangerSet(Flanger* inst, const float delay, const float depth,
         3 * M_PI_2); /* Start the sweep at minimum delay (for mono at least) */
 }
 
-void FlangerProcess(Flanger* inst, float* buffer, const int buffer_size) {
+void FlangerProcess(Flanger* inst, float* buffer, const int buffer_size)
+{
     if (NULL == inst || NULL == buffer || buffer_size <= 0) return;
 
     for (int i = 0; i < buffer_size; ++i) {

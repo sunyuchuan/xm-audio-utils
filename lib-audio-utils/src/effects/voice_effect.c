@@ -17,11 +17,16 @@ static effect_fn all_effect_fns[] = {
 #define EFFECT(f) effect_##f##_fn,
 #include "effects.h"
 #undef EFFECT
-    NULL};
+    NULL
+};
 
-const effect_fn *get_all_effect_fns(void) { return all_effect_fns; }
+const effect_fn *get_all_effect_fns(void)
+{
+    return all_effect_fns;
+}
 
-const EffectHandler *find_effect(char const *name) {
+const EffectHandler *find_effect(char const *name)
+{
     const effect_fn *fns = get_all_effect_fns();
     for (int i = 0; NULL != fns[i]; ++i) {
         const EffectHandler *eh = fns[i]();
@@ -31,7 +36,8 @@ const EffectHandler *find_effect(char const *name) {
 }
 
 EffectContext *create_effect(const EffectHandler *handler,
-                             const int sample_rate, const int channels) {
+                             const int sample_rate, const int channels)
+{
     if (NULL == handler) return NULL;
     EffectContext *self = (EffectContext *)calloc(1, sizeof(EffectContext));
     atomic_store(&self->return_max_nb_samples, false);
@@ -42,12 +48,14 @@ EffectContext *create_effect(const EffectHandler *handler,
     return self;
 }
 
-const char *show_usage(EffectContext *ctx) {
+const char *show_usage(EffectContext *ctx)
+{
     assert(NULL != ctx);
     return ctx->handler.usage;
 }
 
-int init_effect(EffectContext *ctx, int argc, const char **argv) {
+int init_effect(EffectContext *ctx, int argc, const char **argv)
+{
     if(!ctx || !ctx->handler.init) {
         return -1;
     }
@@ -56,7 +64,8 @@ int init_effect(EffectContext *ctx, int argc, const char **argv) {
 }
 
 int set_effect(EffectContext *ctx, const char *key, const char *value,
-               int flags) {
+               int flags)
+{
     if(!ctx || !ctx->handler.set) {
         return -1;
     }
@@ -72,7 +81,8 @@ int set_effect(EffectContext *ctx, const char *key, const char *value,
 }
 
 int send_samples(EffectContext *ctx, const void *samples,
-                 const size_t nb_samples) {
+                 const size_t nb_samples)
+{
     if(!ctx || !ctx->handler.send) {
         return -1;
     }
@@ -81,7 +91,8 @@ int send_samples(EffectContext *ctx, const void *samples,
 }
 
 int receive_samples(EffectContext *ctx, void *samples,
-                    const size_t max_nb_samples) {
+                    const size_t max_nb_samples)
+{
     if(!ctx || !ctx->handler.receive) {
         return -1;
     }
@@ -90,7 +101,8 @@ int receive_samples(EffectContext *ctx, void *samples,
 }
 
 int flush_effect(EffectContext *ctx, void *samples,
-                    const size_t max_nb_samples) {
+                 const size_t max_nb_samples)
+{
     if(!ctx || !ctx->handler.flush) {
         return -1;
     }
@@ -98,7 +110,8 @@ int flush_effect(EffectContext *ctx, void *samples,
     return ctx->handler.flush(ctx, samples, max_nb_samples);
 }
 
-void free_effect(EffectContext *ctx) {
+void free_effect(EffectContext *ctx)
+{
     if (NULL == ctx) return;
     if (ctx->handler.close) ctx->handler.close(ctx);
     if (ctx->priv) av_freep(&ctx->priv);

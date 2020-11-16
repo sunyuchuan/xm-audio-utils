@@ -57,7 +57,8 @@ static void pcm_resampler_release(PcmResampler **swr)
     *swr = NULL;
 }
 
-void xm_audio_utils_free(XmAudioUtils *self) {
+void xm_audio_utils_free(XmAudioUtils *self)
+{
     LogInfo("%s\n", __func__);
     if (NULL == self)
         return;
@@ -78,7 +79,8 @@ void xm_audio_utils_free(XmAudioUtils *self) {
     }
 }
 
-void xm_audio_utils_freep(XmAudioUtils *au) {
+void xm_audio_utils_freep(XmAudioUtils *au)
+{
     LogInfo("%s\n", __func__);
     if (NULL == au)
         return;
@@ -89,17 +91,19 @@ void xm_audio_utils_freep(XmAudioUtils *au) {
 }
 
 int xm_audio_utils_mixer_get_frame(XmAudioUtils *self,
-    short *buffer, int buffer_size_in_short) {
+                                   short *buffer, int buffer_size_in_short)
+{
     if (!self || !buffer || buffer_size_in_short <= 0) {
         return -1;
     }
 
     return xm_audio_mixer_get_frame(self->mixer_ctx,
-        buffer, buffer_size_in_short);
+                                    buffer, buffer_size_in_short);
 }
 
 int xm_audio_utils_mixer_seekTo(XmAudioUtils *self,
-    int seek_time_ms) {
+                                int seek_time_ms)
+{
     LogInfo("%s seek_time_ms %d\n", __func__, seek_time_ms);
     if (!self) {
         return -1;
@@ -109,7 +113,8 @@ int xm_audio_utils_mixer_seekTo(XmAudioUtils *self,
 }
 
 int xm_audio_utils_mixer_init(XmAudioUtils *self,
-    const char *in_config_path) {
+                              const char *in_config_path)
+{
     LogInfo("%s\n", __func__);
     int ret = -1;
     if (!self || !in_config_path) {
@@ -137,24 +142,26 @@ end:
 }
 
 int xm_audio_utils_fade(XmAudioUtils *self, short *buffer,
-        int buffer_size, int buffer_start_time) {
+                        int buffer_size, int buffer_start_time)
+{
     if (!self || !buffer || !self->fade || buffer_size <= 0)
         return -1;
     Fade *fade = self->fade;
     int buffer_duration_ms = 1000 * ((float)buffer_size /
-        fade->pcm_nb_channels / fade->pcm_sample_rate);
+                                     fade->pcm_nb_channels / fade->pcm_sample_rate);
 
     check_fade_in_out(&fade->fade_io, buffer_start_time, buffer_duration_ms,
-        fade->pcm_sample_rate, fade->bgm_start_time_ms, fade->bgm_end_time_ms);
+                      fade->pcm_sample_rate, fade->bgm_start_time_ms, fade->bgm_end_time_ms);
     scale_with_ramp(&fade->fade_io, buffer,
-        buffer_size / fade->pcm_nb_channels, fade->pcm_nb_channels);
+                    buffer_size / fade->pcm_nb_channels, fade->pcm_nb_channels);
     return 0;
 }
 
 int xm_audio_utils_fade_init(XmAudioUtils *self,
-        int pcm_sample_rate, int pcm_nb_channels,
-        int bgm_start_time_ms, int bgm_end_time_ms,
-        int fade_in_time_ms, int fade_out_time_ms) {
+                             int pcm_sample_rate, int pcm_nb_channels,
+                             int bgm_start_time_ms, int bgm_end_time_ms,
+                             int fade_in_time_ms, int fade_out_time_ms)
+{
     if (!self)
         return -1;
     LogInfo("%s\n", __func__);
@@ -185,10 +192,11 @@ int xm_audio_utils_fade_init(XmAudioUtils *self,
 }
 
 int xm_audio_utils_get_decoded_frame(XmAudioUtils *self,
-    short *buffer, int buffer_size_in_short, bool loop) {
+                                     short *buffer, int buffer_size_in_short, bool loop)
+{
     int ret = -1;
     if(NULL == self || NULL == buffer
-        || buffer_size_in_short <= 0) {
+       || buffer_size_in_short <= 0) {
         return ret;
     }
 
@@ -198,7 +206,8 @@ int xm_audio_utils_get_decoded_frame(XmAudioUtils *self,
 }
 
 int xm_audio_utils_decoder_seekTo(XmAudioUtils *self,
-        int seek_time_ms) {
+                                  int seek_time_ms)
+{
     LogInfo("%s seek_time_ms %d\n", __func__, seek_time_ms);
     if(NULL == self) {
         return -1;
@@ -208,8 +217,9 @@ int xm_audio_utils_decoder_seekTo(XmAudioUtils *self,
 }
 
 int xm_audio_utils_decoder_create(XmAudioUtils *self,
-    const char *in_audio_path, int crop_start_time_in_ms, int crop_end_time_in_ms,
-    int out_sample_rate, int out_channels, int volume_fix) {
+                                  const char *in_audio_path, int crop_start_time_in_ms, int crop_end_time_in_ms,
+                                  int out_sample_rate, int out_channels, int volume_fix)
+{
     LogInfo("%s\n", __func__);
     if (NULL == self || NULL == in_audio_path) {
         return -1;
@@ -218,14 +228,14 @@ int xm_audio_utils_decoder_create(XmAudioUtils *self,
     float volume_flp = volume_fix / (float)100;
     IAudioDecoder_freep(&self->decoder);
     self->decoder = audio_decoder_create(in_audio_path, 0, 0,
-        out_sample_rate, out_channels, volume_flp, DECODER_FFMPEG);
+                                         out_sample_rate, out_channels, volume_flp, DECODER_FFMPEG);
     if (self->decoder == NULL) {
         LogError("audio_decoder_create failed\n");
         return -1;
     }
 
     if (IAudioDecoder_set_crop_pos(self->decoder,
-        crop_start_time_in_ms, crop_end_time_in_ms) < 0) {
+                                   crop_start_time_in_ms, crop_end_time_in_ms) < 0) {
         LogError("%s IAudioDecoder_set_crop_pos failed.\n", __func__);
         IAudioDecoder_freep(&self->decoder);
         return -1;
@@ -235,7 +245,8 @@ int xm_audio_utils_decoder_create(XmAudioUtils *self,
 }
 
 int xm_audio_utils_pcm_resampler_resample(
-    XmAudioUtils *self, short *buffer, int buffer_size_in_short) {
+    XmAudioUtils *self, short *buffer, int buffer_size_in_short)
+{
     if (!self || !buffer || !self->pcm_resampler) return -1;
 
     PcmResampler *swr = self->pcm_resampler;
@@ -244,16 +255,16 @@ int xm_audio_utils_pcm_resampler_resample(
     int cur_nb_samples = 0;
     int dst_nb_samples = buffer_size_in_short / swr->dst_nb_channels;
     while (swr->sample_interval * (dst_nb_samples - cur_nb_samples)
-            >= swr->buffer_nb_samples) {
+           >= swr->buffer_nb_samples) {
         int read_len = IAudioDecoder_get_pcm_frame(swr->decoder, swr->buffer,
-            swr->buffer_nb_samples * swr->src_nb_channels, false);
+                       swr->buffer_nb_samples * swr->src_nb_channels, false);
         if (read_len <= 0) {
             break;
         }
 
         for (int i = 0; i < read_len; i += swr->src_nb_channels) {
             if (((swr->cur_samples_pos + (i/swr->src_nb_channels))
-                % swr->sample_interval) == 0) {
+                 % swr->sample_interval) == 0) {
                 if (swr->dst_nb_channels == 1) {
                     if (swr->src_nb_channels == 1) {
                         buffer[cur_nb_samples] = swr->buffer[i];
@@ -280,12 +291,13 @@ int xm_audio_utils_pcm_resampler_resample(
 
 bool xm_audio_utils_pcm_resampler_init(
     XmAudioUtils *self, char *in_audio_path, bool is_pcm, int src_sample_rate,
-    int src_nb_channels, double dst_sample_rate, int dst_nb_channels) {
+    int src_nb_channels, double dst_sample_rate, int dst_nb_channels)
+{
     LogInfo("%s\n", __func__);
     if (!self || !in_audio_path
-            || (is_pcm && src_nb_channels != 1 && src_nb_channels != 2)) return false;
+        || (is_pcm && src_nb_channels != 1 && src_nb_channels != 2)) return false;
     if (dst_sample_rate <= 0
-            || (dst_nb_channels != 1 && dst_nb_channels != 2)) return false;
+        || (dst_nb_channels != 1 && dst_nb_channels != 2)) return false;
 
     pcm_resampler_release(&self->pcm_resampler);
     self->pcm_resampler = (PcmResampler *)calloc(1, sizeof(PcmResampler));
@@ -307,7 +319,7 @@ bool xm_audio_utils_pcm_resampler_init(
     }
 
     swr->decoder = audio_decoder_create(in_audio_path, src_sample_rate,
-        src_nb_channels, out_sample_rate, out_channels, 1.0f, type);
+                                        src_nb_channels, out_sample_rate, out_channels, 1.0f, type);
     if (!swr->decoder) {
         LogError("%s audio_decoder_create failed.\n", __func__);
         goto fail;
@@ -333,7 +345,8 @@ fail:
     return false;
 }
 
-XmAudioUtils *xm_audio_utils_create() {
+XmAudioUtils *xm_audio_utils_create()
+{
     XmAudioUtils *self = (XmAudioUtils *)calloc(1, sizeof(XmAudioUtils));
     if (NULL == self) {
         LogError("%s alloc XmAudioUtils failed.\n", __func__);

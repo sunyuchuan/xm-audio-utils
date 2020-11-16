@@ -6,7 +6,8 @@
 #define DEFAULT_SAMPLE_RATE 44100
 #define DEFAULT_CHANNEL_NUMBER 1
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     AeSetLogLevel(LOG_LEVEL_TRACE);
     AeSetLogMode(LOG_MODE_SCREEN);
 

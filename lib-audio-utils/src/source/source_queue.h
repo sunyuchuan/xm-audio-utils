@@ -6,12 +6,14 @@
 
 static size_t max_alloc_size = INT_MAX;
 
-static void *av_realloc(void *ptr, size_t size) {
+static void *av_realloc(void *ptr, size_t size)
+{
     if (size > (max_alloc_size - 32)) return NULL;
     return realloc(ptr, size + !size);
 }
 
-static char *av_strdup(const char *s) {
+static char *av_strdup(const char *s)
+{
     char *ptr = NULL;
     if (s) {
         size_t len = strlen(s) + 1;

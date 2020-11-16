@@ -15,10 +15,11 @@ struct XmAudioTranscoder {
 
 extern void RegisterFFmpeg();
 
-static int chk_st_l(int state) {
+static int chk_st_l(int state)
+{
     if (state == TRANSCODER_STATE_INITIALIZED ||
-            state == TRANSCODER_STATE_COMPLETED ||
-            state == TRANSCODER_STATE_ERROR) {
+        state == TRANSCODER_STATE_COMPLETED ||
+        state == TRANSCODER_STATE_ERROR) {
         return 0;
     }
 
@@ -28,7 +29,8 @@ static int chk_st_l(int state) {
     return -1;
 }
 
-void xm_audio_transcoder_freep(XmAudioTranscoder *self) {
+void xm_audio_transcoder_freep(XmAudioTranscoder *self)
+{
     LogInfo("%s\n", __func__);
     if (NULL == self)
         return;
@@ -41,7 +43,8 @@ void xm_audio_transcoder_freep(XmAudioTranscoder *self) {
     free(self);
 }
 
-void xm_audio_transcoder_stop(XmAudioTranscoder *self) {
+void xm_audio_transcoder_stop(XmAudioTranscoder *self)
+{
     LogInfo("%s\n", __func__);
     if (NULL == self)
         return;
@@ -51,7 +54,8 @@ void xm_audio_transcoder_stop(XmAudioTranscoder *self) {
     pthread_mutex_unlock(&self->mutex);
 }
 
-int xm_audio_transcoder_get_progress(XmAudioTranscoder *self) {
+int xm_audio_transcoder_get_progress(XmAudioTranscoder *self)
+{
     int ret = -1;
     if (NULL == self)
         return ret;
@@ -63,7 +67,8 @@ int xm_audio_transcoder_get_progress(XmAudioTranscoder *self) {
 }
 
 int xm_audio_transcoder_set_progress_callback(
-    XmAudioTranscoder *self, const char *callback) {
+    XmAudioTranscoder *self, const char *callback)
+{
     if (!self || !callback)
         return -1;
 
@@ -76,7 +81,8 @@ int xm_audio_transcoder_set_progress_callback(
 }
 
 int xm_audio_transcoder_start(XmAudioTranscoder *self,
-    const char *in_audio_path, const char *out_m4a_path) {
+                              const char *in_audio_path, const char *out_m4a_path)
+{
     LogInfo("%s\n", __func__);
     int ret = -1;
     short *buffer = NULL;
@@ -118,7 +124,7 @@ int xm_audio_transcoder_start(XmAudioTranscoder *self,
         sample_rate = stream->codecpar->sample_rate;
         if (stream->duration != AV_NOPTS_VALUE) {
             duration = av_rescale_q(stream->duration,
-                stream->time_base, AV_TIME_BASE_Q) / 1000;
+                                    stream->time_base, AV_TIME_BASE_Q) / 1000;
         } else {
             duration = av_rescale(fmt_ctx->duration, 1000, AV_TIME_BASE);
         }
@@ -136,7 +142,7 @@ int xm_audio_transcoder_start(XmAudioTranscoder *self,
     }
 
     IAudioDecoder *decoder = audio_decoder_create(in_file_addr, 0, 0,
-        sample_rate, channels, 1.0f, DECODER_FFMPEG);
+                             sample_rate, channels, 1.0f, DECODER_FFMPEG);
     if (decoder == NULL) {
         LogError("audio_decoder_create failed\n");
         ret = AEERROR_NOMEM;
@@ -163,13 +169,13 @@ int xm_audio_transcoder_start(XmAudioTranscoder *self,
 
     uint32_t cur_size = 0;
     uint32_t total_size = 2 * sample_rate * channels
-        * ((float)duration / 1000);
+                          * ((float)duration / 1000);
     while (!self->abort) {
         int progress = ((float)cur_size / total_size) * 100;
         if (progress > self->progress) {
             LogInfo("%s progress %d.\n", __func__, progress);
             js_progress_callback(self->js_progress_callback,
-                progress);
+                                 progress);
         }
 
         pthread_mutex_lock(&self->mutex);
@@ -177,7 +183,7 @@ int xm_audio_transcoder_start(XmAudioTranscoder *self,
         pthread_mutex_unlock(&self->mutex);
 
         ret = IAudioDecoder_get_pcm_frame(decoder, buffer,
-            buffer_size_in_short, false);
+                                          buffer_size_in_short, false);
         if (ret < 0) {
             LogInfo("ret < 0, error or EOF, exit\n");
             break;
@@ -217,7 +223,8 @@ end:
     return ret;
 }
 
-XmAudioTranscoder *xm_audio_transcoder_create() {
+XmAudioTranscoder *xm_audio_transcoder_create()
+{
     XmAudioTranscoder *self =
         (XmAudioTranscoder *)calloc(1, sizeof(XmAudioTranscoder));
     if (NULL == self) {

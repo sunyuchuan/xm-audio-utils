@@ -7,7 +7,8 @@
 
 extern void RegisterFFmpeg();
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     AeSetLogLevel(LOG_LEVEL_TRACE);
     AeSetLogMode(LOG_MODE_SCREEN);
 
@@ -34,7 +35,7 @@ int main(int argc, char **argv) {
 
     RegisterFFmpeg();
     decoder = audio_decoder_create(argv[1], 0, 0,
-        44100, 1, 1.0f, DECODER_FFMPEG);
+                                   44100, 1, 1.0f, DECODER_FFMPEG);
     if (decoder == NULL) {
         LogError("audio_decoder_create failed\n");
         goto end;

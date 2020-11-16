@@ -25,7 +25,8 @@ struct CompressorT {
     int sample_rate;
 };
 
-Compressor* CompressorCreate(const int sample_rate) {
+Compressor* CompressorCreate(const int sample_rate)
+{
     Compressor* self = (Compressor*)calloc(1, sizeof(Compressor));
     if (NULL == self) return NULL;
 
@@ -46,7 +47,8 @@ Compressor* CompressorCreate(const int sample_rate) {
     return self;
 }
 
-void CompressorFree(Compressor** inst) {
+void CompressorFree(Compressor** inst)
+{
     if (NULL == inst || NULL == *inst) return;
     Compressor* self = *inst;
 
@@ -61,7 +63,8 @@ void CompressorFree(Compressor** inst) {
 void CompressorSet(Compressor* inst, const float compressor_threshold_in_dB,
                    const float ratio, const float attack_time_in_ms,
                    const float decay_time_in_ms,
-                   const float output_gain_in_dB) {
+                   const float output_gain_in_dB)
+{
     // TODO: 验证为什么rms计算的幅度与原始幅度相差3dB
     inst->compressor_threshold_in_dB = compressor_threshold_in_dB;
     inst->compressor_slopes = 1.0f - 1.0f / ratio;
@@ -74,7 +77,8 @@ void CompressorSet(Compressor* inst, const float compressor_threshold_in_dB,
     inst->average_time = 1.0f - expf(-2.2f * 1000.0f / inst->sample_rate / average_time_in_ms);
 }
 
-int CompressorProcess(Compressor* inst, float* buffer, const int buffer_size) {
+int CompressorProcess(Compressor* inst, float* buffer, const int buffer_size)
+{
     if (NULL == inst || fabs(inst->compressor_slopes - 0.0f) <= 0.001)
         return buffer_size;
     int nb_samples = 0;
@@ -87,8 +91,8 @@ int CompressorProcess(Compressor* inst, float* buffer, const int buffer_size) {
         //                        (inst->compressor_threshold_in_dB - X));
         // printf("xrms = %f X = %f\n", inst->xrms, X);
         float G = FFMIN3(
-            0, inst->compressor_slopes * (inst->compressor_threshold_in_dB - X),
-            inst->expander_slopes * (inst->expander_threshold_in_dB - X));
+                      0, inst->compressor_slopes * (inst->compressor_threshold_in_dB - X),
+                      inst->expander_slopes * (inst->expander_threshold_in_dB - X));
         float f = powf(10.0f, G / 20.0f);
         float coeff = f < inst->gain ? inst->attack_time : inst->decay_time;
         inst->gain = (1.0f - coeff) * inst->gain + coeff * f;
