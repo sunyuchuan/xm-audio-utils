@@ -10,6 +10,8 @@
 
 #define MAX_SAMPLE_SIZE 2048
 
+typedef float sample_type;
+
 typedef struct {
     size_t size;
     sample_type *buffer;

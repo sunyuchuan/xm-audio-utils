@@ -45,6 +45,8 @@
 #define MAX_ECHOS 7 /* 24 bit x ( 1 + MAX_ECHOS ) = */
                     /* 24 bit x 8 = 32 bit !!!      */
 
+typedef float sample_type;
+
 typedef struct {
     fifo *fifo_in;
     fifo *fifo_out;
