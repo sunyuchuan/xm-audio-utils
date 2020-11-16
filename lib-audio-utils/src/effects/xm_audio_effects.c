@@ -6,7 +6,8 @@
 
 #define DEFAULT_CHANNEL_NUMBER 1
 
-static void ae_free(XmEffectContext *ctx) {
+static void ae_free(XmEffectContext *ctx)
+{
     LogInfo("%s\n", __func__);
     if (NULL == ctx)
         return;
@@ -30,7 +31,8 @@ static void ae_free(XmEffectContext *ctx) {
     }
 }
 
-static void flush(XmEffectContext *ctx) {
+static void flush(XmEffectContext *ctx)
+{
     LogInfo("%s start.\n", __func__);
     if (!ctx)
         return;
@@ -45,19 +47,19 @@ static void flush(XmEffectContext *ctx) {
 
             bool is_last_effect = true;
             receive_len = receive_samples(ctx->effects[i],
-                buffer, MAX_NB_SAMPLES);
+                                          buffer, MAX_NB_SAMPLES);
             while (receive_len > 0) {
                 for (short j = i + 1; j < MAX_NB_EFFECTS; ++j) {
                     if (NULL != ctx->effects[j]) {
                         receive_len = send_samples(ctx->effects[j],
-                            buffer, receive_len);
+                                                   buffer, receive_len);
                         if (receive_len < 0) {
                             LogError("%s send_samples to the next effect failed\n",__func__);
                             goto end;
                         }
                         is_last_effect = false;
                         receive_len = receive_samples(ctx->effects[i],
-                            buffer, MAX_NB_SAMPLES);
+                                                      buffer, MAX_NB_SAMPLES);
                         break;
                     }
                 }
@@ -83,7 +85,8 @@ end:
     return;
 }
 
-static int add_effects(XmEffectContext *ctx, short *buffer, int buffer_len) {
+static int add_effects(XmEffectContext *ctx, short *buffer, int buffer_len)
+{
     int ret = -1;
     if (!ctx || !buffer || buffer_len <= 0) return -1;
 
@@ -92,7 +95,7 @@ static int add_effects(XmEffectContext *ctx, short *buffer, int buffer_len) {
         if (NULL != ctx->effects[i]) {
             if(send_samples(ctx->effects[i], buffer, buffer_len) < 0) {
                 LogError("%s send_samples to the first effect failed\n",
-                    __func__);
+                         __func__);
                 ret = -1;
                 return ret;
             }
@@ -110,21 +113,21 @@ static int add_effects(XmEffectContext *ctx, short *buffer, int buffer_len) {
 
         bool is_last_effect = true;
         receive_len = receive_samples(ctx->effects[i],
-            buffer, MAX_NB_SAMPLES);
+                                      buffer, MAX_NB_SAMPLES);
         while (receive_len > 0) {
             for (short j = i + 1; j < MAX_NB_EFFECTS; ++j) {
                 if (NULL != ctx->effects[j]) {
                     receive_len = send_samples(ctx->effects[j],
-                        buffer, receive_len);
+                                               buffer, receive_len);
                     if (receive_len < 0) {
                         LogError("%s send_samples to the next effect failed\n",
-                            __func__);
+                                 __func__);
                         ret = -1;
                         return ret;
                     }
                     is_last_effect = false;
                     receive_len = receive_samples(ctx->effects[i],
-                        buffer, MAX_NB_SAMPLES);
+                                                  buffer, MAX_NB_SAMPLES);
                     break;
                 }
             }
@@ -136,15 +139,17 @@ static int add_effects(XmEffectContext *ctx, short *buffer, int buffer_len) {
     return ret;
 }
 
-static int read_pcm_frame(XmEffectContext *ctx, short *buffer) {
+static int read_pcm_frame(XmEffectContext *ctx, short *buffer)
+{
     if (!ctx || !buffer || !ctx->decoder) return -1;
 
     int read_len = MAX_NB_SAMPLES;
     return IAudioDecoder_get_pcm_frame(ctx->decoder,
-        buffer, read_len, false);
+                                       buffer, read_len, false);
 }
 
-static int add_effects_and_write_fifo(XmEffectContext *ctx) {
+static int add_effects_and_write_fifo(XmEffectContext *ctx)
+{
     int ret = -1, read_len = 0;
     short *buffer = ctx->buffer[RawPcm];
     if (!ctx || !ctx->audio_fifo) return -1;
@@ -181,7 +186,8 @@ static int add_effects_and_write_fifo(XmEffectContext *ctx) {
 }
 
 static int voice_effects_init(XmEffectContext *ctx,
-    char **effects_info, int dst_sample_rate, int dst_channels) {
+                              char **effects_info, int dst_sample_rate, int dst_channels)
+{
     LogInfo("%s\n", __func__);
     if (!ctx || !effects_info)
         return -1;
@@ -197,58 +203,58 @@ static int voice_effects_init(XmEffectContext *ctx,
         if (NULL == effects_info[i]) continue;
 
         switch (i) {
-            case NoiseSuppression:
-                ctx->effects[NoiseSuppression] = create_effect(
-                    find_effect("noise_suppression"), dst_sample_rate,
-                    dst_channels);
-                init_effect(ctx->effects[NoiseSuppression], 0, NULL);
-                set_effect(ctx->effects[NoiseSuppression], "Switch",
-                    effects_info[i], 0);
-                break;
-            case Beautify:
-                ctx->effects[Beautify] = create_effect(
-                    find_effect("beautify"), dst_sample_rate,
-                    dst_channels);
-                init_effect(ctx->effects[Beautify], 0, NULL);
-                set_effect(ctx->effects[Beautify], "mode",
-                    effects_info[i], 0);
-                break;
-            case Reverb:
-                ctx->effects[Reverb] = create_effect(
-                    find_effect("reverb"), dst_sample_rate,
-                    dst_channels);
-                init_effect(ctx->effects[Reverb], 0, NULL);
-                set_effect(ctx->effects[Reverb], "mode",
-                    effects_info[i], 0);
-                break;
-            case VolumeLimiter:
-                ctx->effects[VolumeLimiter] = create_effect(
-                    find_effect("limiter"), dst_sample_rate,
-                    dst_channels);
-                init_effect(ctx->effects[VolumeLimiter], 0, NULL);
-                set_effect(ctx->effects[VolumeLimiter], "Switch",
-                    effects_info[i], 0);
-                break;
-            case Minions:
-                ctx->effects[Minions] = create_effect(
-                    find_effect("minions"), dst_sample_rate,
-                    dst_channels);
-                init_effect(ctx->effects[Minions], 0, NULL);
-                set_effect(ctx->effects[Minions], "Switch",
-                    effects_info[i], 0);
-                break;
-            case VoiceMorph:
-                ctx->effects[VoiceMorph] = create_effect(
-                    find_effect("voice_morph"), dst_sample_rate,
-                    dst_channels);
-                init_effect(ctx->effects[VoiceMorph], 0, NULL);
-                set_effect(ctx->effects[VoiceMorph], "mode",
-                    effects_info[i], 0);
-                break;
-            default:
-                LogWarning("%s unsupported effect %s\n", __func__,
-                    effects_info[i]);
-                break;
+        case NoiseSuppression:
+            ctx->effects[NoiseSuppression] = create_effect(
+                                                 find_effect("noise_suppression"), dst_sample_rate,
+                                                 dst_channels);
+            init_effect(ctx->effects[NoiseSuppression], 0, NULL);
+            set_effect(ctx->effects[NoiseSuppression], "Switch",
+                       effects_info[i], 0);
+            break;
+        case Beautify:
+            ctx->effects[Beautify] = create_effect(
+                                         find_effect("beautify"), dst_sample_rate,
+                                         dst_channels);
+            init_effect(ctx->effects[Beautify], 0, NULL);
+            set_effect(ctx->effects[Beautify], "mode",
+                       effects_info[i], 0);
+            break;
+        case Reverb:
+            ctx->effects[Reverb] = create_effect(
+                                       find_effect("reverb"), dst_sample_rate,
+                                       dst_channels);
+            init_effect(ctx->effects[Reverb], 0, NULL);
+            set_effect(ctx->effects[Reverb], "mode",
+                       effects_info[i], 0);
+            break;
+        case VolumeLimiter:
+            ctx->effects[VolumeLimiter] = create_effect(
+                                              find_effect("limiter"), dst_sample_rate,
+                                              dst_channels);
+            init_effect(ctx->effects[VolumeLimiter], 0, NULL);
+            set_effect(ctx->effects[VolumeLimiter], "Switch",
+                       effects_info[i], 0);
+            break;
+        case Minions:
+            ctx->effects[Minions] = create_effect(
+                                        find_effect("minions"), dst_sample_rate,
+                                        dst_channels);
+            init_effect(ctx->effects[Minions], 0, NULL);
+            set_effect(ctx->effects[Minions], "Switch",
+                       effects_info[i], 0);
+            break;
+        case VoiceMorph:
+            ctx->effects[VoiceMorph] = create_effect(
+                                           find_effect("voice_morph"), dst_sample_rate,
+                                           dst_channels);
+            init_effect(ctx->effects[VoiceMorph], 0, NULL);
+            set_effect(ctx->effects[VoiceMorph], "mode",
+                       effects_info[i], 0);
+            break;
+        default:
+            LogWarning("%s unsupported effect %s\n", __func__,
+                       effects_info[i]);
+            break;
         }
     }
 
@@ -265,7 +271,7 @@ static int init(XmEffectContext *ctx, char **effects_info)
     IAudioDecoder *decoder = ctx->decoder;
 
     if ((ret = voice_effects_init(ctx, effects_info,
-        decoder->out_sample_rate, DEFAULT_CHANNEL_NUMBER)) < 0) {
+                                  decoder->out_sample_rate, DEFAULT_CHANNEL_NUMBER)) < 0) {
         LogError("%s voice_effects_init failed.\n", __func__);
         goto fail;
     }
@@ -292,7 +298,8 @@ fail:
     return ret;
 }
 
-void audio_effect_freep(XmEffectContext **ctx) {
+void audio_effect_freep(XmEffectContext **ctx)
+{
     LogInfo("%s\n", __func__);
     if (NULL == ctx || NULL == *ctx)
         return;
@@ -303,7 +310,8 @@ void audio_effect_freep(XmEffectContext **ctx) {
 }
 
 int audio_effect_get_frame(XmEffectContext *ctx,
-    short *buffer, int buffer_size_in_short) {
+                           short *buffer, int buffer_size_in_short)
+{
     int ret = -1;
     if (!ctx || !buffer || buffer_size_in_short <= 0)
         return ret;
@@ -326,7 +334,8 @@ end:
 }
 
 int audio_effect_init(XmEffectContext *ctx,
-    IAudioDecoder *decoder, char **effects_info, int dst_channels) {
+                      IAudioDecoder *decoder, char **effects_info, int dst_channels)
+{
     if (!ctx || !decoder || !effects_info)
         return -1;
 
@@ -335,7 +344,8 @@ int audio_effect_init(XmEffectContext *ctx,
     return init(ctx, effects_info);
 }
 
-XmEffectContext *audio_effect_create() {
+XmEffectContext *audio_effect_create()
+{
     XmEffectContext *self =
         (XmEffectContext *)calloc(1, sizeof(XmEffectContext));
     if (NULL == self) {

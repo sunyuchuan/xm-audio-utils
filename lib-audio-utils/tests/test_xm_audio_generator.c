@@ -9,7 +9,8 @@
 
 static volatile bool abort_request = false;
 
-void *get_progress(void *arg) {
+void *get_progress(void *arg)
+{
     int progress = 0;
     XmAudioGenerator *ctx = arg;
     while (!abort_request) {
@@ -20,7 +21,8 @@ void *get_progress(void *arg) {
     return NULL;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     struct timeval start;
     struct timeval end;
     unsigned long timer;
@@ -46,10 +48,10 @@ int main(int argc, char **argv) {
     }
 
     enum GeneratorStatus ret = xm_audio_generator_start(
-        generator, argv[1], argv[2]);
+                                   generator, argv[1], argv[2]);
     if (ret == GS_ERROR) {
-	LogError("%s xm_audio_generator_start failed\n", __func__);
-	goto end;
+        LogError("%s xm_audio_generator_start failed\n", __func__);
+        goto end;
     }
 
 end:

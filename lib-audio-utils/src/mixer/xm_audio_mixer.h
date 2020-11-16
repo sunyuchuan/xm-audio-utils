@@ -40,7 +40,7 @@ int xm_audio_mixer_get_progress(XmMixerContext *ctx);
         Less than or equal to 0 means failure or end
  */
 int xm_audio_mixer_get_frame(XmMixerContext *ctx,
-    short *buffer, int buffer_size_in_short);
+                             short *buffer, int buffer_size_in_short);
 
 /**
  * @brief mixer seekTo
@@ -50,7 +50,7 @@ int xm_audio_mixer_get_frame(XmMixerContext *ctx,
  * @return Less than 0 means failure
  */
 int xm_audio_mixer_seekTo(XmMixerContext *ctx,
-    int seek_time_ms);
+                          int seek_time_ms);
 
 /**
  * @brief mix bgm\music and output m4a
@@ -61,7 +61,7 @@ int xm_audio_mixer_seekTo(XmMixerContext *ctx,
  * @return Less than 0 means failure
  */
 int xm_audio_mixer_mix(XmMixerContext *ctx,
-    const char *out_file_path, int encoder_type);
+                       const char *out_file_path, int encoder_type);
 
 /**
  * @brief mixer init
@@ -71,7 +71,7 @@ int xm_audio_mixer_mix(XmMixerContext *ctx,
  * @return Less than 0 means failure
  */
 int xm_audio_mixer_init(XmMixerContext *ctx,
-    const char *in_config_path);
+                        const char *in_config_path);
 
 /**
  * @brief create XmMixerContext

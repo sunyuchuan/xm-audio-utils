@@ -15,8 +15,8 @@ typedef struct FadeInOut {
 } FadeInOut;
 
 void check_fade_in_out(FadeInOut *fade_io,
-        int buffer_start_time, int buffer_duration, int sample_rate,
-        int bgm_start_time_ms, int bgm_end_time_ms);
+                       int buffer_start_time, int buffer_duration, int sample_rate,
+                       int bgm_start_time_ms, int bgm_end_time_ms);
 void scale_with_ramp(FadeInOut *fade_io, short *data,
-        int nb_samples, int nb_channels);
+                     int nb_samples, int nb_channels);
 #endif

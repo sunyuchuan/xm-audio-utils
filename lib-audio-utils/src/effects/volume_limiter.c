@@ -29,7 +29,8 @@ typedef struct {
     bool effect_on;
 } priv_t;
 
-static void init_parameter(priv_t *priv) {
+static void init_parameter(priv_t *priv)
+{
     assert(NULL != priv);
     priv->limiter_threshold_in_dB = -0.5f;
     priv->output_gain_in_dB = 0.0f;
@@ -37,7 +38,8 @@ static void init_parameter(priv_t *priv) {
     priv->decay_time_in_ms = 0.0f;
 }
 
-static int limiter_close(EffectContext *ctx) {
+static int limiter_close(EffectContext *ctx)
+{
     LogInfo("%s.\n", __func__);
     assert(NULL != ctx);
 
@@ -51,7 +53,8 @@ static int limiter_close(EffectContext *ctx) {
     return 0;
 }
 
-static int limiter_init(EffectContext *ctx, int argc, const char **argv) {
+static int limiter_init(EffectContext *ctx, int argc, const char **argv)
+{
     LogInfo("%s.\n", __func__);
     for (int i = 0; i < argc; ++i) {
         LogInfo("argv[%d] = %s\n", i, argv[i]);
@@ -92,7 +95,8 @@ end:
 }
 
 static int limiter_set(EffectContext *ctx, const char *key,
-                                 int flags) {
+                       int flags)
+{
     assert(NULL != ctx);
 
     priv_t *priv = ctx->priv;
@@ -120,13 +124,14 @@ static int limiter_set(EffectContext *ctx, const char *key,
     }
 
     LimiterSet(priv->limiter, priv->limiter_threshold_in_dB,
-            priv->attack_time_in_ms, priv->decay_time_in_ms, priv->output_gain_in_dB);
+               priv->attack_time_in_ms, priv->decay_time_in_ms, priv->output_gain_in_dB);
 
     return 0;
 }
 
 static int limiter_send(EffectContext *ctx, const void *samples,
-                                  const size_t nb_samples) {
+                        const size_t nb_samples)
+{
     assert(NULL != ctx);
     priv_t *priv = (priv_t *)ctx->priv;
     assert(NULL != priv);
@@ -137,7 +142,8 @@ static int limiter_send(EffectContext *ctx, const void *samples,
 }
 
 static int limiter_receive(EffectContext *ctx, void *samples,
-                                     const size_t max_nb_samples) {
+                           const size_t max_nb_samples)
+{
     assert(NULL != ctx);
     priv_t *priv = (priv_t *)ctx->priv;
     assert(NULL != priv);
@@ -168,7 +174,8 @@ static int limiter_receive(EffectContext *ctx, void *samples,
     return fifo_read(priv->fifo_out, samples, max_nb_samples);
 }
 
-const EffectHandler *effect_limiter_fn(void) {
+const EffectHandler *effect_limiter_fn(void)
+{
     static EffectHandler handler = {.name = "limiter",
                                     .usage = "",
                                     .priv_size = sizeof(priv_t),
@@ -176,7 +183,8 @@ const EffectHandler *effect_limiter_fn(void) {
                                     .set = limiter_set,
                                     .send = limiter_send,
                                     .receive = limiter_receive,
-                                    .close = limiter_close};
+                                    .close = limiter_close
+                                   };
     return &handler;
 }
 

@@ -6,11 +6,13 @@
 #include "log.h"
 
 static inline int calculation_duration_ms(int64_t size,
-    float bytes_per_sample, int nb_channles, int sample_rate) {
+        float bytes_per_sample, int nb_channles, int sample_rate)
+{
     return 1000 * (size / bytes_per_sample / nb_channles / sample_rate);
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     AeSetLogLevel(LOG_LEVEL_TRACE);
     AeSetLogMode(LOG_MODE_SCREEN);
 
@@ -57,19 +59,19 @@ int main(int argc, char **argv) {
 
     int64_t cur_size = 0;
     while (1) {
-	ret = xm_audio_utils_mixer_get_frame(utils, buffer, buffer_size_in_short);
-	if (ret <= 0) break;
-	fwrite(buffer, sizeof(short), ret, pcm_writer);
-	cur_size += ret;
-	if (calculation_duration_ms(cur_size*sizeof(short), 16/8,
-	    2, atoi(argv[2])) > 33000)
-	    break;
+        ret = xm_audio_utils_mixer_get_frame(utils, buffer, buffer_size_in_short);
+        if (ret <= 0) break;
+        fwrite(buffer, sizeof(short), ret, pcm_writer);
+        cur_size += ret;
+        if (calculation_duration_ms(cur_size*sizeof(short), 16/8,
+                                    2, atoi(argv[2])) > 33000)
+            break;
     }
 
     ret = xm_audio_utils_mixer_seekTo(utils, 150226);
     if (ret < 0) {
-	LogError("xm_audio_utils_mixer_seekTo failed\n");
-	goto end;
+        LogError("xm_audio_utils_mixer_seekTo failed\n");
+        goto end;
     }
 
     while (1) {

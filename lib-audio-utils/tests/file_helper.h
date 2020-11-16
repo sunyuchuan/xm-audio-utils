@@ -7,7 +7,8 @@
 
 #include <stdio.h>
 
-static int OpenFile(FILE **fp, const char *file_name, const int is_write) {
+static int OpenFile(FILE **fp, const char *file_name, const int is_write)
+{
     int ret = 0;
     if (*fp) {
         fclose(*fp);

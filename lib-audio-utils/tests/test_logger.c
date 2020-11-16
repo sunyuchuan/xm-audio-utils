@@ -7,7 +7,8 @@
 
 static const int times = 100;
 
-static void *DebugLogThread(__attribute__((unused)) void *arg) {
+static void *DebugLogThread(__attribute__((unused)) void *arg)
+{
     for (int i = 0; i < times; ++i) {
         LogDebug("Debug\n");
         usleep(1000);
@@ -15,7 +16,8 @@ static void *DebugLogThread(__attribute__((unused)) void *arg) {
     return NULL;
 }
 
-static void *InfoLogThread(__attribute__((unused)) void *arg) {
+static void *InfoLogThread(__attribute__((unused)) void *arg)
+{
     for (int i = 0; i < times; ++i) {
         LogInfo("Info\n");
         usleep(1000);
@@ -23,7 +25,8 @@ static void *InfoLogThread(__attribute__((unused)) void *arg) {
     return NULL;
 }
 
-static void *WaringLogThread(__attribute__((unused)) void *arg) {
+static void *WaringLogThread(__attribute__((unused)) void *arg)
+{
     for (int i = 0; i < times; ++i) {
         LogWarning("Waring\n");
         usleep(1000);
@@ -31,7 +34,8 @@ static void *WaringLogThread(__attribute__((unused)) void *arg) {
     return NULL;
 }
 
-static void *ErrorLogThread(__attribute__((unused)) void *arg) {
+static void *ErrorLogThread(__attribute__((unused)) void *arg)
+{
     for (int i = 0; i < times; ++i) {
         LogError("Error\n");
         usleep(1000);
@@ -39,7 +43,8 @@ static void *ErrorLogThread(__attribute__((unused)) void *arg) {
     return NULL;
 }
 
-int main() {
+int main()
+{
     int ret = 0;
     pthread_t debug_log_tid = 0;
     pthread_t info_log_tid = 0;

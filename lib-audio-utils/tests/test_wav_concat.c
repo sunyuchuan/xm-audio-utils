@@ -3,7 +3,8 @@
 #include "log.h"
 #include "xm_wav_utils.h"
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     struct timeval start;
     struct timeval end;
     unsigned long timer;
@@ -17,8 +18,7 @@ int main(int argc, char **argv) {
     }
 
     char * const input_path[4] = {argv[1], argv[1], argv[1], argv[1]};
-    if(!xm_wav_utils_concat(input_path, 4, argv[2]))
-    {
+    if(!xm_wav_utils_concat(input_path, 4, argv[2])) {
         LogError("%s xm_wav_utils_concat failed\n", __func__);
         goto end;
     }

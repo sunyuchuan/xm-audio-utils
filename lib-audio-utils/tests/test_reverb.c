@@ -5,7 +5,8 @@
 #include <stdlib.h>
 #include "tools/conversion.h"
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
     AeSetLogLevel(LOG_LEVEL_TRACE);
     AeSetLogMode(LOG_MODE_SCREEN);
 
@@ -33,7 +34,7 @@ int main(int argc, char **argv) {
     if (ret < 0) goto end;
 
     ctx = create_effect(find_effect("reverb"), atoi(argv[2]),
-        atoi(argv[3]));
+                        atoi(argv[3]));
     ret = init_effect(ctx, 0, NULL);
     if (ret < 0) goto end;
 
@@ -44,7 +45,7 @@ int main(int argc, char **argv) {
     if (ret < 0) goto end;
 
     while (buffer_size ==
-            fread(fix_buffer, sizeof(short), buffer_size, pcm_reader)) {
+           fread(fix_buffer, sizeof(short), buffer_size, pcm_reader)) {
         // send data
         ret = send_samples(ctx, fix_buffer, buffer_size);
         if (ret < 0) break;

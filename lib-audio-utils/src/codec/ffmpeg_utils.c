@@ -25,8 +25,8 @@ inline static int LogLevelXmToAv(int xm_level)
     if      (xm_level >= LOG_LEVEL_QUIET)   av_level = AV_LOG_QUIET;
     else if (xm_level >= LOG_LEVEL_FATAL)    av_level = AV_LOG_FATAL;
     else if (xm_level >= LOG_LEVEL_ERROR)    av_level = AV_LOG_ERROR;
-    else if (xm_level >= LOG_LEVEL_WARNING)	   av_level = AV_LOG_WARNING;
-    else if (xm_level >= LOG_LEVEL_INFO)	   av_level = AV_LOG_INFO;
+    else if (xm_level >= LOG_LEVEL_WARNING)    av_level = AV_LOG_WARNING;
+    else if (xm_level >= LOG_LEVEL_INFO)       av_level = AV_LOG_INFO;
     else if (xm_level >= LOG_LEVEL_DEBUG)    av_level = AV_LOG_DEBUG;
     else if (xm_level >= LOG_LEVEL_VERBOSE)  av_level = AV_LOG_VERBOSE;
     else if (xm_level >= LOG_LEVEL_TRACE)  av_level = AV_LOG_TRACE;
@@ -50,7 +50,8 @@ void SetFFmpegLogLevel(int log_level)
     av_log_set_callback(LogCallbackBrief);
 }
 
-void RegisterFFmpeg() {
+void RegisterFFmpeg()
+{
     static bool init = false;
     if (!init) {
         init = true;
@@ -59,7 +60,8 @@ void RegisterFFmpeg() {
     }
 }
 
-int CopyString(const char* src, char** dst) {
+int CopyString(const char* src, char** dst)
+{
     if (NULL != *dst) {
         if (strcmp(src, *dst) == 0) return 0;
         av_freep(dst);
@@ -73,14 +75,16 @@ int CopyString(const char* src, char** dst) {
     return 0;
 }
 
-void InitPacket(AVPacket* packet) {
+void InitPacket(AVPacket* packet)
+{
     av_init_packet(packet);
     packet->data = NULL;
     packet->size = 0;
 }
 
 int CheckSampleRateAndChannels(const int sample_rate_in_Hz,
-                               const int nb_channels) {
+                               const int nb_channels)
+{
     if (sample_rate_in_Hz != 8000 && sample_rate_in_Hz != 16000 &&
         sample_rate_in_Hz != 11025 && sample_rate_in_Hz != 22050 &&
         sample_rate_in_Hz != 32000 && sample_rate_in_Hz != 44100 &&
@@ -92,13 +96,14 @@ int CheckSampleRateAndChannels(const int sample_rate_in_Hz,
     }
     if (1 != nb_channels && 2 != nb_channels) {
         LogError("Number of channels(%d) Error, only support Mono and Stereo!\n",
-                nb_channels);
+                 nb_channels);
         return kChannelsNotSupport;
     }
     return 0;
 }
 
-int OpenInputMediaFile(AVFormatContext** fmt_ctx, const char* filename) {
+int OpenInputMediaFile(AVFormatContext** fmt_ctx, const char* filename)
+{
     int ret = 0;
 
     if (*fmt_ctx) avformat_close_input(fmt_ctx);
@@ -107,7 +112,7 @@ int OpenInputMediaFile(AVFormatContext** fmt_ctx, const char* filename) {
     ret = avformat_open_input(fmt_ctx, filename, NULL, NULL);
     if (ret < 0) {
         LogError("Could not open input file '%s', error(%s), error code(%d)\n",
-                filename, av_err2str(ret), ret);
+                 filename, av_err2str(ret), ret);
         goto end;
     }
 
@@ -115,7 +120,7 @@ int OpenInputMediaFile(AVFormatContext** fmt_ctx, const char* filename) {
     ret = avformat_find_stream_info(*fmt_ctx, NULL);
     if (ret < 0) {
         LogError("Could not open find stream info, error(%s), error code(%d)\n",
-                av_err2str(ret), ret);
+                 av_err2str(ret), ret);
         goto end;
     }
 
@@ -126,9 +131,11 @@ end:
 }
 
 #if defined(__ANDROID__) || defined (__linux__)
-int FindFirstStream(AVFormatContext* fmt_ctx, enum AVMediaType type) {
+int FindFirstStream(AVFormatContext* fmt_ctx, enum AVMediaType type)
+{
 #else
-int FindFirstStream(AVFormatContext* fmt_ctx, int type) {
+int FindFirstStream(AVFormatContext* fmt_ctx, int type)
+{
 #endif
     int stream_index = -1;
 
@@ -148,22 +155,25 @@ int FindFirstStream(AVFormatContext* fmt_ctx, int type) {
 }
 
 #if defined(__ANDROID__) || defined (__linux__)
-int FindBestStream(AVFormatContext* fmt_ctx, enum AVMediaType type) {
+int FindBestStream(AVFormatContext* fmt_ctx, enum AVMediaType type)
+{
 #else
-int FindBestStream(AVFormatContext* fmt_ctx, int type) {
+int FindBestStream(AVFormatContext* fmt_ctx, int type)
+{
 #endif
     int stream_index = -1;
 
     stream_index = av_find_best_stream(fmt_ctx, type, -1, -1, NULL, 0);
     if (stream_index < 0) {
         LogError("Could not find %s stream in input file\n",
-                av_get_media_type_string(type));
+                 av_get_media_type_string(type));
     }
 
     return stream_index;
 }
 
-int AllocDecodeFrame(AVFrame** decode_frame) {
+int AllocDecodeFrame(AVFrame** decode_frame)
+{
     if (*decode_frame) av_frame_free(decode_frame);
 
     *decode_frame = av_frame_alloc();
@@ -174,7 +184,8 @@ int AllocDecodeFrame(AVFrame** decode_frame) {
     return 0;
 }
 
-double GetStreamStartTime(AVFormatContext* fmt_ctx, const unsigned int stream_index) {
+double GetStreamStartTime(AVFormatContext* fmt_ctx, const unsigned int stream_index)
+{
     double result = 0.0;
     if (stream_index > fmt_ctx->nb_streams) return result;
     if (fmt_ctx->streams[stream_index]->start_time != AV_NOPTS_VALUE)
@@ -185,7 +196,8 @@ double GetStreamStartTime(AVFormatContext* fmt_ctx, const unsigned int stream_in
 }
 
 int FindAndOpenDecoder(const AVFormatContext* fmt_ctx, AVCodecContext** dec_ctx,
-                       const int stream_index) {
+                       const int stream_index)
+{
     int ret = 0;
     AVCodecContext* avctx = NULL;
     AVCodec* input_codec = NULL;
@@ -193,7 +205,7 @@ int FindAndOpenDecoder(const AVFormatContext* fmt_ctx, AVCodecContext** dec_ctx,
     if (*dec_ctx) avcodec_free_context(dec_ctx);
     // Find a decoder for the stream.
     input_codec = avcodec_find_decoder(
-        fmt_ctx->streams[stream_index]->codecpar->codec_id);
+                      fmt_ctx->streams[stream_index]->codecpar->codec_id);
     if (NULL == input_codec) {
         LogError("Could not find input codec\n");
         ret = AVERROR_DECODER_NOT_FOUND;
@@ -213,14 +225,14 @@ int FindAndOpenDecoder(const AVFormatContext* fmt_ctx, AVCodecContext** dec_ctx,
     // Initialize the stream parameters with demuxer information
     av_codec_set_pkt_timebase(avctx, fmt_ctx->streams[stream_index]->time_base);
     ret = avcodec_parameters_to_context(
-        avctx, fmt_ctx->streams[stream_index]->codecpar);
+              avctx, fmt_ctx->streams[stream_index]->codecpar);
     if (ret < 0) goto end;
 
     // Open the decoder for the stream to use it later.
     ret = avcodec_open2(avctx, input_codec, NULL);
     if (ret < 0) {
         LogError("Could not open input codec(%s), error code(%d)\n",
-                av_err2str(ret), ret);
+                 av_err2str(ret), ret);
         goto end;
     }
 
@@ -233,31 +245,32 @@ end:
 }
 
 void InitAdtsHeader(uint8_t* adts_header, const int sample_rate_in_Hz,
-                    const int nb_channels) {
+                    const int nb_channels)
+{
     int profile = 2;    // AAC LC
     int freqIdx = 0x4;  // 44.1KHz
     switch (sample_rate_in_Hz) {
-        case 96000:
-            freqIdx = 0x0;
-            break;
-        case 88200:
-            freqIdx = 0x1;
-            break;
-        case 64000:
-            freqIdx = 0x2;
-            break;
-        case 48000:
-            freqIdx = 0x3;
-            break;
-        case 44100:
-            freqIdx = 0x4;
-            break;
-        case 32000:
-            freqIdx = 0x5;
-            break;
-        default:
-            freqIdx = 0x4;
-            break;
+    case 96000:
+        freqIdx = 0x0;
+        break;
+    case 88200:
+        freqIdx = 0x1;
+        break;
+    case 64000:
+        freqIdx = 0x2;
+        break;
+    case 48000:
+        freqIdx = 0x3;
+        break;
+    case 44100:
+        freqIdx = 0x4;
+        break;
+    case 32000:
+        freqIdx = 0x5;
+        break;
+    default:
+        freqIdx = 0x4;
+        break;
     }
     adts_header[0] = 0xFF;
     adts_header[1] = 0xF9;
@@ -266,7 +279,8 @@ void InitAdtsHeader(uint8_t* adts_header, const int sample_rate_in_Hz,
 }
 
 void ResetAdtsHeader(uint8_t* adts_header, const int nb_channels,
-                     const int packet_size) {
+                     const int packet_size)
+{
     // adts_header[0] = 0xFF;
     // adts_header[1] = 0xF9;
     // adts_header[2] = ((profile - 1) << 6) + (freqIdx << 2) +
@@ -277,11 +291,11 @@ void ResetAdtsHeader(uint8_t* adts_header, const int nb_channels,
     // adts_header[6] = 0xFC;
 }
 
-int AddAudioStream(AVFormatContext *ofmt_ctx, AVCodecContext *enc_ctx) {
+int AddAudioStream(AVFormatContext *ofmt_ctx, AVCodecContext *enc_ctx)
+{
     int ret = -1;
     AVStream *out_stream = NULL;
-    if(!(out_stream = avformat_new_stream(ofmt_ctx, enc_ctx->codec)))
-    {
+    if(!(out_stream = avformat_new_stream(ofmt_ctx, enc_ctx->codec))) {
         LogError("avformat_new_stream failed.\n");
         ret = AVERROR_UNKNOWN;
         goto end;
@@ -289,8 +303,7 @@ int AddAudioStream(AVFormatContext *ofmt_ctx, AVCodecContext *enc_ctx) {
     out_stream->id = ofmt_ctx->nb_streams - 1;
     out_stream->time_base = enc_ctx->time_base;
 
-    if((ret = avcodec_parameters_from_context(out_stream->codecpar, enc_ctx)) < 0)
-    {
+    if((ret = avcodec_parameters_from_context(out_stream->codecpar, enc_ctx)) < 0) {
         LogError("Could not initialize out_stream parameters.\n");
         goto end;
     }
@@ -307,7 +320,8 @@ end:
 int FindAndOpenAudioEncoder(AVCodecContext** enc_ctx,
                             const enum AVCodecID codec_id, const int bit_rate,
                             const int nb_channels,
-                            const int sample_rate_in_Hz) {
+                            const int sample_rate_in_Hz)
+{
     int ret = 0;
     AVCodec* codec = NULL;
 
@@ -317,7 +331,7 @@ int FindAndOpenAudioEncoder(AVCodecContext** enc_ctx,
     codec = avcodec_find_encoder(codec_id);
     if (NULL == codec) {
         LogError("Could not find encoder for '%s', error(%s) error code = %d\n",
-                avcodec_get_name(codec_id), av_err2str(ret), ret);
+                 avcodec_get_name(codec_id), av_err2str(ret), ret);
         goto end;
     }
 
@@ -350,12 +364,14 @@ int FindAndOpenAudioEncoder(AVCodecContext** enc_ctx,
         (*enc_ctx)->sample_rate = sample_rate_in_Hz;
     }
     (*enc_ctx)->strict_std_compliance = FF_COMPLIANCE_EXPERIMENTAL;
-    (*enc_ctx)->time_base = (AVRational){1, (*enc_ctx)->sample_rate};
+    (*enc_ctx)->time_base = (AVRational) {
+        1, (*enc_ctx)->sample_rate
+    };
 
     ret = avcodec_open2(*enc_ctx, codec, NULL);
     if (ret < 0) {
         LogError("Could not open output codec(%s), error code(%d)\n",
-                av_err2str(ret), ret);
+                 av_err2str(ret), ret);
         goto end;
     }
     if (codec->capabilities & AV_CODEC_CAP_VARIABLE_FRAME_SIZE) {
@@ -370,7 +386,8 @@ end:
 int FindAndOpenH264Encoder(AVCodecContext** enc_ctx, const int bit_rate,
                            const int frame_rate, const int gop_size,
                            const int width, const int height,
-                           const enum AVPixelFormat pix_fmt) {
+                           const enum AVPixelFormat pix_fmt)
+{
     int ret = 0;
     AVCodec* codec = NULL;
 
@@ -380,7 +397,7 @@ int FindAndOpenH264Encoder(AVCodecContext** enc_ctx, const int bit_rate,
     codec = avcodec_find_encoder(AV_CODEC_ID_H264);
     if (NULL == codec) {
         LogError("Could not find encoder for '%s', error(%s) error code = %d\n",
-                avcodec_get_name(AV_CODEC_ID_H264), av_err2str(ret), ret);
+                 avcodec_get_name(AV_CODEC_ID_H264), av_err2str(ret), ret);
         goto end;
     }
 
@@ -397,7 +414,9 @@ int FindAndOpenH264Encoder(AVCodecContext** enc_ctx, const int bit_rate,
     (*enc_ctx)->width = width;
     (*enc_ctx)->height = height;
     /* Be careful, time_base of stream will auto change */
-    (*enc_ctx)->time_base = (AVRational){1, frame_rate};
+    (*enc_ctx)->time_base = (AVRational) {
+        1, frame_rate
+    };
     (*enc_ctx)->gop_size = gop_size;
     (*enc_ctx)->pix_fmt = pix_fmt;  // AV_PIX_FMT_YUV420P;  AV_PIX_FMT_NV12;
     av_opt_set((*enc_ctx)->priv_data, "preset", "slow", 0);
@@ -405,7 +424,7 @@ int FindAndOpenH264Encoder(AVCodecContext** enc_ctx, const int bit_rate,
     ret = avcodec_open2(*enc_ctx, codec, NULL);
     if (ret < 0) {
         LogError("Could not open output codec(%s), error code(%d)\n",
-                av_err2str(ret), ret);
+                 av_err2str(ret), ret);
         goto end;
     }
 
@@ -414,7 +433,8 @@ end:
     return ret;
 }
 
-int AddStreamToFormat(AVFormatContext* fmt_ctx, AVCodecContext* enc_ctx) {
+int AddStreamToFormat(AVFormatContext* fmt_ctx, AVCodecContext* enc_ctx)
+{
     int ret = 0;
     AVStream* stream = NULL;
 
@@ -442,7 +462,8 @@ end:
     return ret < 0 ? ret : stream->id;
 }
 
-int WriteFileHeader(AVFormatContext* ofmt_ctx, const char* filename) {
+int WriteFileHeader(AVFormatContext* ofmt_ctx, const char* filename)
+{
     int ret = 0;
     if (!(ofmt_ctx->oformat->flags & AVFMT_NOFILE)) {
         ret = avio_open(&ofmt_ctx->pb, filename, AVIO_FLAG_WRITE);
@@ -460,7 +481,8 @@ end:
     return ret;
 }
 
-void WriteFileTrailer(AVFormatContext* ofmt_ctx) {
+void WriteFileTrailer(AVFormatContext* ofmt_ctx)
+{
     if (ofmt_ctx) {
         int ret = av_write_trailer(ofmt_ctx);
         if (ret < 0)
@@ -472,7 +494,8 @@ int InitResampler(const int src_channels, const int dst_channels,
                   const int src_sample_rate, const int dst_sample_rate,
                   const enum AVSampleFormat src_sample_fmt,
                   const enum AVSampleFormat dst_sample_fmt,
-                  SwrContext** swr_ctx) {
+                  SwrContext** swr_ctx)
+{
     int ret = 0;
 
     if (*swr_ctx) swr_free(swr_ctx);
@@ -480,9 +503,9 @@ int InitResampler(const int src_channels, const int dst_channels,
     if (src_channels != dst_channels || src_sample_rate != dst_sample_rate ||
         src_sample_fmt != dst_sample_fmt) {
         *swr_ctx = swr_alloc_set_opts(
-            NULL, av_get_default_channel_layout(dst_channels), dst_sample_fmt,
-            dst_sample_rate, av_get_default_channel_layout(src_channels),
-            src_sample_fmt, src_sample_rate, 0, NULL);
+                       NULL, av_get_default_channel_layout(dst_channels), dst_sample_fmt,
+                       dst_sample_rate, av_get_default_channel_layout(src_channels),
+                       src_sample_fmt, src_sample_rate, 0, NULL);
         if (NULL == *swr_ctx) {
             LogError("Could not allocate resample context\n");
             ret = AVERROR(ENOMEM);
@@ -491,7 +514,7 @@ int InitResampler(const int src_channels, const int dst_channels,
         ret = swr_init(*swr_ctx);
         if (ret < 0) {
             LogError("swr_init error(%s) error code = %d\n", av_err2str(ret),
-                    ret);
+                     ret);
             goto end;
         }
     }
@@ -503,7 +526,8 @@ end:
 
 int AllocEncodeAudioFrame(AVFrame** audio_frame, const int nb_channels,
                           const int sample_rate_in_Hz, const int nb_samples,
-                          const enum AVSampleFormat sample_fmt) {
+                          const enum AVSampleFormat sample_fmt)
+{
     int ret = 0;
 
     if (*audio_frame) av_frame_free(audio_frame);
@@ -522,7 +546,7 @@ int AllocEncodeAudioFrame(AVFrame** audio_frame, const int nb_channels,
     ret = av_frame_get_buffer(*audio_frame, 0);
     if (ret < 0) {
         LogError("Could not allocate output frame samples(%s) error code = %d\n",
-                av_err2str(ret), ret);
+                 av_err2str(ret), ret);
         goto end;
     }
 
@@ -532,7 +556,8 @@ end:
 }
 
 int AllocEncodeVideoFrame(AVFrame** video_frame, const int width,
-                          const int height, const enum AVPixelFormat pix_fmt) {
+                          const int height, const enum AVPixelFormat pix_fmt)
+{
     int ret = 0;
 
     if (*video_frame) av_frame_free(video_frame);
@@ -550,14 +575,14 @@ int AllocEncodeVideoFrame(AVFrame** video_frame, const int width,
     ret = av_frame_get_buffer(*video_frame, 1);
     if (ret < 0) {
         LogError("Could not allocate output video frame(%s) error code = %d\n",
-                av_err2str(ret), ret);
+                 av_err2str(ret), ret);
         goto end;
     }
     /* make sure the frame data is writable */
     ret = av_frame_make_writable(*video_frame);
     if (ret < 0) {
         LogError("av_frame_make_writable error (%s) error code = %d\n",
-                av_err2str(ret), ret);
+                 av_err2str(ret), ret);
         goto end;
     }
 
@@ -568,16 +593,17 @@ end:
 
 int AllocateSampleBuffer(uint8_t*** buffer, const int nb_channels,
                          const int nb_samples,
-                         const enum AVSampleFormat sample_fmt) {
+                         const enum AVSampleFormat sample_fmt)
+{
     if (*buffer) {
         av_freep(&((*buffer)[0]));
         av_freep(buffer);
     }
     int ret = av_samples_alloc_array_and_samples(buffer, NULL, nb_channels,
-                                                 nb_samples, sample_fmt, 0);
+              nb_samples, sample_fmt, 0);
     if (ret < 0) {
         LogError("Could not allocate source samples(%s) error code = %d\n",
-                av_err2str(ret), ret);
+                 av_err2str(ret), ret);
         goto end;
     }
 end:
@@ -585,7 +611,8 @@ end:
 }
 
 int AllocAudioFifo(const enum AVSampleFormat sample_fmt, const int nb_channels,
-                   AVAudioFifo** encode_fifo) {
+                   AVAudioFifo** encode_fifo)
+{
     if (*encode_fifo) {
         av_audio_fifo_free(*encode_fifo);
         *encode_fifo = NULL;
@@ -599,23 +626,26 @@ int AllocAudioFifo(const enum AVSampleFormat sample_fmt, const int nb_channels,
     return 0;
 }
 
-int AudioFifoPut(AVAudioFifo* fifo, const int nb_samples, void** buffer) {
+int AudioFifoPut(AVAudioFifo* fifo, const int nb_samples, void** buffer)
+{
     int ret = av_audio_fifo_write(fifo, buffer, nb_samples);
     if (ret < nb_samples)
         LogError("%s:%d Could not write data to FIFO(%s) error code = %d.\n",
-                __FILE__, __LINE__, av_err2str(ret), ret);
+                 __FILE__, __LINE__, av_err2str(ret), ret);
     return ret < 0 ? ret : 0;
 }
 
-int AudioFifoGet(AVAudioFifo* fifo, const int nb_samples, void** buffer) {
+int AudioFifoGet(AVAudioFifo* fifo, const int nb_samples, void** buffer)
+{
     int ret = av_audio_fifo_read(fifo, buffer, nb_samples);
     if (ret < 0)
         LogError("%s:%d Could not get data from FIFO(%s) error code = %d\n",
-                __FILE__, __LINE__, av_err2str(ret), ret);
+                 __FILE__, __LINE__, av_err2str(ret), ret);
     return ret;
 }
 
-void AudioFifoReset(AVAudioFifo* fifo) {
+void AudioFifoReset(AVAudioFifo* fifo)
+{
     if (fifo != NULL) av_audio_fifo_reset(fifo);
 }
 
@@ -632,7 +662,8 @@ void AudioFifoReset(AVAudioFifo* fifo) {
 //            pkt->stream_index);
 // }
 
-float UpdateFactorS16(const float factor, const int sum) {
+float UpdateFactorS16(const float factor, const int sum)
+{
     float result = factor;
     if (sum > 32767) {
         result = 32767.0f / (float)(sum);
@@ -645,14 +676,16 @@ float UpdateFactorS16(const float factor, const int sum) {
     return result;
 }
 
-short GetSumS16(const int sum) {
+short GetSumS16(const int sum)
+{
     return sum < 0 ? (-32768 < sum ? sum : -32768)
-                   : (sum < 32767 ? sum : 32767);
+           : (sum < 32767 ? sum : 32767);
 }
 
 void MixBufferS16(const short* src_buffer1, const short* src_buffer2,
                   const int nb_mix_samples, const int nb_channels,
-                  short* dst_buffer, float* left_factor, float* right_factor) {
+                  short* dst_buffer, float* left_factor, float* right_factor)
+{
     int sum = 0;
     for (int i = 0; i < nb_mix_samples; ++i) {
         if (1 == nb_channels) {
@@ -671,7 +704,8 @@ void MixBufferS16(const short* src_buffer1, const short* src_buffer2,
     }
 }
 
-void StereoToMonoS16(short* dst, short* src, const int nb_samples) {
+void StereoToMonoS16(short* dst, short* src, const int nb_samples)
+{
     short* p = src;
     short* q = dst;
     int n = nb_samples;
@@ -693,7 +727,8 @@ void StereoToMonoS16(short* dst, short* src, const int nb_samples) {
     }
 }
 
-void MonoToStereoS16(short* dst, short* src, const int nb_samples) {
+void MonoToStereoS16(short* dst, short* src, const int nb_samples)
+{
     short* p = src;
     short* q = dst;
     short v = 0;

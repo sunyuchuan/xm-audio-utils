@@ -26,13 +26,15 @@ typedef struct {
 
 enum MorphType { NONE_MORPH = 0, ROBOT, BRIGHT, MAN, WOMAN };
 
-static void morph_core_free(VoiceMorph **morph) {
+static void morph_core_free(VoiceMorph **morph)
+{
     if (!morph || !(*morph)) return;
 
     VoiceMorph_Release(morph);
 }
 
-static int voice_morph_close(EffectContext *ctx) {
+static int voice_morph_close(EffectContext *ctx)
+{
     assert(NULL != ctx);
     if (NULL == ctx->priv) return 0;
     priv_t *priv = (priv_t *)ctx->priv;
@@ -51,7 +53,8 @@ static int voice_morph_close(EffectContext *ctx) {
     return 0;
 }
 
-static int voice_morph_init(EffectContext *ctx, int argc, const char **argv) {
+static int voice_morph_init(EffectContext *ctx, int argc, const char **argv)
+{
     LogInfo("%s.\n", __func__);
     for (int i = 0; i < argc; ++i) {
         LogInfo("argv[%d] = %s\n", i, argv[i]);
@@ -102,32 +105,33 @@ end:
 }
 
 static int morph_core_set_type(priv_t *priv,
-        enum MorphType type) {
+                               enum MorphType type)
+{
     float pitch_coeff = 1.0f;
     int ret = -1;
     switch (type) {
-        case NONE_MORPH:
-            pitch_coeff = 1.0f;
-            priv->robot = false;
-            break;
-        case ROBOT:
-            pitch_coeff = 1.0f;
-            priv->robot = true;
-            break;
-        case BRIGHT:
-            pitch_coeff = 1.0f;
-            priv->robot = false;
-            break;
-        case MAN:
-            pitch_coeff = 0.8f;
-            priv->robot = false;
-            break;
-        case WOMAN:
-            pitch_coeff = 1.5f;
-            priv->robot = false;
-            break;
-        default:
-            break;
+    case NONE_MORPH:
+        pitch_coeff = 1.0f;
+        priv->robot = false;
+        break;
+    case ROBOT:
+        pitch_coeff = 1.0f;
+        priv->robot = true;
+        break;
+    case BRIGHT:
+        pitch_coeff = 1.0f;
+        priv->robot = false;
+        break;
+    case MAN:
+        pitch_coeff = 0.8f;
+        priv->robot = false;
+        break;
+    case WOMAN:
+        pitch_coeff = 1.5f;
+        priv->robot = false;
+        break;
+    default:
+        break;
     }
 
     pthread_mutex_lock(&priv->mutex);
@@ -136,7 +140,8 @@ static int morph_core_set_type(priv_t *priv,
     return ret;
 }
 
-static void voice_morph_set_mode(priv_t *priv, const char *mode) {
+static void voice_morph_set_mode(priv_t *priv, const char *mode)
+{
     if (0 == strcasecmp(mode, "None")) {
         LogInfo("%s set original.\n", __func__);
         morph_core_set_type(priv, NONE_MORPH);
@@ -160,7 +165,8 @@ static void voice_morph_set_mode(priv_t *priv, const char *mode) {
     }
 }
 
-static int voice_morph_set(EffectContext *ctx, const char *key, int flags) {
+static int voice_morph_set(EffectContext *ctx, const char *key, int flags)
+{
     assert(NULL != ctx);
 
     AEDictionaryEntry *entry = ae_dict_get(ctx->options, key, NULL, flags);
@@ -180,7 +186,8 @@ static int voice_morph_set(EffectContext *ctx, const char *key, int flags) {
 }
 
 static int voice_morph_send(EffectContext *ctx, const void *samples,
-                            const size_t nb_samples) {
+                            const size_t nb_samples)
+{
     assert(NULL != ctx);
     priv_t *priv = (priv_t *)ctx->priv;
     assert(NULL != priv);
@@ -190,7 +197,8 @@ static int voice_morph_send(EffectContext *ctx, const void *samples,
 }
 
 static int voice_morph_receive(EffectContext *ctx,
-        void *samples, const size_t max_nb_samples) {
+                               void *samples, const size_t max_nb_samples)
+{
     assert(NULL != ctx);
     priv_t *priv = (priv_t *)ctx->priv;
     assert(NULL != priv);
@@ -204,8 +212,8 @@ static int voice_morph_receive(EffectContext *ctx,
             int output_size = 0;
             pthread_mutex_lock(&priv->mutex);
             ret = VoiceMorph_Process(priv->morph,
-                    (void*)priv->in_buf, ret << 1,
-                    (char*)priv->out_buf, &output_size, priv->robot);
+                                     (void*)priv->in_buf, ret << 1,
+                                     (char*)priv->out_buf, &output_size, priv->robot);
             pthread_mutex_unlock(&priv->mutex);
             if (ret < 0) {
                 LogError("%s VoiceMorph_Process error %d.\n", __func__, ret);
@@ -227,7 +235,8 @@ static int voice_morph_receive(EffectContext *ctx,
     return fifo_read(priv->fifo_out, samples, max_nb_samples);
 }
 
-const EffectHandler *effect_voice_morph_fn(void) {
+const EffectHandler *effect_voice_morph_fn(void)
+{
     static EffectHandler handler = {.name = "voice_morph",
                                     .usage = "",
                                     .priv_size = sizeof(priv_t),
@@ -235,6 +244,7 @@ const EffectHandler *effect_voice_morph_fn(void) {
                                     .set = voice_morph_set,
                                     .send = voice_morph_send,
                                     .receive = voice_morph_receive,
-                                    .close = voice_morph_close};
+                                    .close = voice_morph_close
+                                   };
     return &handler;
 }

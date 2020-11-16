@@ -6,8 +6,7 @@
 #include "audio_encoder.h"
 #include "hw/ijksdl/ijksdl_thread.h"
 
-typedef struct AudioMuxer
-{
+typedef struct AudioMuxer {
     volatile bool abort;
     volatile bool running;
     // Used to copy buffer
@@ -41,7 +40,7 @@ typedef struct AudioMuxer
 void muxer_free(AudioMuxer *am);
 void muxer_freep(AudioMuxer **am);
 int muxer_write_audio_frame(AudioMuxer *am, const short *buffer,
-        int buffer_size_in_short);
+                            int buffer_size_in_short);
 void muxer_stop(AudioMuxer *am);
 AudioMuxer *muxer_create(MuxerConfig *config);
 

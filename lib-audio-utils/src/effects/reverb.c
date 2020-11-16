@@ -21,7 +21,8 @@ typedef struct {
 
 /* gcc -O2 will inline this */
 static sample_type comb_process(filter_t *filter, const sample_type input,
-                                const float feedback, const float hf_damping) {
+                                const float feedback, const float hf_damping)
+{
     sample_type output = *filter->ptr;
     filter->store = output + (filter->store - output) * hf_damping;
     *filter->ptr = input + filter->store * feedback;
@@ -30,7 +31,8 @@ static sample_type comb_process(filter_t *filter, const sample_type input,
 }
 
 /* gcc -O2 will inline this */
-static sample_type allpass_process(filter_t *filter, const sample_type input) {
+static sample_type allpass_process(filter_t *filter, const sample_type input)
+{
     sample_type output = *filter->ptr;
     *filter->ptr = input + output * 0.5f;
     if (--filter->ptr < filter->buffer) filter->ptr += filter->size;
@@ -39,7 +41,8 @@ static sample_type allpass_process(filter_t *filter, const sample_type input) {
 
 /* Filter delay lengths in samples (44100Hz sample-rate) */
 static const size_t comb_lengths[] = {1116, 1188, 1277, 1356,
-                                      1422, 1491, 1557, 1617};
+                                      1422, 1491, 1557, 1617
+                                     };
 static const size_t allpass_lengths[] = {225, 341, 441, 556};
 
 typedef struct {
@@ -48,7 +51,8 @@ typedef struct {
 } filter_array_t;
 
 static void filter_array_create(filter_array_t *p, float sample_rate,
-                                float room_scale) {
+                                float room_scale)
+{
     /* Compensate for actual sample-rate */
     float r = sample_rate * (1 / 44100.0f);
 
@@ -56,20 +60,21 @@ static void filter_array_create(filter_array_t *p, float sample_rate,
         filter_t *pcomb = &p->comb[i];
         pcomb->size = (size_t)(room_scale * r * (comb_lengths[i]) + 0.5f);
         pcomb->ptr = pcomb->buffer =
-            (sample_type *)calloc(pcomb->size, sizeof(sample_type));
+                         (sample_type *)calloc(pcomb->size, sizeof(sample_type));
     }
     for (size_t i = 0; i < array_length(allpass_lengths); ++i) {
         filter_t *pallpass = &p->allpass[i];
         pallpass->size = (size_t)(r * (allpass_lengths[i]) + 0.5f);
         pallpass->ptr = pallpass->buffer =
-            (sample_type *)calloc(pallpass->size, sizeof(sample_type));
+                            (sample_type *)calloc(pallpass->size, sizeof(sample_type));
     }
 }
 
 static void filter_array_process(filter_array_t *p, size_t length,
                                  sample_type const *input, sample_type *output,
                                  float const feedback, float const hf_damping,
-                                 float const gain) {
+                                 float const gain)
+{
     while (length--) {
         sample_type out = 0.0f;
         sample_type in = *input++;
@@ -86,7 +91,8 @@ static void filter_array_process(filter_array_t *p, size_t length,
     }
 }
 
-static void filter_array_delete(filter_array_t *p) {
+static void filter_array_delete(filter_array_t *p)
+{
     for (size_t i = 0; i < array_length(allpass_lengths); ++i) {
         if ((&p->allpass[i])->buffer) {
             free((&p->allpass[i])->buffer);
@@ -125,7 +131,8 @@ typedef struct {
     sample_type wet_buf[MAX_SAMPLE_SIZE];
 } priv_t;
 
-static int reverb_getopts(EffectContext *ctx, int argc, const char **argv) {
+static int reverb_getopts(EffectContext *ctx, int argc, const char **argv)
+{
     LogInfo("%s.\n", __func__);
     priv_t *priv = (priv_t *)ctx->priv;
 
@@ -147,7 +154,8 @@ static int reverb_getopts(EffectContext *ctx, int argc, const char **argv) {
     return argc ? AUDIO_EFFECT_EOF : AUDIO_EFFECT_SUCCESS;
 }
 
-static int reverb_start(EffectContext *ctx) {
+static int reverb_start(EffectContext *ctx)
+{
     LogInfo("%s.\n", __func__);
     priv_t *priv = (priv_t *)ctx->priv;
     size_t delay_samples =
@@ -165,13 +173,13 @@ static int reverb_start(EffectContext *ctx) {
     // 预留delay_samples
     if (priv->delay_samples < delay_samples) {
         short *tmp_samples = (short *)calloc(
-            delay_samples - priv->delay_samples, sizeof(short));
+                                 delay_samples - priv->delay_samples, sizeof(short));
         fifo_write(priv->fifo_in, tmp_samples,
                    delay_samples - priv->delay_samples);
         free(tmp_samples);
     } else if (priv->delay_samples > delay_samples) {
         short *tmp_samples = (short *)calloc(
-            delay_samples - priv->delay_samples, sizeof(short));
+                                 delay_samples - priv->delay_samples, sizeof(short));
         fifo_read(priv->fifo_in, tmp_samples,
                   delay_samples - priv->delay_samples);
         free(tmp_samples);
@@ -183,7 +191,8 @@ static int reverb_start(EffectContext *ctx) {
     return AUDIO_EFFECT_SUCCESS;
 }
 
-static int reverb_parseopts(EffectContext *ctx, const char *argvs) {
+static int reverb_parseopts(EffectContext *ctx, const char *argvs)
+{
 #define MAX_ARGC 50
     const char *argv[MAX_ARGC];
     int argc = 0;
@@ -206,7 +215,8 @@ end:
     return ret;
 }
 
-static int reverb_close(EffectContext *ctx) {
+static int reverb_close(EffectContext *ctx)
+{
     LogInfo("%s.\n", __func__);
     assert(NULL != ctx);
 
@@ -224,7 +234,8 @@ static int reverb_close(EffectContext *ctx) {
     return 0;
 }
 
-static int reverb_init(EffectContext *ctx, int argc, const char **argv) {
+static int reverb_init(EffectContext *ctx, int argc, const char **argv)
+{
     LogInfo("%s.\n", __func__);
     assert(NULL != ctx);
     priv_t *priv = (priv_t *)ctx->priv;
@@ -265,7 +276,8 @@ end:
     return ret;
 }
 
-static void reverb_set_mode(EffectContext *ctx, const char *mode) {
+static void reverb_set_mode(EffectContext *ctx, const char *mode)
+{
     LogInfo("%s mode = %s.\n", __func__, mode);
     priv_t *priv = (priv_t *)ctx->priv;
     if (0 == strcasecmp(mode, "Original")) {
@@ -276,7 +288,8 @@ static void reverb_set_mode(EffectContext *ctx, const char *mode) {
     }
 }
 
-static int reverb_set(EffectContext *ctx, const char *key, int flags) {
+static int reverb_set(EffectContext *ctx, const char *key, int flags)
+{
     assert(NULL != ctx);
 
     int ret = 0;
@@ -304,7 +317,8 @@ static int reverb_set(EffectContext *ctx, const char *key, int flags) {
 }
 
 static int reverb_send(EffectContext *ctx, const void *samples,
-                       const size_t nb_samples) {
+                       const size_t nb_samples)
+{
     assert(NULL != ctx);
     priv_t *priv = (priv_t *)ctx->priv;
     assert(NULL != priv);
@@ -314,7 +328,8 @@ static int reverb_send(EffectContext *ctx, const void *samples,
 }
 
 static int reverb_receive(EffectContext *ctx, void *samples,
-                          const size_t max_nb_samples) {
+                          const size_t max_nb_samples)
+{
     assert(NULL != ctx);
     priv_t *priv = (priv_t *)ctx->priv;
     assert(NULL != priv);
@@ -360,7 +375,8 @@ static int reverb_receive(EffectContext *ctx, void *samples,
     return fifo_read(priv->fifo_out, samples, max_nb_samples);
 }
 
-const EffectHandler *effect_reverb_fn(void) {
+const EffectHandler *effect_reverb_fn(void)
+{
     static EffectHandler handler = {.name = "reverb",
                                     .usage =
                                         "[-w|--wet-only]"
@@ -375,6 +391,7 @@ const EffectHandler *effect_reverb_fn(void) {
                                     .set = reverb_set,
                                     .send = reverb_send,
                                     .receive = reverb_receive,
-                                    .close = reverb_close};
+                                    .close = reverb_close
+                                   };
     return &handler;
 }

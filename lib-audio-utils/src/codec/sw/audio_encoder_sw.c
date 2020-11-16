@@ -16,7 +16,8 @@ typedef struct Encoder_Opaque {
     AVFrame *frame;
 } Encoder_Opaque;
 
-static int sw_encoder_config(Encoder *encoder, AVDictionary *opt) {
+static int sw_encoder_config(Encoder *encoder, AVDictionary *opt)
+{
     LogInfo("%s.\n", __func__);
     int ret = -1;
     Encoder_Opaque *opaque = encoder->opaque;
@@ -30,11 +31,11 @@ static int sw_encoder_config(Encoder *encoder, AVDictionary *opt) {
                 codec_id = AV_CODEC_ID_H264;
                 opaque->type = FF_AVMEDIA_TYPE_VIDEO;
                 break;
-            } else if (!strcasecmp(e->value, MIME_AUDIO_AAC)){
+            } else if (!strcasecmp(e->value, MIME_AUDIO_AAC)) {
                 codec_id = AV_CODEC_ID_AAC;
                 opaque->type = FF_AVMEDIA_TYPE_AUDIO;
                 break;
-            } else if (!strcasecmp(e->value, MIME_AUDIO_WAV)){
+            } else if (!strcasecmp(e->value, MIME_AUDIO_WAV)) {
                 codec_id = AV_CODEC_ID_PCM_S16LE;
                 opaque->type = FF_AVMEDIA_TYPE_AUDIO;
                 break;
@@ -49,8 +50,8 @@ static int sw_encoder_config(Encoder *encoder, AVDictionary *opt) {
     /* find the encoder */
     AVCodec *codec = avcodec_find_encoder(codec_id);
     if (!codec) {
-       LogError("Codec not found.\n");
-       return ret;
+        LogError("Codec not found.\n");
+        return ret;
     }
 
     AVCodecContext *ctx = avcodec_alloc_context3(codec);
@@ -75,7 +76,7 @@ static int sw_encoder_config(Encoder *encoder, AVDictionary *opt) {
 
         ctx->cutoff = 18000;
         ctx->sample_fmt =
-                codec->sample_fmts ? codec->sample_fmts[0] : AV_SAMPLE_FMT_FLTP;
+            codec->sample_fmts ? codec->sample_fmts[0] : AV_SAMPLE_FMT_FLTP;
         LogInfo("sample fmt %x.\n", ctx->sample_fmt);
         bool supported_samplerates = false;
         if (codec->supported_samplerates) {
@@ -93,7 +94,9 @@ static int sw_encoder_config(Encoder *encoder, AVDictionary *opt) {
         if (!ctx->channel_layout) {
             ctx->channel_layout = av_get_default_channel_layout(ctx->channels);
         }
-        ctx->time_base = (AVRational){1, ctx->sample_rate};
+        ctx->time_base = (AVRational) {
+            1, ctx->sample_rate
+        };
         LogInfo("sw sample rate %d bit rate %" PRId64 " channel %d.\n", ctx->sample_rate, ctx->bit_rate, ctx->channels);
     } else if(opaque->type == FF_AVMEDIA_TYPE_VIDEO) {
         //video encoder config
@@ -113,7 +116,9 @@ static int sw_encoder_config(Encoder *encoder, AVDictionary *opt) {
                 ctx->pix_fmt = atoi(e->value);
             } else if (!strcasecmp(e->key, "framerate")) {
                 framerate = atoi(e->value);
-                ctx->framerate = (AVRational){ framerate, 1 };
+                ctx->framerate = (AVRational) {
+                    framerate, 1
+                };
             } else if (!strcasecmp(e->key, "preset")) {
                 av_opt_set(ctx->priv_data, "preset", e->value, 0);
             } else if (!strcasecmp(e->key, "tune")) {
@@ -127,7 +132,9 @@ static int sw_encoder_config(Encoder *encoder, AVDictionary *opt) {
             }
         }
         //av_opt_set(ctx->priv_data, "preset", "slow", 0);
-        ctx->time_base = (AVRational){1, framerate * multiple};
+        ctx->time_base = (AVRational) {
+            1, framerate * multiple
+        };
         LogInfo("sw bitrate %" PRId64 " w x h %dx%d framerate %d gopsize %d.\n", ctx->bit_rate, ctx->width, ctx->height, framerate, ctx->gop_size);
     } else {
         LogError("unknown media type !!!\n");
@@ -135,8 +142,8 @@ static int sw_encoder_config(Encoder *encoder, AVDictionary *opt) {
 
     /* open it */
     if (avcodec_open2(ctx, codec, NULL) < 0) {
-       LogError("Could not open codec.\n");
-       return -1;
+        LogError("Could not open codec.\n");
+        return -1;
     }
 
     //need convert s16 to float alloc a temp audio frame
@@ -158,9 +165,9 @@ static int sw_encoder_config(Encoder *encoder, AVDictionary *opt) {
         opaque->frame->channel_layout = ctx->channel_layout;
         ret = av_frame_get_buffer(opaque->frame, 0);
         if (ret < 0) {
-           LogError("Could not allocate audio data buffers %s.\n", av_err2str(ret));
-           av_frame_free(&opaque->frame);
-           goto fail;
+            LogError("Could not allocate audio data buffers %s.\n", av_err2str(ret));
+            av_frame_free(&opaque->frame);
+            goto fail;
         }
     }
     opaque->codec_ctx = ctx;
@@ -192,7 +199,8 @@ static void S16toFLTP(int16_t* in, float** out, int size, int out_channels)
     }
 }
 
-static int sw_encoder_encode_frame(Encoder *encoder, AVFrame *frame, AVPacket *pkt, int *got_packet_ptr) {
+static int sw_encoder_encode_frame(Encoder *encoder, AVFrame *frame, AVPacket *pkt, int *got_packet_ptr)
+{
     Encoder_Opaque *opaque = encoder->opaque;
     AVCodecContext *ctx = opaque->codec_ctx;
     int ret = -1;
@@ -203,7 +211,7 @@ static int sw_encoder_encode_frame(Encoder *encoder, AVFrame *frame, AVPacket *p
             } else {
                 AVFrame *floatframe = opaque->frame;
                 S16toFLTP((int16_t *)frame->data[0], (float **)floatframe->data,
-                    ctx->frame_size * ctx->channels, ctx->channels);
+                          ctx->frame_size * ctx->channels, ctx->channels);
                 floatframe->format = AV_SAMPLE_FMT_FLTP;
                 floatframe->pts = frame->pts;
                 ret = avcodec_encode_audio2(ctx, pkt, floatframe, got_packet_ptr);
@@ -219,7 +227,8 @@ static int sw_encoder_encode_frame(Encoder *encoder, AVFrame *frame, AVPacket *p
     }
 }
 
-static int sw_encoder_destroy(Encoder *encoder) {
+static int sw_encoder_destroy(Encoder *encoder)
+{
     LogInfo("%s.\n", __func__);
     Encoder_Opaque *opaque = encoder->opaque;
     if (opaque) {
@@ -233,7 +242,8 @@ static int sw_encoder_destroy(Encoder *encoder) {
     return 0;
 }
 
-Encoder *ff_encoder_sw_create() {
+Encoder *ff_encoder_sw_create()
+{
     LogInfo("%s.\n", __func__);
     Encoder *encoder = ff_encoder_alloc(sizeof(Encoder_Opaque));
     if (!encoder)

@@ -21,7 +21,8 @@ typedef struct {
     bool is_noise_suppression_on;
 } priv_t;
 
-static int noise_suppression_close(EffectContext *ctx) {
+static int noise_suppression_close(EffectContext *ctx)
+{
     LogInfo("%s.\n", __func__);
     if(NULL == ctx) return -1;
 
@@ -48,12 +49,15 @@ static int noise_suppression_close(EffectContext *ctx) {
 }
 
 static int noise_suppression_init(EffectContext *ctx,
-        int argc, const char **argv) {
+                                  int argc, const char **argv)
+{
     LogInfo("%s.\n", __func__);
     for (int i = 0; i < argc; ++i) {
         LogInfo("argv[%d] = %s\n", i, argv[i]);
     }
-    if(NULL == ctx) {return -1;}
+    if(NULL == ctx) {
+        return -1;
+    }
     priv_t *priv = (priv_t *)ctx->priv;
     if (NULL == priv) return AEERROR_NULL_POINT;
 
@@ -103,7 +107,8 @@ end:
 }
 
 static int noise_suppression_set(EffectContext *ctx,
-        const char *key, int flags) {
+                                 const char *key, int flags)
+{
     if(NULL == ctx) return -1;
 
     priv_t *priv = ctx->priv;
@@ -124,7 +129,8 @@ static int noise_suppression_set(EffectContext *ctx,
 }
 
 static int noise_suppression_send(EffectContext *ctx,
-        const void *samples, const size_t nb_samples) {
+                                  const void *samples, const size_t nb_samples)
+{
     if(!ctx) return -1;
     priv_t *priv = (priv_t *)ctx->priv;
     if(!priv || !priv->fifo_in) return -1;
@@ -133,7 +139,8 @@ static int noise_suppression_send(EffectContext *ctx,
 }
 
 static int noise_suppression_receive(EffectContext *ctx,
-        void *samples, const size_t max_nb_samples) {
+                                     void *samples, const size_t max_nb_samples)
+{
     int ret = -1;
     if(!ctx) return ret;
     priv_t *priv = (priv_t *)ctx->priv;
@@ -145,7 +152,7 @@ static int noise_suppression_receive(EffectContext *ctx,
             ret = fifo_read(priv->fifo_in, priv->in_buf, NB_SAMPLES);
             if (ret > 0) {
                 ret = XmNS_Process(priv->ns, priv->in_buf, ret,
-                    priv->out_buf, NB_SAMPLES);
+                                   priv->out_buf, NB_SAMPLES);
                 if (ret > 0)
                     fifo_write(priv->fifo_out, priv->out_buf, ret);
             }
@@ -165,7 +172,8 @@ static int noise_suppression_receive(EffectContext *ctx,
     return fifo_read(priv->fifo_out, samples, max_nb_samples);
 }
 
-const EffectHandler *effect_noise_suppression_fn(void) {
+const EffectHandler *effect_noise_suppression_fn(void)
+{
     static EffectHandler handler = {.name = "noise_suppression",
                                     .usage = "",
                                     .priv_size = sizeof(priv_t),
@@ -173,6 +181,7 @@ const EffectHandler *effect_noise_suppression_fn(void) {
                                     .set = noise_suppression_set,
                                     .send = noise_suppression_send,
                                     .receive = noise_suppression_receive,
-                                    .close = noise_suppression_close};
+                                    .close = noise_suppression_close
+                                   };
     return &handler;
 }

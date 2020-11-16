@@ -37,7 +37,8 @@ struct XmMixerContext_T {
     MixerEffects mixer_effects;
 };
 
-static void reverb_free(XmMixerContext *ctx) {
+static void reverb_free(XmMixerContext *ctx)
+{
     LogInfo("%s\n", __func__);
     if (!ctx) return;
 
@@ -47,7 +48,8 @@ static void reverb_free(XmMixerContext *ctx) {
     }
 }
 
-static void mixer_effects_free(MixerEffects *mixer) {
+static void mixer_effects_free(MixerEffects *mixer)
+{
     LogInfo("%s\n", __func__);
     if (NULL == mixer)
         return;
@@ -65,7 +67,8 @@ static void mixer_effects_free(MixerEffects *mixer) {
     }
 }
 
-static int reverb_init(XmMixerContext *ctx) {
+static int reverb_init(XmMixerContext *ctx)
+{
     int ret = -1;
     if (!ctx) return -1;
 
@@ -75,7 +78,7 @@ static int reverb_init(XmMixerContext *ctx) {
     }
 
     ctx->reverb_ctx = create_effect(find_effect("reverb_sox"),
-        ctx->dst_sample_rate, ctx->dst_channels);
+                                    ctx->dst_sample_rate, ctx->dst_channels);
 
     ret = init_effect(ctx->reverb_ctx, 0, NULL);
     if (ret < 0) goto fail;
@@ -93,7 +96,8 @@ fail:
     return ret;
 }
 
-static int mixer_effects_init(MixerEffects *mixer) {
+static int mixer_effects_init(MixerEffects *mixer)
+{
     LogInfo("%s\n", __func__);
     int ret = -1;
     if (NULL == mixer)
@@ -130,7 +134,8 @@ fail:
 }
 
 static int get_pcm_from_decoder(AudioSource *source,
-    short *buffer, int buffer_size_in_short) {
+                                short *buffer, int buffer_size_in_short)
+{
     int ret = -1;
     if (!source || !source->decoder
         || !buffer || buffer_size_in_short <= 0)
@@ -138,17 +143,18 @@ static int get_pcm_from_decoder(AudioSource *source,
 
     if(source->has_effects) {
         ret = audio_effect_get_frame(source->effects_ctx,
-            buffer, buffer_size_in_short);
+                                     buffer, buffer_size_in_short);
     } else {
         ret = IAudioDecoder_get_pcm_frame(source->decoder,
-            buffer, buffer_size_in_short, source->is_loop);
+                                          buffer, buffer_size_in_short, source->is_loop);
     }
 
     return ret;
 }
 
 static IAudioDecoder *open_source_decoder(AudioSource *source,
-        int dst_sample_rate, int dst_channels, int seek_time_ms) {
+        int dst_sample_rate, int dst_channels, int seek_time_ms)
+{
     LogInfo("%s\n", __func__);
     if (!source || !source->file_path)
         return NULL;
@@ -167,16 +173,16 @@ static IAudioDecoder *open_source_decoder(AudioSource *source,
         decoder_type = DECODER_FFMPEG;
     }
     decoder = audio_decoder_create(source->file_path,
-        source->sample_rate, source->nb_channels,
-        dst_sample_rate, decoder_out_channels,
-        source->volume, decoder_type);
+                                   source->sample_rate, source->nb_channels,
+                                   dst_sample_rate, decoder_out_channels,
+                                   source->volume, decoder_type);
     if (!decoder) {
         LogError("%s malloc source decoder failed.\n", __func__);
         return NULL;
     }
 
     if (IAudioDecoder_set_crop_pos(decoder,
-        source->crop_start_time_ms, source->crop_end_time_ms) < 0) {
+                                   source->crop_start_time_ms, source->crop_end_time_ms) < 0) {
         LogError("%s IAudioDecoder_set_crop_pos failed.\n", __func__);
         IAudioDecoder_freep(&decoder);
         return NULL;
@@ -192,7 +198,7 @@ static IAudioDecoder *open_source_decoder(AudioSource *source,
         audio_effect_freep(&source->effects_ctx);
         source->effects_ctx = audio_effect_create();
         if (audio_effect_init(source->effects_ctx,
-                decoder, source->effects_info, dst_channels) < 0) {
+                              decoder, source->effects_info, dst_channels) < 0) {
             LogError("%s audio_effect_init failed.\n", __func__);
             IAudioDecoder_freep(&decoder);
             return NULL;
@@ -213,7 +219,8 @@ static IAudioDecoder *open_source_decoder(AudioSource *source,
 }
 
 static int update_audio_source(AudioSourceQueue *queue,
-        AudioSource *source, int dst_sample_rate, int dst_channels) {
+                               AudioSource *source, int dst_sample_rate, int dst_channels)
+{
     int ret = -1;
     if (!queue || !source || (AudioSourceQueue_size(queue) <= 0))
         return ret;
@@ -222,11 +229,10 @@ static int update_audio_source(AudioSourceQueue *queue,
         AudioSource_free(source);
         if (AudioSourceQueue_get(queue, source) > 0) {
             source->decoder = open_source_decoder(source,
-                dst_sample_rate, dst_channels, 0);
-            if (!source->decoder)
-            {
+                                                  dst_sample_rate, dst_channels, 0);
+            if (!source->decoder) {
                 LogError("%s open decoder failed, file_path: %s.\n",
-                    __func__, source->file_path);
+                         __func__, source->file_path);
                 ret = AEERROR_NOMEM;
             } else {
                 ret = 0;
@@ -238,8 +244,9 @@ static int update_audio_source(AudioSourceQueue *queue,
 }
 
 static void audio_source_seekTo(AudioSourceQueue *queue,
-        AudioSource *source, int dst_sample_rate,
-        int dst_channels, int seek_time_ms) {
+                                AudioSource *source, int dst_sample_rate,
+                                int dst_channels, int seek_time_ms)
+{
     LogInfo("%s\n", __func__);
     if (!queue || !source || (AudioSourceQueue_size(queue) <= 0))
         return;
@@ -267,25 +274,27 @@ static void audio_source_seekTo(AudioSourceQueue *queue,
 
     if (find_source)
         open_source_decoder(source, dst_sample_rate,
-            dst_channels, source_seek_time);
+                            dst_channels, source_seek_time);
     else
         AudioSource_free(source);
 }
 
 static void fade_in_out(AudioSource *source, int sample_rate,
-        int channels, int pcm_start_time, int pcm_duration,
-        short *dst_buffer, int dst_buffer_size) {
+                        int channels, int pcm_start_time, int pcm_duration,
+                        short *dst_buffer, int dst_buffer_size)
+{
     if (!source || !dst_buffer)
         return;
 
     check_fade_in_out(&(source->fade_io), pcm_start_time, pcm_duration,
-        sample_rate, source->start_time_ms, source->end_time_ms);
+                      sample_rate, source->start_time_ms, source->end_time_ms);
     scale_with_ramp(&(source->fade_io), dst_buffer,
-        dst_buffer_size / channels, channels);
+                    dst_buffer_size / channels, channels);
 }
 
 static AudioMuxer *open_muxer(int dst_sample_rate, int dst_channels,
-	int bytes_per_sample, const char *out_file_path, int encoder_type) {
+                              int bytes_per_sample, const char *out_file_path, int encoder_type)
+{
     LogInfo("%s\n", __func__);
     if (!out_file_path )
         return NULL;
@@ -301,33 +310,33 @@ static AudioMuxer *open_muxer(int dst_sample_rate, int dst_channels,
     config.codec_id = AV_CODEC_ID_AAC;
     config.output_filename = av_strdup(out_file_path);
     switch (bytes_per_sample) {
-        case 1:
-            config.src_sample_fmt = AV_SAMPLE_FMT_U8;
-            break;
-        case 2:
-            config.src_sample_fmt = AV_SAMPLE_FMT_S16;
-            break;
-        case 4:
-            config.src_sample_fmt = AV_SAMPLE_FMT_S32;
-            break;
-        default:
-            LogError("%s bytes_per_sample %d is invalid.\n", __func__, bytes_per_sample);
-            return NULL;
+    case 1:
+        config.src_sample_fmt = AV_SAMPLE_FMT_U8;
+        break;
+    case 2:
+        config.src_sample_fmt = AV_SAMPLE_FMT_S16;
+        break;
+    case 4:
+        config.src_sample_fmt = AV_SAMPLE_FMT_S32;
+        break;
+    default:
+        LogError("%s bytes_per_sample %d is invalid.\n", __func__, bytes_per_sample);
+        return NULL;
     }
     switch (encoder_type) {
-        case ENCODER_FFMPEG:
-            config.encoder_type = ENCODER_FFMPEG;
-            break;
-        case ENCODER_MEDIA_CODEC:
-            config.encoder_type = ENCODER_MEDIA_CODEC;
-            break;
-        case ENCODER_IOS_HW:
-            config.encoder_type = ENCODER_IOS_HW;
-            break;
-        default:
-            LogError("%s encoder_type %d is invalid.\n", __func__, encoder_type);
-            config.encoder_type = ENCODER_NONE;
-            return NULL;
+    case ENCODER_FFMPEG:
+        config.encoder_type = ENCODER_FFMPEG;
+        break;
+    case ENCODER_MEDIA_CODEC:
+        config.encoder_type = ENCODER_MEDIA_CODEC;
+        break;
+    case ENCODER_IOS_HW:
+        config.encoder_type = ENCODER_IOS_HW;
+        break;
+    default:
+        LogError("%s encoder_type %d is invalid.\n", __func__, encoder_type);
+        config.encoder_type = ENCODER_NONE;
+        return NULL;
     }
     muxer = muxer_create(&config);
     free(config.output_filename);
@@ -389,7 +398,8 @@ static void mixer_free_l(XmMixerContext *ctx)
 }
 
 static void add_reverb_and_write_fifo(XmMixerContext *ctx,
-        short *buffer, int buffer_len) {
+                                      short *buffer, int buffer_len)
+{
     if (!ctx || !buffer || buffer_len <= 0)
         return;
 
@@ -415,8 +425,9 @@ static void add_reverb_and_write_fifo(XmMixerContext *ctx,
 }
 
 static short *mixer_combine(AudioSource *source,
-    int mix_len, short *prev_buffer,
-    short *dst_buffer, int channels) {
+                            int mix_len, short *prev_buffer,
+                            short *dst_buffer, int channels)
+{
     if (!source || !source->buffer.buffer
         || !prev_buffer || !dst_buffer)
         return NULL;
@@ -426,15 +437,16 @@ static short *mixer_combine(AudioSource *source,
     }
 
     MixBufferS16(prev_buffer, source->buffer.buffer,
-        mix_len / channels, channels, dst_buffer,
-        &(source->left_factor), &(source->right_factor));
+                 mix_len / channels, channels, dst_buffer,
+                 &(source->left_factor), &(source->right_factor));
 
     return dst_buffer;
 }
 
 static int fill_track_buffer(AudioSourceQueue *queue,
-    AudioSource *source, int fill_len, int start_time,
-    int duration, int sample_rate, int channels) {
+                             AudioSource *source, int fill_len, int start_time,
+                             int duration, int sample_rate, int channels)
+{
     int ret = -1;
     if (!source || !source->decoder
         || !source->buffer.buffer)
@@ -450,26 +462,26 @@ static int fill_track_buffer(AudioSourceQueue *queue,
         buffer_size_in_short = fill_len > 0 ? fill_len : 0;
 
         buffer_size_in_short = get_pcm_from_decoder(source,
-            buffer, buffer_size_in_short);
+                               buffer, buffer_size_in_short);
         if (buffer_size_in_short <= 0) {
             goto end;
         }
     } else if (start_time < source->start_time_ms &&
-            start_time + duration > source->start_time_ms) {
+               start_time + duration > source->start_time_ms) {
         memset(buffer, 0, sizeof(short) * MAX_NB_SAMPLES);
         buffer_data_start_index = ((source->start_time_ms - start_time)
-            * sample_rate * channels) / 1000;
+                                   * sample_rate * channels) / 1000;
         buffer_size_in_short =
             fill_len - buffer_data_start_index > 0 ?
             fill_len - buffer_data_start_index : 0;
 
         buffer_size_in_short = get_pcm_from_decoder(source,
-            buffer + buffer_data_start_index, buffer_size_in_short);
+                               buffer + buffer_data_start_index, buffer_size_in_short);
         if (buffer_size_in_short <= 0) {
             goto end;
         }
     } else if (start_time <= source->end_time_ms &&
-            start_time + duration >= source->end_time_ms) {
+               start_time + duration >= source->end_time_ms) {
         buffer = (short *)calloc(sizeof(short), MAX_NB_SAMPLES);
         if (!buffer) {
             LogError("%s calloc temporary buffer failed.\n", __func__);
@@ -479,15 +491,15 @@ static int fill_track_buffer(AudioSourceQueue *queue,
 
         buffer_data_start_index = 0;
         buffer_size_in_short = ((source->end_time_ms - start_time)
-            * sample_rate * channels) / 1000;
+                                * sample_rate * channels) / 1000;
         buffer_size_in_short =
             buffer_size_in_short > 0 ? buffer_size_in_short : 0;
 
         buffer_size_in_short = get_pcm_from_decoder(source,
-            buffer, buffer_size_in_short);
+                               buffer, buffer_size_in_short);
         if (buffer_size_in_short > 0) {
             fade_in_out(source, sample_rate, channels, start_time,
-                duration, buffer, buffer_size_in_short);
+                        duration, buffer, buffer_size_in_short);
         } else {
             buffer_size_in_short = 0;
         }
@@ -509,9 +521,9 @@ static int fill_track_buffer(AudioSourceQueue *queue,
             buffer_size_in_short =
                 buffer_size_in_short > 0 ? buffer_size_in_short : 0;
             buffer_size_in_short = get_pcm_from_decoder(source,
-                buffer + buffer_data_start_index, buffer_size_in_short);
+                                   buffer + buffer_data_start_index, buffer_size_in_short);
             fade_in_out(source, sample_rate, channels, start_time, duration,
-                buffer + buffer_data_start_index, buffer_size_in_short);
+                        buffer + buffer_data_start_index, buffer_size_in_short);
         }
         memcpy(source->buffer.buffer, buffer, sizeof(short) * MAX_NB_SAMPLES);
         free(buffer);
@@ -525,22 +537,23 @@ static int fill_track_buffer(AudioSourceQueue *queue,
     }
 
     fade_in_out(source, sample_rate, channels, start_time,
-        duration, buffer + buffer_data_start_index, buffer_size_in_short);
+                duration, buffer + buffer_data_start_index, buffer_size_in_short);
     ret = 0;
 end:
     return ret;
 }
 
-static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
+static int mixer_mix_and_write_fifo(XmMixerContext *ctx)
+{
     if (!ctx) return -1;
     int ret = -1, read_len = MAX_NB_SAMPLES;
     int buffer_start_ms = ctx->seek_time_ms +
-        calculation_duration_ms(ctx->cur_size,
-        ctx->bits_per_sample >> 3, ctx->dst_channels,
-        ctx->dst_sample_rate);
+                          calculation_duration_ms(ctx->cur_size,
+                                  ctx->bits_per_sample >> 3, ctx->dst_channels,
+                                  ctx->dst_sample_rate);
     int duration = calculation_duration_ms(
-        read_len * sizeof(short), ctx->bits_per_sample >> 3,
-        ctx->dst_channels, ctx->dst_sample_rate);
+                       read_len * sizeof(short), ctx->bits_per_sample >> 3,
+                       ctx->dst_channels, ctx->dst_sample_rate);
 
     int file_duration = ctx->mixer_effects.duration_ms;
     if (buffer_start_ms >= file_duration) {
@@ -549,7 +562,7 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
     } else if ((buffer_start_ms + duration >= file_duration)) {
         duration = file_duration - buffer_start_ms;
         read_len = (duration * ctx->dst_sample_rate
-            * ctx->dst_channels) / 1000;
+                    * ctx->dst_channels) / 1000;
     }
 
     short *prev_buffer = NULL;
@@ -557,7 +570,7 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
         AudioSource *source = ctx->mixer_effects.source[i];
         AudioSourceQueue *queue = ctx->mixer_effects.sourceQueue[i];
         if (fill_track_buffer(queue, source, read_len, buffer_start_ms,
-            duration, ctx->dst_sample_rate, ctx->dst_channels) < 0) {
+                              duration, ctx->dst_sample_rate, ctx->dst_channels) < 0) {
             source->buffer.mute = true;
         } else {
             source->buffer.mute = false;
@@ -567,23 +580,23 @@ static int mixer_mix_and_write_fifo(XmMixerContext *ctx) {
             if (prev_buffer != NULL) {
                 if (source->side_chain_enable) {
                     side_chain_compress(prev_buffer,
-                        source->buffer.buffer, &(source->yl_prev),
-                        read_len, ctx->dst_sample_rate, ctx->dst_channels,
-                        SIDE_CHAIN_THRESHOLD, SIDE_CHAIN_RATIO,
-                        SIDE_CHAIN_ATTACK_MS, SIDE_CHAIN_RELEASE_MS,
-                        source->makeup_gain);
+                                        source->buffer.buffer, &(source->yl_prev),
+                                        read_len, ctx->dst_sample_rate, ctx->dst_channels,
+                                        SIDE_CHAIN_THRESHOLD, SIDE_CHAIN_RATIO,
+                                        SIDE_CHAIN_ATTACK_MS, SIDE_CHAIN_RELEASE_MS,
+                                        source->makeup_gain);
                 }
                 prev_buffer = mixer_combine(source, read_len,
-                    prev_buffer, source->buffer.buffer,
-                    ctx->dst_channels);
+                                            prev_buffer, source->buffer.buffer,
+                                            ctx->dst_channels);
             } else {
                 if (source->side_chain_enable) {
                     side_chain_compress(ctx->zero_buffer,
-                        source->buffer.buffer, &(source->yl_prev),
-                        read_len, ctx->dst_sample_rate, ctx->dst_channels,
-                        SIDE_CHAIN_THRESHOLD, SIDE_CHAIN_RATIO,
-                        SIDE_CHAIN_ATTACK_MS, SIDE_CHAIN_RELEASE_MS,
-                        source->makeup_gain);
+                                        source->buffer.buffer, &(source->yl_prev),
+                                        read_len, ctx->dst_sample_rate, ctx->dst_channels,
+                                        SIDE_CHAIN_THRESHOLD, SIDE_CHAIN_RATIO,
+                                        SIDE_CHAIN_ATTACK_MS, SIDE_CHAIN_RELEASE_MS,
+                                        source->makeup_gain);
                 }
                 prev_buffer = source->buffer.buffer;
             }
@@ -603,7 +616,8 @@ end:
     return ret;
 }
 
-void xm_audio_mixer_freep(XmMixerContext **ctx) {
+void xm_audio_mixer_freep(XmMixerContext **ctx)
+{
     LogInfo("%s\n", __func__);
     if (NULL == ctx || NULL == *ctx)
         return;
@@ -615,7 +629,8 @@ void xm_audio_mixer_freep(XmMixerContext **ctx) {
     *ctx = NULL;
 }
 
-void xm_audio_mixer_stop(XmMixerContext *ctx) {
+void xm_audio_mixer_stop(XmMixerContext *ctx)
+{
     LogInfo("%s\n", __func__);
     if (NULL == ctx)
         return;
@@ -623,7 +638,8 @@ void xm_audio_mixer_stop(XmMixerContext *ctx) {
     mixer_abort_l(ctx);
 }
 
-int xm_audio_mixer_get_progress(XmMixerContext *ctx) {
+int xm_audio_mixer_get_progress(XmMixerContext *ctx)
+{
     if (NULL == ctx)
         return 0;
 
@@ -636,20 +652,21 @@ int xm_audio_mixer_get_progress(XmMixerContext *ctx) {
 }
 
 int xm_audio_mixer_get_frame(XmMixerContext *ctx,
-    short *buffer, int buffer_size_in_short) {
+                             short *buffer, int buffer_size_in_short)
+{
     int ret = -1;
     if (!ctx || !buffer || buffer_size_in_short < 0)
         return ret;
 
     while (fifo_occupancy(ctx->audio_fifo) < (size_t) buffer_size_in_short) {
-	ret = mixer_mix_and_write_fifo(ctx);
-	if (ret < 0) {
-	    if (0 < fifo_occupancy(ctx->audio_fifo)) {
-	        break;
-	    } else {
-	        goto end;
-	    }
-	}
+        ret = mixer_mix_and_write_fifo(ctx);
+        if (ret < 0) {
+            if (0 < fifo_occupancy(ctx->audio_fifo)) {
+                break;
+            } else {
+                goto end;
+            }
+        }
     }
 
     return fifo_read(ctx->audio_fifo, buffer, buffer_size_in_short);
@@ -658,7 +675,8 @@ end:
 }
 
 int xm_audio_mixer_seekTo(
-    XmMixerContext *ctx, int seek_time_ms) {
+    XmMixerContext *ctx, int seek_time_ms)
+{
     LogInfo("%s seek_time_ms %d.\n", __func__, seek_time_ms);
     if (!ctx)
         return -1;
@@ -672,14 +690,15 @@ int xm_audio_mixer_seekTo(
             ctx->mixer_effects.sourceQueueBackup[i],
             ctx->mixer_effects.sourceQueue[i]);
         audio_source_seekTo(ctx->mixer_effects.sourceQueue[i],
-            ctx->mixer_effects.source[i], ctx->dst_sample_rate,
-            ctx->dst_channels, ctx->seek_time_ms);
+                            ctx->mixer_effects.source[i], ctx->dst_sample_rate,
+                            ctx->dst_channels, ctx->seek_time_ms);
     }
     return 0;
 }
 
 static int xm_audio_mixer_mix_l(XmMixerContext *ctx,
-    int encoder_type, const char *out_file_path) {
+                                int encoder_type, const char *out_file_path)
+{
     LogInfo("%s.\n", __func__);
     int ret = -1;
     short *buffer = NULL;
@@ -688,7 +707,7 @@ static int xm_audio_mixer_mix_l(XmMixerContext *ctx,
     }
 
     ctx->muxer = open_muxer(ctx->dst_sample_rate, ctx->dst_channels,
-        ctx->bits_per_sample >> 3, out_file_path, encoder_type);
+                            ctx->bits_per_sample >> 3, out_file_path, encoder_type);
     if (!ctx->muxer) {
         LogError("%s open_muxer failed.\n", __func__);
         ret = AEERROR_NOMEM;
@@ -708,8 +727,8 @@ static int xm_audio_mixer_mix_l(XmMixerContext *ctx,
     //if (file_duration > MAX_DURATION_MIX_IN_MS) file_duration = MAX_DURATION_MIX_IN_MS;
     while (!ctx->abort) {
         int cur_position = ctx->seek_time_ms +
-            calculation_duration_ms(ctx->cur_size, ctx->bits_per_sample >> 3,
-            ctx->dst_channels, ctx->dst_sample_rate);
+                           calculation_duration_ms(ctx->cur_size, ctx->bits_per_sample >> 3,
+                                   ctx->dst_channels, ctx->dst_sample_rate);
         int progress = ((float)cur_position / file_duration) * 100;
         pthread_mutex_lock(&ctx->mutex);
         ctx->progress = progress;
@@ -740,7 +759,7 @@ fail:
 }
 
 int xm_audio_mixer_mix(XmMixerContext *ctx,
-    const char *out_file_path, int encoder_type)
+                       const char *out_file_path, int encoder_type)
 {
     LogInfo("%s out_file_path = %s, encoder_type = %d.\n", __func__, out_file_path, encoder_type);
     int ret = -1;
@@ -774,7 +793,7 @@ fail:
 }
 
 int xm_audio_mixer_init(XmMixerContext *ctx,
-        const char *in_config_path)
+                        const char *in_config_path)
 {
     int ret = -1;
     if (!ctx || !in_config_path) {
@@ -802,8 +821,8 @@ int xm_audio_mixer_init(XmMixerContext *ctx,
 
     for (int i = 0; i < MAX_NB_TRACKS; i++) {
         update_audio_source(ctx->mixer_effects.sourceQueue[i],
-            ctx->mixer_effects.source[i], ctx->dst_sample_rate,
-            ctx->dst_channels);
+                            ctx->mixer_effects.source[i], ctx->dst_sample_rate,
+                            ctx->dst_channels);
     }
 
     // Allocate buffer for audio fifo

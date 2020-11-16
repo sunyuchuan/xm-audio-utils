@@ -11,7 +11,7 @@
  * @return false means failure, true means success.
  */
 bool xm_wav_utils_concat(char * const *in_wav_path,
-    int nb_in_wav, const char *out_wav_path);
+                         int nb_in_wav, const char *out_wav_path);
 
 /**
  * @brief crop wav file
@@ -23,7 +23,7 @@ bool xm_wav_utils_concat(char * const *in_wav_path,
  * @return false means failure, true means success.
  */
 bool xm_wav_utils_crop(const char *in_wav_path,
-    long crop_start_ms, long crop_end_ms, const char *out_wav_path);
+                       long crop_start_ms, long crop_end_ms, const char *out_wav_path);
 
 /**
  * @brief get wav audio duration
