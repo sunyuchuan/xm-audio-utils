@@ -131,7 +131,7 @@ enum GeneratorStatus xm_audio_generator_start(
     pthread_mutex_unlock(&self->mutex);
 
     int encode_type = ENCODER_NONE;
-#if defined(__APPLE__)
+#if TARGET_OS_IPHONE
     encode_type = ENCODER_IOS_HW;
 #else
     encode_type = ENCODER_FFMPEG;

@@ -7,7 +7,7 @@
 #include "xm_android_jni.h"
 #include <jni.h>
 #endif
-#if defined(__APPLE__)
+#if TARGET_OS_IPHONE
 #include "hw/audio_encoder_ios_hw.h"
 #endif
 
@@ -373,7 +373,7 @@ static int create_audio_encoder(AudioMuxer *am)
             goto end;
         }
 #endif
-#if defined(__APPLE__)
+#if TARGET_OS_IPHONE
     } else if (am->config.encoder_type == ENCODER_IOS_HW) {
         am->audio_encoder = ff_encoder_ios_hw_create();
         if (NULL == am->audio_encoder) {
@@ -381,6 +381,7 @@ static int create_audio_encoder(AudioMuxer *am)
             ret = -1;
             goto end;
         }
+        LogInfo("%s ff_encoder_ios_hw_create.\n", __func__);
 #endif
     } else {
         LogError("%s unsupport encoder_type %d.\n", __func__, am->config.encoder_type);

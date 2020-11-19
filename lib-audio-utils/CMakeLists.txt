@@ -98,6 +98,10 @@ src/codec/hw/ijksdl/ijksdl_thread.c
 src/codec/hw/ijksdl/ijksdl_thread_ios.m
 src/codec/hw/audio_encoder_ios_hw.m
 )
+elseif(APPLE)
+SET(MEDIACODEC
+src/codec/hw/ijksdl/ijksdl_thread_macos.c
+)
 else()
 SET(MEDIACODEC
 src/codec/hw/ijksdl/ijksdl_thread.c
